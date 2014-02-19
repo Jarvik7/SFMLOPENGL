@@ -9,10 +9,12 @@
 #include <iostream> // For std::cout, std::endl
 #include <string> // For std::String
 
+#include <GL/glew.h>
 #include <SFML/OpenGL.hpp> // For OpenGL functions
 #include <SFML/Graphics.hpp> // For SFML functions (window handling, ttf text drawing, vector2u)
 #include <SFML/Audio.hpp> // For SFML MP3 playback
 #include "j7util.hpp"
+#include "freeglut_geometry.c"
 
 // Enable to display debug output ::TODO:: change this to read project build settings?
 //const bool DISPLAYDEBUGOUTPUT = true;
@@ -28,14 +30,26 @@ const sf::Keyboard::Key key_toggle_fps = sf::Keyboard::Key::Tab;
 
 const std::string windowTitle = "SFML OpenGL";
 
-void initGL()
+bool initGL()
 {
+	//glEnable(GL_LIGHTING);
+	//glEnable(GL_LIGHT0);
     glShadeModel(GL_SMOOTH);
     glClearColor(0, 0, 0, 0.5f);
     glClearDepth(1.0f);                         // Depth Buffer Setup
     glEnable(GL_DEPTH_TEST);                        // Enables Depth Testing
     glDepthFunc(GL_LEQUAL);                         // The Type Of Depth Testing To Do
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+	if (glewInit()) {
+		std::cerr << "Error: Couldn't initialize GLew." << std::endl;
+		return false;
+	}
+	if (DISPLAYDEBUGOUTPUT) {
+		if (GLEW_ARB_compatibility) std::cout << "Compatibility mode supported" << std::endl;
+		if (GLEW_VERSION_1_1) std::cout << "OpenGL 1.1: Vertex arrays supported!" << std::endl;
+		if (GLEW_ARB_vertex_buffer_object) std::cout << "VBO supported!" << std::endl;
+	}
+	return true;
 }
 
 void drawCube()
@@ -86,7 +100,7 @@ int main(int argc, const char * argv[])
     sf::RenderWindow window(sf::VideoMode(800,600,32), windowTitle, sf::Style::Default, windowsettings);
     if (!window.isOpen())
     {
-        std::cerr << "Error: Could not create RenderWindow" << std::endl;
+        std::cerr << "Error: Couldn't create RenderWindow" << std::endl;
         return EXIT_FAILURE;
     }
 
@@ -100,7 +114,7 @@ int main(int argc, const char * argv[])
     sf::Vector2u windowsize = window.getSize();
 
     // Initialize the OpenGL state
-    initGL();
+    if (!initGL()) return EXIT_FAILURE; // Exit, GLew failed.
     adjustPerspective(windowsize);
 
     //Display debug info about graphics
@@ -136,11 +150,83 @@ int main(int argc, const char * argv[])
     bool showfps = true;
     float zoom = 0;
 
+	// Create texture
+    GLuint texture = 0;
+    {
+        sf::Image image;
+        if (!image.loadFromFile("cube.jpg"))
+            return EXIT_FAILURE;
+        glGenTextures(1, &texture);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA, image.getSize().x, image.getSize().y, GL_RGBA, GL_UNSIGNED_BYTE, image.getPixelsPtr());
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    }
+	glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
     //Drawing list for cube
-    GLuint box = glGenLists(1);
+/*    GLuint box = glGenLists(1);
     glNewList(box,GL_COMPILE);
-    drawCube();
-    glEndList();
+    glutSolidCube(5); // Lighted
+	//drawCube(); // Colored
+    glEndList();*/
+
+	GLfloat cube[] =
+    {
+        // positions    // texture coordinates
+        -20, -20, -20,  0, 0,
+        -20,  20, -20,  1, 0,
+        -20, -20,  20,  0, 1,
+        -20, -20,  20,  0, 1,
+        -20,  20, -20,  1, 0,
+        -20,  20,  20,  1, 1,
+
+         20, -20, -20,  0, 0,
+         20,  20, -20,  1, 0,
+         20, -20,  20,  0, 1,
+         20, -20,  20,  0, 1,
+         20,  20, -20,  1, 0,
+         20,  20,  20,  1, 1,
+
+        -20, -20, -20,  0, 0,
+         20, -20, -20,  1, 0,
+        -20, -20,  20,  0, 1,
+        -20, -20,  20,  0, 1,
+         20, -20, -20,  1, 0,
+         20, -20,  20,  1, 1,
+
+        -20,  20, -20,  0, 0,
+         20,  20, -20,  1, 0,
+        -20,  20,  20,  0, 1,
+        -20,  20,  20,  0, 1,
+         20,  20, -20,  1, 0,
+         20,  20,  20,  1, 1,
+
+        -20, -20, -20,  0, 0,
+         20, -20, -20,  1, 0,
+        -20,  20, -20,  0, 1,
+        -20,  20, -20,  0, 1,
+         20, -20, -20,  1, 0,
+         20,  20, -20,  1, 1,
+
+        -20, -20,  20,  0, 0,
+         20, -20,  20,  1, 0,
+        -20,  20,  20,  0, 1,
+        -20,  20,  20,  0, 1,
+         20, -20,  20,  1, 0,
+         20,  20,  20,  1, 1
+    };
+
+    // Enable position and texture coordinates vertex components
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    glVertexPointer(3, GL_FLOAT, 5 * sizeof(GLfloat), cube);
+    glTexCoordPointer(2, GL_FLOAT, 5 * sizeof(GLfloat), cube + 3);
+
+    // Disable normal and color vertex components
+    glDisableClientState(GL_NORMAL_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
 
     // Begin game loop
     while (!gameover)
@@ -148,13 +234,14 @@ int main(int argc, const char * argv[])
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glLoadIdentity();
 
-        glTranslatef(0.0f,0.0f,-10.0f+zoom);              // Move into the screen
+        glTranslatef(0.0f,0.0f,-70.0f+zoom);              // Move into the screen
         if(rotation) rquad+=02.0f;
         glRotatef(rquad * .5f, 1.0f, 0.0f, 0.0f);
         glRotatef(rquad * .3f, 0.0f, 1.0f, 0.0f);
         glRotatef(rquad * .9f, 0.0f, 0.0f, 1.0f);
 
-        glCallList(box); // Draw the box
+        //glCallList(box); // Display list box (colored ot lighted)
+		glDrawArrays(GL_TRIANGLES, 0, 36); // Vertex array box (textured)
 
         if (showfps) showFPS(&window);
         window.display();
@@ -222,7 +309,7 @@ int main(int argc, const char * argv[])
                     break;
 
                 case sf::Event::MouseWheelMoved:
-                    zoom += event.mouseWheel.delta * .02f;
+                    zoom += event.mouseWheel.delta * .5f;
                     break;
 
                 case sf::Event::Resized:
@@ -237,4 +324,15 @@ int main(int argc, const char * argv[])
     }
     return EXIT_SUCCESS;
 }
+/*
+Deprecated stuff I've already learned:
+-Immediate drawing (glBegin, glEnd)
+-Fixed function drawing (glVertex, glNormal, etc.)
+-GL_QUADS
+-Display lists
+
+
+
+
+*/
 
