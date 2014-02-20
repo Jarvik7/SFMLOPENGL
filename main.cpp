@@ -46,7 +46,7 @@ bool initGL()
 	}
 	if (DISPLAYDEBUGOUTPUT) {
 		if (GLEW_ARB_compatibility) std::cout << "Compatibility mode supported" << std::endl;
-		if (GLEW_VERSION_1_1) std::cout << "OpenGL 1.1: Vertex arrays supported!" << std::endl;
+		if (GLEW_VERSION_1_1) std::cout << "OpenGL ver >= 1.1: Vertex arrays supported!" << std::endl;
 		if (GLEW_ARB_vertex_buffer_object) std::cout << "VBO supported!" << std::endl;
 	}
 	return true;
