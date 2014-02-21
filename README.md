@@ -8,7 +8,7 @@ Libraries:
 SFML2.1: Window/GL context management, timers, music, input, texture loading
 ASSIMP 3.0: Model loading
 GLEW 1.10.1: Extension management
-FreeGlut (custom): Geometry routines
+FreeGlut 2.8.1 (custom): Geometry routines
 
 Externals:
 Assimp.dll / assimp.framework
