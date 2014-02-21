@@ -1,0 +1,16 @@
+#
+## Alias OBJ Material File
+# Exported from SketchUp, (c) 2000-2012 Trimble Navigation Limited
+
+newmtl Companion_cube
+Ka 0.000000 0.000000 0.000000
+Kd 0.588235 0.600000 0.619608
+Ks 0.330000 0.330000 0.330000
+map_Kd 2texcube/Companion_cube.jpg
+
+newmtl Concrete_Stamped_Ashlar
+Ka 0.000000 0.000000 0.000000
+Kd 0.501961 0.278431 0.258824
+Ks 0.330000 0.330000 0.330000
+map_Kd 2texcube/Concrete_Stamped_Ashlar.jpg
+

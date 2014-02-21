@@ -8,8 +8,14 @@
 
 #include <iostream> // For std::cout, std::endl
 #include <string> // For std::String
+#include <map>
+#include <vector>
 
-#include <GL/glew.h>
+#include <assimp/Importer.hpp>	//For 3D model loading
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+
+#include <GL/glew.h>	// For OpenGL Extensions
 #include <SFML/OpenGL.hpp> // For OpenGL functions
 #include <SFML/Graphics.hpp> // For SFML functions (window handling, ttf text drawing, vector2u)
 #include <SFML/Audio.hpp> // For SFML MP3 playback
@@ -32,14 +38,16 @@ const std::string windowTitle = "SFML OpenGL";
 
 bool initGL()
 {
-	//glEnable(GL_LIGHTING);
-	//glEnable(GL_LIGHT0);
+	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
     glShadeModel(GL_SMOOTH);
     glClearColor(0, 0, 0, 0.5f);
     glClearDepth(1.0f);                         // Depth Buffer Setup
     glEnable(GL_DEPTH_TEST);                        // Enables Depth Testing
     glDepthFunc(GL_LEQUAL);                         // The Type Of Depth Testing To Do
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+	glEnable(GL_TEXTURE_2D);
+
 	if (glewInit()) {
 		std::cerr << "Error: Couldn't initialize GLew." << std::endl;
 		return false;
@@ -52,46 +60,110 @@ bool initGL()
 	return true;
 }
 
-void drawCube()
-{
-    glBegin(GL_QUADS);                  // Start Drawing The Cube
-    glColor3f(0.0f,1.0f,0.0f);          // Set The Color To Green
-    glVertex3f( 1.0f, 1.0f,-1.0f);          // Top Right Of The Quad (Top)
-    glVertex3f(-1.0f, 1.0f,-1.0f);          // Top Left Of The Quad (Top)
-    glVertex3f(-1.0f, 1.0f, 1.0f);          // Bottom Left Of The Quad (Top)
-    glVertex3f( 1.0f, 1.0f, 1.0f);          // Bottom Right Of The Quad (Top)
 
-    glColor3f(1.0f,0.5f,0.0f);          // Set The Color To Orange
-    glVertex3f( 1.0f,-1.0f, 1.0f);          // Top Right Of The Quad (Bottom)
-    glVertex3f(-1.0f,-1.0f, 1.0f);          // Top Left Of The Quad (Bottom)
-    glVertex3f(-1.0f,-1.0f,-1.0f);          // Bottom Left Of The Quad (Bottom)
-    glVertex3f( 1.0f,-1.0f,-1.0f);          // Bottom Right Of The Quad (Bottom)
+class j7mesh {
+/*
+This class is to handle loading meshes and textures from a file and supplying functions to create a
+- DisplayList
+- Vertex Array
+- VBO
 
-    glColor3f(1.0f,0.0f,0.0f);          // Set The Color To Red
-    glVertex3f( 1.0f, 1.0f, 1.0f);          // Top Right Of The Quad (Front)
-    glVertex3f(-1.0f, 1.0f, 1.0f);          // Top Left Of The Quad (Front)
-    glVertex3f(-1.0f,-1.0f, 1.0f);          // Bottom Left Of The Quad (Front)
-    glVertex3f( 1.0f,-1.0f, 1.0f);          // Bottom Right Of The Quad (Front)
+It does not handle anything other than a basic diffuse texture and maybe material color.
+It only handles triangulated meshes.
+*/
 
-    glColor3f(1.0f,1.0f,0.0f);          // Set The Color To Yellow
-    glVertex3f( 1.0f,-1.0f,-1.0f);          // Bottom Left Of The Quad (Back)
-    glVertex3f(-1.0f,-1.0f,-1.0f);          // Bottom Right Of The Quad (Back)
-    glVertex3f(-1.0f, 1.0f,-1.0f);          // Top Right Of The Quad (Back)
-    glVertex3f( 1.0f, 1.0f,-1.0f);          // Top Left Of The Quad (Back)
+public:
+	bool isloaded;
+	GLuint displayList;
+	j7mesh(std::string path)
+	{
+		isloaded=false;
+		Assimp::Importer importer;
+		scene = importer.ReadFile(path, aiProcessPreset_TargetRealtime_Quality);
+		if (scene) isloaded=true;
+		getTextures();
+		displayList = glGenLists(1);
+		glNewList(displayList,GL_COMPILE);
+		generateDisplayList(scene, scene->mRootNode);
+		glEndList();
 
-    glColor3f(0.0f,0.0f,1.0f);          // Set The Color To Blue
-    glVertex3f(-1.0f, 1.0f, 1.0f);          // Top Right Of The Quad (Left)
-    glVertex3f(-1.0f, 1.0f,-1.0f);          // Top Left Of The Quad (Left)
-    glVertex3f(-1.0f,-1.0f,-1.0f);          // Bottom Left Of The Quad (Left)
-    glVertex3f(-1.0f,-1.0f, 1.0f);          // Bottom Right Of The Quad (Left)
+	}
+	void generateDisplayList(const aiScene *sc, const aiNode *nd)
+	{
+		for (unsigned i=0; i<nd->mNumMeshes; i++) {
+			const struct aiMesh* mesh = scene->mMeshes[nd->mMeshes[i]];
+			
+			//Load the texture for this node
+			aiString texPath;
+			if(AI_SUCCESS == sc->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_DIFFUSE, 0, &texPath)) {
+				GLuint texId = textureIdMap[texPath.data];
+				glBindTexture(GL_TEXTURE_2D, texId);
+			}
 
-    glColor3f(1.0f,0.0f,1.0f);          // Set The Color To Violet
-    glVertex3f( 1.0f, 1.0f,-1.0f);          // Top Right Of The Quad (Right)
-    glVertex3f( 1.0f, 1.0f, 1.0f);          // Top Left Of The Quad (Right)
-    glVertex3f( 1.0f,-1.0f, 1.0f);          // Bottom Left Of The Quad (Right)
-    glVertex3f( 1.0f,-1.0f,-1.0f);          // Bottom Right Of The Quad (Right)
-    glEnd();                        // Done Drawing The Quad
-}
+			//Draw the faces for this node
+			for (unsigned t = 0; t < mesh->mNumFaces; ++t) {
+				const struct aiFace* face = &mesh->mFaces[t];
+
+				glBegin(GL_TRIANGLES);
+			
+				for(unsigned i = 0; i < face->mNumIndices; i++)	// go through all vertices in face
+				{
+					int vertexIndex = face->mIndices[i];	// get group index for current index
+					if(mesh->mColors[0] != NULL) glColor4fv(&mesh->mColors[0][vertexIndex].r);
+					if(mesh->mNormals != NULL) {
+						if(mesh->HasTextureCoords(0))
+						{
+							glTexCoord2f(mesh->mTextureCoords[0][vertexIndex].x, 1 - mesh->mTextureCoords[0][vertexIndex].y); //mTextureCoords[channel][vertex]
+						}
+					}
+					glNormal3fv(&mesh->mNormals[vertexIndex].x);
+					glVertex3fv(&mesh->mVertices[vertexIndex].x);
+				}
+				glEnd();
+			}
+		}
+		for (unsigned i=0; i< nd->mNumChildren; i++) generateDisplayList(sc, nd->mChildren[i]);
+	}
+	void getTextures()
+	{
+		for (unsigned i=0; i < scene->mNumMaterials; i++)
+		{
+			//Get number of textures and create a map entry for each filename
+			aiString path;	// filename
+			for (unsigned j=0; j< scene->mMaterials[i]->GetTextureCount(aiTextureType_DIFFUSE);j++) {
+				scene->mMaterials[i]->GetTexture(aiTextureType_DIFFUSE, j, &path);
+				textureIdMap[path.data] = NULL; //fill map with paths
+				std::cout << "Indexed material #" << i << ", texture #" << j << ": " << path.data << std::endl;
+			}
+		}
+		int numTextures = textureIdMap.size();
+		
+		std::map<std::string, GLuint>::iterator itr = textureIdMap.begin();
+		for (int i=0; i<numTextures; i++) {
+			GLuint textureid=0;
+			glGenTextures(1, &textureid); // Generate an OpenGL ID
+			(*itr).second = textureid; // Add ID to map
+
+			//Load texture from disc
+			std::string texturepath = (*itr).first; // Get filename from map
+			itr++;								  // next texture
+			sf::Image texturedata;
+			texturedata.loadFromFile(texturepath);
+			std::cout << "Loaded texture number " << i << ": " << texturepath << ", ID: " << textureid << std::endl;
+
+			// Associate texture with ID
+			glBindTexture(GL_TEXTURE_2D, textureid);
+			gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA, texturedata.getSize().x, texturedata.getSize().y, GL_RGBA, GL_UNSIGNED_BYTE, texturedata.getPixelsPtr());
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+			glBindTexture(GL_TEXTURE_2D, 0);
+		}
+	}
+private:
+	const aiScene* scene;
+	std::map<std::string, GLuint> textureIdMap; // Filename to textureID map
+
+};
 
 int main(int argc, const char * argv[])
 {
@@ -150,83 +222,8 @@ int main(int argc, const char * argv[])
     bool showfps = true;
     float zoom = 0;
 
-	// Create texture
-    GLuint texture = 0;
-    {
-        sf::Image image;
-        if (!image.loadFromFile("cube.jpg"))
-            return EXIT_FAILURE;
-        glGenTextures(1, &texture);
-        glBindTexture(GL_TEXTURE_2D, texture);
-        gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA, image.getSize().x, image.getSize().y, GL_RGBA, GL_UNSIGNED_BYTE, image.getPixelsPtr());
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    }
-	glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, texture);
-
-    //Drawing list for cube
-/*    GLuint box = glGenLists(1);
-    glNewList(box,GL_COMPILE);
-    glutSolidCube(5); // Lighted
-	//drawCube(); // Colored
-    glEndList();*/
-
-	GLfloat cube[] =
-    {
-        // positions    // texture coordinates
-        -20, -20, -20,  0, 0,
-        -20,  20, -20,  1, 0,
-        -20, -20,  20,  0, 1,
-        -20, -20,  20,  0, 1,
-        -20,  20, -20,  1, 0,
-        -20,  20,  20,  1, 1,
-
-         20, -20, -20,  0, 0,
-         20,  20, -20,  1, 0,
-         20, -20,  20,  0, 1,
-         20, -20,  20,  0, 1,
-         20,  20, -20,  1, 0,
-         20,  20,  20,  1, 1,
-
-        -20, -20, -20,  0, 0,
-         20, -20, -20,  1, 0,
-        -20, -20,  20,  0, 1,
-        -20, -20,  20,  0, 1,
-         20, -20, -20,  1, 0,
-         20, -20,  20,  1, 1,
-
-        -20,  20, -20,  0, 0,
-         20,  20, -20,  1, 0,
-        -20,  20,  20,  0, 1,
-        -20,  20,  20,  0, 1,
-         20,  20, -20,  1, 0,
-         20,  20,  20,  1, 1,
-
-        -20, -20, -20,  0, 0,
-         20, -20, -20,  1, 0,
-        -20,  20, -20,  0, 1,
-        -20,  20, -20,  0, 1,
-         20, -20, -20,  1, 0,
-         20,  20, -20,  1, 1,
-
-        -20, -20,  20,  0, 0,
-         20, -20,  20,  1, 0,
-        -20,  20,  20,  0, 1,
-        -20,  20,  20,  0, 1,
-         20, -20,  20,  1, 0,
-         20,  20,  20,  1, 1
-    };
-
-    // Enable position and texture coordinates vertex components
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    glVertexPointer(3, GL_FLOAT, 5 * sizeof(GLfloat), cube);
-    glTexCoordPointer(2, GL_FLOAT, 5 * sizeof(GLfloat), cube + 3);
-
-    // Disable normal and color vertex components
-    glDisableClientState(GL_NORMAL_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
+	//Load our mesh
+	j7mesh cube("2texcube.obj");
 
     // Begin game loop
     while (!gameover)
@@ -234,14 +231,13 @@ int main(int argc, const char * argv[])
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glLoadIdentity();
 
-        glTranslatef(0.0f,0.0f,-70.0f+zoom);              // Move into the screen
+        glTranslatef(0.0f,0.0f,-5.0f+zoom);              // Move into the screen
         if(rotation) rquad+=02.0f;
         glRotatef(rquad * .5f, 1.0f, 0.0f, 0.0f);
         glRotatef(rquad * .3f, 0.0f, 1.0f, 0.0f);
         glRotatef(rquad * .9f, 0.0f, 0.0f, 1.0f);
 
-        //glCallList(box); // Display list box (colored ot lighted)
-		glDrawArrays(GL_TRIANGLES, 0, 36); // Vertex array box (textured)
+		glCallList(cube.displayList); // Display list version
 
         if (showfps) showFPS(&window);
         window.display();
