@@ -26,13 +26,20 @@
 //const bool DISPLAYDEBUGOUTPUT = true;
 
 // Define our key mapping ::TODO:: make this remappable in-game
-const sf::Keyboard::Key key_quit = sf::Keyboard::Key::Escape;
-const sf::Keyboard::Key key_showfps = sf::Keyboard::Key::Tab;
-const sf::Keyboard::Key key_toggle_rotate = sf::Keyboard::Key::R;
-const sf::Keyboard::Key key_toggle_music = sf::Keyboard::Key::M;
-const sf::Keyboard::Key key_toggle_fullscreen = sf::Keyboard::Key::F;
-const sf::Keyboard::Key key_toggle_vsync = sf::Keyboard::Key::V;
-const sf::Keyboard::Key key_toggle_fps = sf::Keyboard::Key::Tab;
+const sf::Keyboard::Key key_quit = sf::Keyboard::Escape;
+const sf::Keyboard::Key key_showfps = sf::Keyboard::Tab;
+const sf::Keyboard::Key key_toggle_rotate = sf::Keyboard::R;
+const sf::Keyboard::Key key_toggle_music = sf::Keyboard::M;
+const sf::Keyboard::Key key_toggle_fullscreen = sf::Keyboard::F;
+const sf::Keyboard::Key key_toggle_vsync = sf::Keyboard::V;
+const sf::Keyboard::Key key_toggle_fps = sf::Keyboard::Tab;
+const sf::Keyboard::Key key_toggle_blending = sf::Keyboard::B;
+const sf::Keyboard::Key key_toggle_fog = sf::Keyboard::K;
+const sf::Keyboard::Key key_toggle_culling = sf::Keyboard::C;
+const sf::Keyboard::Key key_toggle_wireframe = sf::Keyboard::W;
+const sf::Keyboard::Key key_toggle_texturing = sf::Keyboard::T;
+const sf::Keyboard::Key key_toggle_lighting = sf::Keyboard::L;
+const sf::Keyboard::Key key_toggle_model = sf::Keyboard::O;
 
 const std::string windowTitle = "SFML OpenGL";
 
@@ -80,14 +87,22 @@ public:
 		isloaded=false;
 		Assimp::Importer importer;
 		scene = importer.ReadFile(path, aiProcessPreset_TargetRealtime_Quality);
-		if (scene) isloaded=true;
-		getTextures();
-		displayList = glGenLists(1);
-		glNewList(displayList,GL_COMPILE);
-		generateDisplayList(scene, scene->mRootNode);
-		glEndList();
-
+		if (scene) {
+			isloaded=true;
+			getTextures();
+			displayList = glGenLists(1);
+			glNewList(displayList,GL_COMPILE);
+			generateDisplayList(scene, scene->mRootNode);
+			glEndList();
+		}
+		else {
+			std::cerr << "Couldn't load mesh." << std::endl;
+		}
 	}
+
+private:
+	const aiScene* scene;
+	std::map<std::string, GLuint> textureIdMap; // Filename to textureID map
 	void generateDisplayList(const aiScene *sc, const aiNode *nd)
 	{
 		for (unsigned i=0; i<nd->mNumMeshes; i++) {
@@ -159,10 +174,6 @@ public:
 			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 	}
-private:
-	const aiScene* scene;
-	std::map<std::string, GLuint> textureIdMap; // Filename to textureID map
-
 };
 
 int main(int argc, const char * argv[])
@@ -202,6 +213,20 @@ int main(int argc, const char * argv[])
         std::cout << "Stencil bits: " << windowsettings.stencilBits << std::endl;
         std::cout << "Antialiasing level: " << windowsettings.antialiasingLevel << std::endl;
     }
+/*
+	auto hMenu = CreateMenu();
+	auto hSubMenu = CreatePopupMenu();
+	#define ID_FILE_EXIT 9001
+	#define ID_STUFF_GO 9002
+	AppendMenu(hSubMenu, MF_STRING, ID_FILE_EXIT, "E&xit");
+	AppendMenu(hMenu, MF_STRING | MF_POPUP, (UINT)hSubMenu, "&File");
+	hSubMenu = CreatePopupMenu();
+        AppendMenu(hSubMenu, MF_STRING, ID_STUFF_GO, "&Go");
+        AppendMenu(hMenu, MF_STRING | MF_POPUP, (UINT)hSubMenu, "&Stuff");
+	SetMenu(window.getSystemHandle(),hMenu);*/
+
+
+
 
     //Start music
     sf::Music music;
@@ -221,9 +246,27 @@ int main(int argc, const char * argv[])
     float rquad = 0;
     bool showfps = true;
     float zoom = 0;
+	bool wireframe=false;
+	short modelno=0;
+	
+	// Setup fog
+	glClearColor(0.5f,0.5f,0.5f,1.0f); 
+	GLfloat fogColor[4]= {0.5f,0.5f,0.5f,1.0f};      // Fog Color
+	glFogi(GL_FOG_MODE, GL_LINEAR);        // Fog Mode
+	glFogfv(GL_FOG_COLOR, fogColor);            // Set Fog Color
+	glFogf(GL_FOG_DENSITY, 0.8f);              // How Dense Will The Fog Be
+	glHint(GL_FOG_HINT, GL_DONT_CARE);          // Fog Hint Value
+	glFogf(GL_FOG_START, 1.0f);             // Fog Start Depth
+	glFogf(GL_FOG_END, 50.0f);               // Fog End Depth
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+	glEnable(GL_FOG);
+
+	
 
 	//Load our mesh
+	j7mesh doctor("doctor_who.obj");
 	j7mesh cube("2texcube.obj");
+	j7mesh tardis("tardis.obj");
 
     // Begin game loop
     while (!gameover)
@@ -237,11 +280,17 @@ int main(int argc, const char * argv[])
         glRotatef(rquad * .3f, 0.0f, 1.0f, 0.0f);
         glRotatef(rquad * .9f, 0.0f, 0.0f, 1.0f);
 
-		glCallList(cube.displayList); // Display list version
+		if (modelno==0) glCallList(cube.displayList); // Display the cube
+		if (modelno==1) glCallList(tardis.displayList); // Display the cube
+		if (modelno==2) glCallList(doctor.displayList); // Display the cube
 
-        if (showfps) showFPS(&window);
+        if (showfps) showFPS(&window); // Display the FPS
         window.display();
 
+	/*	MSG message;
+		while(PeekMessage(&message, NULL, WM_COMMAND,WM_COMMAND, PM_REMOVE)) {
+			std::cerr << "Sup dawg: " << message.message << std::endl;
+		}*/
         //Handle window events
         while (window.pollEvent(event))
         {
@@ -258,9 +307,56 @@ int main(int argc, const char * argv[])
                             gameover=true;
                             break;
 
+						case key_toggle_model:
+							modelno=(modelno+1)%3;
+							break;
+
+						case key_toggle_culling:
+							if (!glIsEnabled(GL_CULL_FACE)) glEnable(GL_CULL_FACE);
+							else glDisable(GL_CULL_FACE);
+							break;
+
+						case key_toggle_texturing:
+							if(!glIsEnabled(GL_TEXTURE_2D))	glEnable(GL_TEXTURE_2D);
+							else glDisable(GL_TEXTURE_2D);
+							break;
+
+						case key_toggle_lighting:
+							if(!glIsEnabled(GL_LIGHTING)) glEnable(GL_LIGHTING);
+							else glDisable(GL_LIGHTING);
+							break;
+
                         case key_toggle_rotate:
                             rotation=!rotation;
                             break;
+
+						case key_toggle_wireframe:
+							wireframe=!wireframe;
+							if (wireframe) {
+								glPolygonMode(GL_FRONT,GL_LINE);
+								glPolygonMode(GL_BACK,GL_LINE);
+							}
+							else {
+								glPolygonMode(GL_FRONT,GL_FILL);
+								glPolygonMode(GL_BACK,GL_FILL);
+							}
+							break;
+
+						case key_toggle_blending:
+							if(glIsEnabled(GL_DEPTH_TEST)) {
+								glDisable(GL_DEPTH_TEST);
+								glEnable(GL_BLEND);
+							}
+							else {
+								glDisable(GL_BLEND);
+								glEnable(GL_DEPTH_TEST);
+							}
+							break;
+
+						case key_toggle_fog:
+							if (!glIsEnabled(GL_FOG)) glEnable(GL_FOG);
+							else glDisable(GL_FOG);
+							break;
 
                         case key_toggle_fps:
                             showfps = !showfps;
@@ -305,7 +401,7 @@ int main(int argc, const char * argv[])
                     break;
 
                 case sf::Event::MouseWheelMoved:
-                    zoom += event.mouseWheel.delta * .5f;
+					zoom += event.mouseWheel.delta * .5f;
                     break;
 
                 case sf::Event::Resized:
@@ -314,12 +410,17 @@ int main(int argc, const char * argv[])
                     break;
                     
                 default:
+					//std::cerr << "Unknown event type: " << event.type << std::endl;
                     break;
             }
         }
-    }
+
+		//message.messa
+	}
     return EXIT_SUCCESS;
 }
+
+
 /*
 Deprecated stuff I've already learned:
 -Immediate drawing (glBegin, glEnd)

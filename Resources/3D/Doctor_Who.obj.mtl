@@ -1,0 +1,52 @@
+# File produced by Open Asset Import Library (http://www.assimp.sf.net)
+# (assimp v3.0.1270)
+
+newmtl VisualMaterial
+kd 0.6 0.6 0.6
+ka 0 0 0
+ks 1 1 1
+illum 1
+map_kd Doctor_Skin_d.tga
+
+newmtl VisualMaterial1
+kd 0.6 0.6 0.6
+ka 0 0 0
+ks 1 1 1
+illum 1
+map_kd Doctor_Cloth_d.tga
+
+newmtl VisualMaterial2
+kd 0.6 0.6 0.6
+ka 0 0 0
+ks 1 1 1
+illum 1
+map_kd/Doctor_Eye_d.tga
+
+newmtl VisualMaterial3
+kd 0.6 0.6 0.6
+ka 0 0 0
+ks 1 1 1
+illum 1
+map_kd Doctor_Eye_glass_d.tga
+
+newmtl VisualMaterial4
+kd 0.6 0.6 0.6
+ka 0 0 0
+ks 1 1 1
+illum 1
+map_kd Doctor_Eye_Lashes_d.tga
+
+newmtl VisualMaterial5
+kd 0.6 0.6 0.6
+ka 0 0 0
+ks 1 1 1
+illum 1
+map_kd Doctor_Hair_d.tga
+
+newmtl VisualMaterial6
+kd 0.6 0.6 0.6
+ka 0 0 0
+ks 1 1 1
+illum 1
+map_kd Doctor_Hair_d.tga
+
