@@ -9,18 +9,16 @@
 #include <iostream> // For std::cout, std::endl
 #include <string> // For std::String
 #include <map>
-#include <vector>
 
 #include <assimp/Importer.hpp>	//For 3D model loading
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-#include <GL/glew.h>	// For OpenGL Extensions
+#include <GLEW/glew.h>	// For OpenGL Extensions
 #include <SFML/OpenGL.hpp> // For OpenGL functions
 #include <SFML/Graphics.hpp> // For SFML functions (window handling, ttf text drawing, vector2u)
 #include <SFML/Audio.hpp> // For SFML MP3 playback
 #include "j7util.hpp"
-#include "freeglut_geometry.c"
 
 // Enable to display debug output ::TODO:: change this to read project build settings?
 //const bool DISPLAYDEBUGOUTPUT = true;
@@ -42,6 +40,21 @@ const sf::Keyboard::Key key_toggle_lighting = sf::Keyboard::L;
 const sf::Keyboard::Key key_toggle_model = sf::Keyboard::O;
 
 const std::string windowTitle = "SFML OpenGL";
+
+
+void displayWindowsMenubar(sf::RenderWindow *window)
+{
+	//::TODO: Automatically generate Windows/OSX menus from a structure containing the layout
+
+	//For Windows
+	#if defined(SFML_SYSTEM_WINDOWS)
+	generateMenu(window);
+	#endif
+
+
+	//For OSX
+}
+
 
 bool initGL()
 {
@@ -68,113 +81,7 @@ bool initGL()
 }
 
 
-class j7mesh {
-/*
-This class is to handle loading meshes and textures from a file and supplying functions to create a
-- DisplayList
-- Vertex Array
-- VBO
 
-It does not handle anything other than a basic diffuse texture and maybe material color.
-It only handles triangulated meshes.
-*/
-
-public:
-	bool isloaded;
-	GLuint displayList;
-	j7mesh(std::string path)
-	{
-		isloaded=false;
-		Assimp::Importer importer;
-		scene = importer.ReadFile(path, aiProcessPreset_TargetRealtime_Quality);
-		if (scene) {
-			isloaded=true;
-			getTextures();
-			displayList = glGenLists(1);
-			glNewList(displayList,GL_COMPILE);
-			generateDisplayList(scene, scene->mRootNode);
-			glEndList();
-		}
-		else {
-			std::cerr << "Couldn't load mesh." << std::endl;
-		}
-	}
-
-private:
-	const aiScene* scene;
-	std::map<std::string, GLuint> textureIdMap; // Filename to textureID map
-	void generateDisplayList(const aiScene *sc, const aiNode *nd)
-	{
-		for (unsigned i=0; i<nd->mNumMeshes; i++) {
-			const struct aiMesh* mesh = scene->mMeshes[nd->mMeshes[i]];
-			
-			//Load the texture for this node
-			aiString texPath;
-			if(AI_SUCCESS == sc->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_DIFFUSE, 0, &texPath)) {
-				GLuint texId = textureIdMap[texPath.data];
-				glBindTexture(GL_TEXTURE_2D, texId);
-			}
-
-			//Draw the faces for this node
-			for (unsigned t = 0; t < mesh->mNumFaces; ++t) {
-				const struct aiFace* face = &mesh->mFaces[t];
-
-				glBegin(GL_TRIANGLES);
-			
-				for(unsigned i = 0; i < face->mNumIndices; i++)	// go through all vertices in face
-				{
-					int vertexIndex = face->mIndices[i];	// get group index for current index
-					if(mesh->mColors[0] != NULL) glColor4fv(&mesh->mColors[0][vertexIndex].r);
-					if(mesh->mNormals != NULL) {
-						if(mesh->HasTextureCoords(0))
-						{
-							glTexCoord2f(mesh->mTextureCoords[0][vertexIndex].x, 1 - mesh->mTextureCoords[0][vertexIndex].y); //mTextureCoords[channel][vertex]
-						}
-					}
-					glNormal3fv(&mesh->mNormals[vertexIndex].x);
-					glVertex3fv(&mesh->mVertices[vertexIndex].x);
-				}
-				glEnd();
-			}
-		}
-		for (unsigned i=0; i< nd->mNumChildren; i++) generateDisplayList(sc, nd->mChildren[i]);
-	}
-	void getTextures()
-	{
-		for (unsigned i=0; i < scene->mNumMaterials; i++)
-		{
-			//Get number of textures and create a map entry for each filename
-			aiString path;	// filename
-			for (unsigned j=0; j< scene->mMaterials[i]->GetTextureCount(aiTextureType_DIFFUSE);j++) {
-				scene->mMaterials[i]->GetTexture(aiTextureType_DIFFUSE, j, &path);
-				textureIdMap[path.data] = NULL; //fill map with paths
-				std::cout << "Indexed material #" << i << ", texture #" << j << ": " << path.data << std::endl;
-			}
-		}
-		int numTextures = textureIdMap.size();
-		
-		std::map<std::string, GLuint>::iterator itr = textureIdMap.begin();
-		for (int i=0; i<numTextures; i++) {
-			GLuint textureid=0;
-			glGenTextures(1, &textureid); // Generate an OpenGL ID
-			(*itr).second = textureid; // Add ID to map
-
-			//Load texture from disc
-			std::string texturepath = (*itr).first; // Get filename from map
-			itr++;								  // next texture
-			sf::Image texturedata;
-			texturedata.loadFromFile(texturepath);
-			std::cout << "Loaded texture number " << i << ": " << texturepath << ", ID: " << textureid << std::endl;
-
-			// Associate texture with ID
-			glBindTexture(GL_TEXTURE_2D, textureid);
-			gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA, texturedata.getSize().x, texturedata.getSize().y, GL_RGBA, GL_UNSIGNED_BYTE, texturedata.getPixelsPtr());
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-			glBindTexture(GL_TEXTURE_2D, 0);
-		}
-	}
-};
 
 int main(int argc, const char * argv[])
 {
@@ -213,22 +120,10 @@ int main(int argc, const char * argv[])
         std::cout << "Stencil bits: " << windowsettings.stencilBits << std::endl;
         std::cout << "Antialiasing level: " << windowsettings.antialiasingLevel << std::endl;
     }
-/*
-	auto hMenu = CreateMenu();
-	auto hSubMenu = CreatePopupMenu();
-	#define ID_FILE_EXIT 9001
-	#define ID_STUFF_GO 9002
-	AppendMenu(hSubMenu, MF_STRING, ID_FILE_EXIT, "E&xit");
-	AppendMenu(hMenu, MF_STRING | MF_POPUP, (UINT)hSubMenu, "&File");
-	hSubMenu = CreatePopupMenu();
-        AppendMenu(hSubMenu, MF_STRING, ID_STUFF_GO, "&Go");
-        AppendMenu(hMenu, MF_STRING | MF_POPUP, (UINT)hSubMenu, "&Stuff");
-	SetMenu(window.getSystemHandle(),hMenu);*/
+
+	displayWindowsMenubar(&window); // Display the menu bars
 
 
-
-
-    //Start music
     sf::Music music;
     if(music.openFromFile("furious.ogg"))
     {
@@ -267,7 +162,7 @@ int main(int argc, const char * argv[])
 	j7mesh doctor("doctor_who.obj");
 	j7mesh cube("2texcube.obj");
 	j7mesh tardis("tardis.obj");
-
+	MessageBox(window.getSystemHandle(),"Unable to load mesh","Error",MB_ICONHAND);
     // Begin game loop
     while (!gameover)
     {
@@ -383,7 +278,7 @@ int main(int argc, const char * argv[])
                             }
                             else window.create(sf::VideoMode(oldwindowsize.x, oldwindowsize.y),windowTitle,sf::Style::Default,windowsettings);
                             initGL();
-
+							displayWindowsMenubar(&window);
                             windowsize = window.getSize();
                             adjustPerspective(windowsize);
                             window.setVerticalSyncEnabled(vsync);
@@ -408,17 +303,33 @@ int main(int argc, const char * argv[])
                     windowsize = window.getSize();
                     adjustPerspective(windowsize);
                     break;
+
+				case sf::Event::MenuitemSelected:
+					if (event.menuAction.identifier == 0) break; // It wasn't a menu event??
+					else if (event.menuAction.identifier == j7MenuIdentifier("Wireframe")) {
+						wireframe=!wireframe;
+						if (wireframe) {
+							glPolygonMode(GL_FRONT,GL_LINE);
+							glPolygonMode(GL_BACK,GL_LINE);
+						}
+						else {
+							glPolygonMode(GL_FRONT,GL_FILL);
+							glPolygonMode(GL_BACK,GL_FILL);
+						}
+						break;
+					}
+					else if (event.menuAction.identifier == j7MenuIdentifier("Exit")) gameover=true;
+					break;
                     
                 default:
 					//std::cerr << "Unknown event type: " << event.type << std::endl;
                     break;
             }
         }
-
-		//message.messa
 	}
     return EXIT_SUCCESS;
 }
+
 
 
 /*
