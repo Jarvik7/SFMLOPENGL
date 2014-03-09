@@ -159,10 +159,11 @@ int main(int argc, const char * argv[])
 	
 
 	//Load our mesh
-	j7mesh doctor("doctor_who.obj");
-	j7mesh cube("2texcube.obj");
-	j7mesh tardis("tardis.obj");
-	MessageBox(window.getSystemHandle(),"Unable to load mesh","Error",MB_ICONHAND);
+	j7Model doctor("Blonde Elexis - nude.obj");
+	j7Model cube("2texcube.obj");
+	j7Model tardis("tardis.obj");
+
+	//MessageBox(window.getSystemHandle(),"Unable to load mesh","Error",MB_ICONHAND);
     // Begin game loop
     while (!gameover)
     {
@@ -175,17 +176,17 @@ int main(int argc, const char * argv[])
         glRotatef(rquad * .3f, 0.0f, 1.0f, 0.0f);
         glRotatef(rquad * .9f, 0.0f, 0.0f, 1.0f);
 
-		if (modelno==0) glCallList(cube.displayList); // Display the cube
-		if (modelno==1) glCallList(tardis.displayList); // Display the cube
-		if (modelno==2) glCallList(doctor.displayList); // Display the cube
+		//if (modelno==0) glCallList(cube.displayList); // Display the cube
+	//	if (modelno==1) glCallList(tardis.displayList); // Display the cube
+	//	if (modelno==2) glCallList(doctor.displayList); // Display the cube
 
-        if (showfps) showFPS(&window); // Display the FPS
+        if (modelno==0) cube.drawVBO();
+        if (modelno==1) tardis.drawVBO();
+        if (modelno==2) doctor.drawVBO();
+
+       // if (showfps) showFPS(&window); // Display the FPS
         window.display();
 
-	/*	MSG message;
-		while(PeekMessage(&message, NULL, WM_COMMAND,WM_COMMAND, PM_REMOVE)) {
-			std::cerr << "Sup dawg: " << message.message << std::endl;
-		}*/
         //Handle window events
         while (window.pollEvent(event))
         {
@@ -304,7 +305,7 @@ int main(int argc, const char * argv[])
                     adjustPerspective(windowsize);
                     break;
 
-				case sf::Event::MenuitemSelected:
+			/*	case sf::Event::MenuitemSelected:
 					if (event.menuAction.identifier == 0) break; // It wasn't a menu event??
 					else if (event.menuAction.identifier == j7MenuIdentifier("Wireframe")) {
 						wireframe=!wireframe;
@@ -320,7 +321,7 @@ int main(int argc, const char * argv[])
 					}
 					else if (event.menuAction.identifier == j7MenuIdentifier("Exit")) gameover=true;
 					break;
-                    
+                    */
                 default:
 					//std::cerr << "Unknown event type: " << event.type << std::endl;
                     break;

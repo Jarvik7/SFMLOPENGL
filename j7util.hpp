@@ -12,9 +12,9 @@
 #include <vector>
 #include <iostream>
 #include <functional>
-#include <Windows.h>
+//#include <Windows.h>
 
-#define M_PI 3.14159265358979323846
+//#define M_PI 3.14159265358979323846
 
 const bool DISPLAYDEBUGOUTPUT = true;
 
@@ -99,7 +99,7 @@ void adjustPerspective(sf::Vector2u windowsize, GLdouble fovy = 75.0f, GLdouble 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 }
-unsigned j7MenuIdentifier(std::string name)
+/*unsigned j7MenuIdentifier(std::string name)
 {
 		std::hash<std::string> hashfunc;
 		return hashfunc(name)%10000; // ::TODO: This is a bodge, IDs should be handed out in order and stored in a map
@@ -179,7 +179,7 @@ void generateMenu(sf::RenderWindow *window)
 	rendermenu.addchild("Rotation",true);
 	rootmenu.addchild(rendermenu);
 	rootmenu.draw(window);
-}
+}*/
 
 class j7mesh {
 /*
@@ -262,10 +262,10 @@ private:
 			for (unsigned j=0; j< scene->mMaterials[i]->GetTextureCount(aiTextureType_DIFFUSE);j++) {
 				scene->mMaterials[i]->GetTexture(aiTextureType_DIFFUSE, j, &path);
 				textureIdMap[path.data] = NULL; //fill map with paths
-				std::cout << "Indexed material #" << i << ", texture #" << j << ": " << path.data << std::endl;
+				//std::cout << "Indexed material #" << i << ", texture #" << j << ": " << path.data << std::endl;
 			}
 		}
-		int numTextures = textureIdMap.size();
+		auto numTextures = textureIdMap.size();
 		
 		std::map<std::string, GLuint>::iterator itr = textureIdMap.begin();
 		for (int i=0; i<numTextures; i++) {
@@ -278,7 +278,7 @@ private:
 			itr++;								  // next texture
 			sf::Image texturedata;
 			texturedata.loadFromFile(texturepath);
-			std::cout << "Loaded texture number " << i << ": " << texturepath << ", ID: " << textureid << std::endl;
+			//std::cout << "Loaded texture number " << i << ": " << texturepath << ", ID: " << textureid << std::endl;
 
 			// Associate texture with ID
 			glBindTexture(GL_TEXTURE_2D, textureid);
@@ -292,61 +292,171 @@ private:
 		
 };
 
-class j7Model {
-public:
-	void j7Model {
-		Assimp::Importer importer;
-		const aiScene *scene = importer.ReadFile(filename, aiProcessPreset_TargetRealtime_Quality);
-		for (int i=0; i< scene->m
-	}
-private:
-	const aiScene* scene;
-};
-
-
 class j7Mesh_nonindexed {
+public:
 	std::vector<GLfloat> vertices;
 	std::vector<GLfloat> normals;
 	std::vector<GLfloat> textureCoordinates;
+    std::vector<aiColor4D> vertexColors;
+    std::vector<GLuint> indices;
+    unsigned materialIndex;
+    GLuint bufferObjects[4];
 
+    j7Mesh_nonindexed(aiMesh* mesh) {
+        materialIndex = mesh->mMaterialIndex;
 
+        if (mesh->HasNormals()) {
+            for (int i=0; i<mesh->mNumVertices; i++) {
+                normals.push_back(mesh->mNormals[i].x);
+                normals.push_back(mesh->mNormals[i].y);
+                normals.push_back(mesh->mNormals[i].z);
+            }
+        }
+
+        if (mesh->HasPositions()) {
+            for (int i=0; i<mesh->mNumVertices; i++) {
+                vertices.push_back(mesh->mVertices[i].x);
+                vertices.push_back(mesh->mVertices[i].y);
+                vertices.push_back(mesh->mVertices[i].z);
+            }
+        }
+
+        if (mesh->HasFaces()) {
+            for (int i=0; i<mesh->mNumFaces; i++) {
+                for (int j=0; j<mesh->mFaces[i].mNumIndices; j++) {
+                    indices.push_back(mesh->mFaces[i].mIndices[j]);
+                }
+            }
+        }
+
+        if (mesh->HasTextureCoords(0)) {
+            for (int i=0; i<mesh->mNumVertices; i++) {
+                textureCoordinates.push_back(mesh->mTextureCoords[0][i].x);
+                textureCoordinates.push_back(1 - mesh->mTextureCoords[0][i].y);
+
+            }
+        }
+       else for (int i=0; i<mesh->mNumVertices; i++) {
+            textureCoordinates.push_back(1);
+            textureCoordinates.push_back(0);
+        }
+
+        if (mesh->HasVertexColors(0)) {
+            for (int i=0; i<mesh->mNumVertices; i++) {
+                vertexColors.push_back(mesh->mColors[0][i]);
+            }
+        }
+
+        makeVBO();
+
+    }
+private:
+
+    void makeVBO() {
+
+#define VERTEX_DATA 0
+#define NORMAL_DATA 1
+#define TEXTURE_DATA 2
+#define INDEX_DATA 3
+        glGenBuffers(4, bufferObjects);
+        // Copy data to video memory
+        // Vertex data
+        glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[VERTEX_DATA]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+        // Normal data
+        glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[NORMAL_DATA]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * normals.size(), normals.data(), GL_STATIC_DRAW);
+        // Texture coordinates
+        glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[TEXTURE_DATA]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * textureCoordinates.size(), textureCoordinates.data(), GL_STATIC_DRAW);
+        // Indexes
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferObjects[INDEX_DATA]);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indices.size(), indices.data(), GL_STATIC_DRAW);
+        
+    }
 };
 
-// Below is new implementation for indexed vertex arrays
-/*
-class j7Mesh {
+class j7Model { // ::TODO:: Make into a VAO
 public:
-	std::vector<aiVector3D> normals; // Should have vertices/3 number of normals
-	std::vector<aiVector3D> vertices;
-	std::vector<aiVector3D> textureCoords;
-	std::vector<aiColor4D> colors;
-	GLuint textureid;
-};
+    std::vector<GLuint> vao;
 
-class j7Model {
-public:
-	std::vector<j7Mesh> meshes;
+    void drawArray() { // Indexed Vertex Array
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+        glEnableClientState(GL_NORMAL_ARRAY);
+        for (int i=0; i<meshes.size(); i++) {
+            bindtex(textures[meshes[i].materialIndex-1]);
+            glVertexPointer(3, GL_FLOAT, 0, meshes[i].vertices.data());
+            glTexCoordPointer(2, GL_FLOAT, 0, meshes[i].textureCoordinates.data());
+            glNormalPointer(GL_FLOAT, 0, meshes[i].normals.data());
+            glDrawElements(GL_TRIANGLES, (GLsizei)meshes[i].indices.size(), GL_UNSIGNED_INT, meshes[i].indices.data());
+        }
+        glDisableClientState(GL_NORMAL_ARRAY);
+        glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+        glDisableClientState(GL_VERTEX_ARRAY);
+    }
 
-	j7Model(std::string filename) {
+    void drawVBO() { // Indexed VBO
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+        glEnableClientState(GL_NORMAL_ARRAY);
+
+        for (int i=0; i<meshes.size(); i++) {
+            bindtex(textures[meshes[i].materialIndex-1]);
+            glBindBuffer(GL_ARRAY_BUFFER, meshes[i].bufferObjects[VERTEX_DATA]);
+            glVertexPointer(3, GL_FLOAT, 0, 0);
+            // Normal data
+            glBindBuffer(GL_ARRAY_BUFFER, meshes[i].bufferObjects[NORMAL_DATA]);
+            glNormalPointer(GL_FLOAT, 0, 0);
+            // Texture coordinates
+            glBindBuffer(GL_ARRAY_BUFFER, meshes[i].bufferObjects[TEXTURE_DATA]);
+            glTexCoordPointer(2, GL_FLOAT, 0, 0);
+            // Indexes
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes[i].bufferObjects[INDEX_DATA]);
+            glDrawElements(GL_TRIANGLES, (GLsizei)meshes[i].indices.size(), GL_UNSIGNED_INT, 0); // Index 1 of trdis has no texture coords!
+        }
+        glDisableClientState(GL_NORMAL_ARRAY);
+        glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+        glDisableClientState(GL_VERTEX_ARRAY);
+    }
+
+
+    j7Model(std::string filename) {
 		Assimp::Importer importer;
 		const aiScene *scene = importer.ReadFile(filename, aiProcessPreset_TargetRealtime_Quality);
-		for (int i=0; i<scene->mNumMeshes; i++) { // For each mesh in the model
+        if (scene->HasMeshes()) for (int i=0; i < scene->mNumMeshes; i++) {
+            meshes.push_back(j7Mesh_nonindexed(scene->mMeshes[i]));
+        }
+        importTextures(scene);
+    }
+private:
+    std::vector<j7Mesh_nonindexed> meshes;
+    std::vector<GLuint> textures;
 
+    void bindtex(GLuint id) {
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, id);
+    }
 
-
-			j7Mesh mesh;
-			for (int j=0; j<scene->mMeshes[i]->mNumFaces; j++) { //for each face in the mesh
-				for (int k=0; k<3; k++) { // For each vertex in the face
-					mesh.vertices.push_back(scene->mMeshes[i]->mFaces[j].mIndices[k]); // Push vertex
-				    mesh.normals.push_back(scene->mMeshes[i].mNormals[k]); // Push normal
-					for (int k=0; k<2; k++) mesh.textureCoords.push_back(scene->mMeshes[i]->mTextureCoords[k]); // Push each uv coord
-				}
+    void importTextures(const aiScene *scene) {
+		for (unsigned i=0; i < scene->mNumMaterials; i++)
+		{
+			//Get number of textures and create a map entry for each filename
+			aiString path;	// filename
+			for (unsigned j=0; j< scene->mMaterials[i]->GetTextureCount(aiTextureType_DIFFUSE);j++) { // should only be one
+				scene->mMaterials[i]->GetTexture(aiTextureType_DIFFUSE, j, &path);
+                sf::Image texture;
+                texture.loadFromFile(path.data);
+                GLuint id;
+                glGenTextures(1, &id);
+                glBindTexture(GL_TEXTURE_2D, id);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texture.getSize().x, texture.getSize().y, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.getPixelsPtr());
+                glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                textures.push_back(id);
 			}
-			meshes.push_back(mesh);
 		}
-
-	}
-
+    }
 };
-*/
+
 #endif
