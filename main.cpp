@@ -28,13 +28,26 @@ const sf::Keyboard::Key key_toggle_music = sf::Keyboard::M;
 const sf::Keyboard::Key key_toggle_fullscreen = sf::Keyboard::F;
 const sf::Keyboard::Key key_toggle_vsync = sf::Keyboard::V;
 const sf::Keyboard::Key key_toggle_fps = sf::Keyboard::Tab;
-const sf::Keyboard::Key key_toggle_blending = sf::Keyboard::B;
+const sf::Keyboard::Key key_toggle_blending = sf::Keyboard::Num4;
 const sf::Keyboard::Key key_toggle_fog = sf::Keyboard::K;
 const sf::Keyboard::Key key_toggle_culling = sf::Keyboard::C;
-const sf::Keyboard::Key key_toggle_wireframe = sf::Keyboard::W;
-const sf::Keyboard::Key key_toggle_texturing = sf::Keyboard::T;
-const sf::Keyboard::Key key_toggle_lighting = sf::Keyboard::L;
+const sf::Keyboard::Key key_toggle_wireframe = sf::Keyboard::Num1;
+const sf::Keyboard::Key key_toggle_texturing = sf::Keyboard::Num2;
+const sf::Keyboard::Key key_toggle_lighting = sf::Keyboard::Num3;
 const sf::Keyboard::Key key_toggle_model = sf::Keyboard::O;
+
+//Navigation keys
+const sf::Keyboard::Key key_move_forward = sf::Keyboard::W;
+const sf::Keyboard::Key key_move_left = sf::Keyboard::A;
+const sf::Keyboard::Key key_move_backward = sf::Keyboard::S;
+const sf::Keyboard::Key key_move_right = sf::Keyboard::D;
+const sf::Keyboard::Key key_move_up = sf::Keyboard::Space;
+const sf::Keyboard::Key key_move_down = sf::Keyboard::LControl;
+const sf::Keyboard::Key key_move_CW = sf::Keyboard::E;
+const sf::Keyboard::Key key_move_CCW = sf::Keyboard::Q;
+
+const sf::Keyboard::Key key_lock_mouse = sf::Keyboard::L;
+//M-Look while mouse1 is down?
 
 const std::string windowTitle = "SFML OpenGL";
 
@@ -76,9 +89,6 @@ bool initGL()
 	}
 	return true;
 }
-
-
-
 
 int main(int argc, const char * argv[])
 {
@@ -137,10 +147,14 @@ int main(int argc, const char * argv[])
     bool rotation = true;
     float rquad = 0;
     bool showfps = true;
-    float zoom = 0;
 	bool wireframe=false;
 	short modelno=0;
+	sf::Vector3f movement(0,0,0);
+	float moveDelta = 0.1f;
+	sf::Vector2i mouseDelta(0,0);
 	
+	bool mouseLock=true;
+
 	// Setup fog
 	glClearColor(0.5f,0.5f,0.5f,1.0f); 
 	GLfloat fogColor[4]= {0.5f,0.5f,0.5f,1.0f};      // Fog Color
@@ -167,7 +181,12 @@ int main(int argc, const char * argv[])
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glLoadIdentity();
 
-        glTranslatef(0.0f,0.0f,-5.0f+zoom);              // Move into the screen
+		glTranslatef(movement.x, movement.y, movement.z); // Do our navigation
+	/*	glRotatef(mouseDelta.y*.1f, 1.0f, 0.f, 0.f);
+		glRotatef(mouseDelta.x*.1f, 0.f, 1.f, 0.f);*/
+
+
+		glTranslatef(0.0f, 0.0f, -5.0f); // Move into the screen
         if(rotation) rquad+=02.0f;
         glRotatef(rquad * .5f, 1.0f, 0.0f, 0.0f);
         glRotatef(rquad * .3f, 0.0f, 1.0f, 0.0f);
@@ -181,8 +200,24 @@ int main(int argc, const char * argv[])
         if (modelno==1) tardis.drawVBO();
         if (modelno==2) doctor.drawVBO();
 
+
         if (showfps) showFPS(&window); // Display the FPS
         window.display();
+
+		//Navigation
+		if (sf::Keyboard::isKeyPressed(key_move_forward)) movement.z+=moveDelta;
+		if (sf::Keyboard::isKeyPressed(key_move_backward)) movement.z-=moveDelta;
+		if (sf::Keyboard::isKeyPressed(key_move_left)) movement.x+=moveDelta;
+		if (sf::Keyboard::isKeyPressed(key_move_right)) movement.x-=moveDelta;
+		if (sf::Keyboard::isKeyPressed(key_move_up)) movement.y-=moveDelta;
+		if (sf::Keyboard::isKeyPressed(key_move_down)) movement.y+=moveDelta;
+		//Mouse look
+		sf::Vector2i mouseOffset=sf::Mouse::getPosition(window);
+		mouseOffset.x-=windowsize.x/2;
+		mouseOffset.y-=windowsize.y/2;
+		mouseDelta+=mouseOffset;
+		if (mouseLock) sf::Mouse::setPosition(sf::Vector2i(windowsize.x/2, windowsize.y/2), window);
+
 
         //Handle window events
         while (window.pollEvent(event))
@@ -199,6 +234,13 @@ int main(int argc, const char * argv[])
                         case key_quit:
                             gameover=true;
                             break;
+						// Toggles
+
+						case key_lock_mouse:
+							mouseLock=!mouseLock;
+							window.setMouseCursorVisible(!mouseLock);
+							break;
+
 
 						case key_toggle_model:
 							modelno=(modelno+1)%3;
@@ -293,9 +335,9 @@ int main(int argc, const char * argv[])
                     }
                     break;
 
-                case sf::Event::MouseWheelMoved:
+         /*       case sf::Event::MouseWheelMoved:
 					zoom += event.mouseWheel.delta * .5f;
-                    break;
+                    break;*/
 
                 case sf::Event::Resized:
                     windowsize = window.getSize();
