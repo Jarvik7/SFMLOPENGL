@@ -11,10 +11,16 @@
 
 #include <vector>
 #include <iostream>
-#include <functional>
+#include <functional> // For hash
 //#include <Windows.h>
 
-//#define M_PI 3.14159265358979323846
+#include <assimp/Importer.hpp>	//For 3D model loading
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 const bool DISPLAYDEBUGOUTPUT = true;
 
@@ -181,7 +187,7 @@ void generateMenu(sf::RenderWindow *window)
 	rootmenu.draw(window);
 }*/
 
-class j7mesh {
+class j7mesh_drawinglist {
 /*
 This class is to handle loading meshes and textures from a file and supplying functions to create a
 - DisplayList
@@ -195,7 +201,7 @@ It only handles triangulated meshes.
 public:
 	bool isloaded;
 	GLuint displayList;
-	j7mesh(std::string path)
+	j7mesh_drawinglist(std::string path)
 	{
 		isloaded=false;
 		Assimp::Importer importer;
@@ -268,7 +274,7 @@ private:
 		auto numTextures = textureIdMap.size();
 		
 		std::map<std::string, GLuint>::iterator itr = textureIdMap.begin();
-		for (int i=0; i<numTextures; i++) {
+		for (unsigned i=0; i<numTextures; i++) {
 			GLuint textureid=0;
 			glGenTextures(1, &textureid); // Generate an OpenGL ID
 			(*itr).second = textureid; // Add ID to map
@@ -292,21 +298,21 @@ private:
 		
 };
 
-class j7Mesh_nonindexed {
+class j7Mesh {
 public:
 	std::vector<GLfloat> vertices;
 	std::vector<GLfloat> normals;
 	std::vector<GLfloat> textureCoordinates;
-    std::vector<aiColor4D> vertexColors;
+    std::vector<aiColor4D> vertexColors; // ::TODO:: This probably should be GLfloats or something
     std::vector<GLuint> indices;
     unsigned materialIndex;
     GLuint bufferObjects[4];
 
-    j7Mesh_nonindexed(aiMesh* mesh) {
+    j7Mesh(aiMesh* mesh) {
         materialIndex = mesh->mMaterialIndex;
 
         if (mesh->HasNormals()) {
-            for (int i=0; i<mesh->mNumVertices; i++) {
+            for (unsigned i=0; i<mesh->mNumVertices; i++) {
                 normals.push_back(mesh->mNormals[i].x);
                 normals.push_back(mesh->mNormals[i].y);
                 normals.push_back(mesh->mNormals[i].z);
@@ -314,7 +320,7 @@ public:
         }
 
         if (mesh->HasPositions()) {
-            for (int i=0; i<mesh->mNumVertices; i++) {
+            for (unsigned i=0; i<mesh->mNumVertices; i++) {
                 vertices.push_back(mesh->mVertices[i].x);
                 vertices.push_back(mesh->mVertices[i].y);
                 vertices.push_back(mesh->mVertices[i].z);
@@ -322,32 +328,32 @@ public:
         }
 
         if (mesh->HasFaces()) {
-            for (int i=0; i<mesh->mNumFaces; i++) {
-                for (int j=0; j<mesh->mFaces[i].mNumIndices; j++) {
+            for (unsigned i=0; i<mesh->mNumFaces; i++) {
+                for (unsigned j=0; j<mesh->mFaces[i].mNumIndices; j++) {
                     indices.push_back(mesh->mFaces[i].mIndices[j]);
                 }
             }
         }
 
         if (mesh->HasTextureCoords(0)) {
-            for (int i=0; i<mesh->mNumVertices; i++) {
+            for (unsigned i=0; i<mesh->mNumVertices; i++) {
                 textureCoordinates.push_back(mesh->mTextureCoords[0][i].x);
                 textureCoordinates.push_back(1 - mesh->mTextureCoords[0][i].y);
 
             }
         }
-       else for (int i=0; i<mesh->mNumVertices; i++) {
-            textureCoordinates.push_back(1);
+       else for (unsigned i=0; i<mesh->mNumVertices; i++) { // ::TODO:: How to handle a mesh with no uv?
+            textureCoordinates.push_back(0);
             textureCoordinates.push_back(0);
         }
 
-        if (mesh->HasVertexColors(0)) {
-            for (int i=0; i<mesh->mNumVertices; i++) {
+        if (mesh->HasVertexColors(0)) { // ::TODO:: Colors are not rendered yet
+            for (unsigned i=0; i<mesh->mNumVertices; i++) {
                 vertexColors.push_back(mesh->mColors[0][i]);
             }
         }
 
-        makeVBO();
+        makeVBO(); // ::TODO:: Make VBO generation dependent on passing a bool to constructor
 
     }
 private:
@@ -373,7 +379,7 @@ private:
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferObjects[INDEX_DATA]);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indices.size(), indices.data(), GL_STATIC_DRAW);
         
-    }
+    } // ::TODO:: Can we put directly into the buffer from the assimp structure without making arrays?
 };
 
 class j7Model { // ::TODO:: Make into a VAO
@@ -384,7 +390,7 @@ public:
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         glEnableClientState(GL_NORMAL_ARRAY);
-        for (int i=0; i<meshes.size(); i++) {
+        for (unsigned i=0; i<meshes.size(); i++) {
             bindtex(textures[meshes[i].materialIndex-1]);
             glVertexPointer(3, GL_FLOAT, 0, meshes[i].vertices.data());
             glTexCoordPointer(2, GL_FLOAT, 0, meshes[i].textureCoordinates.data());
@@ -401,7 +407,7 @@ public:
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         glEnableClientState(GL_NORMAL_ARRAY);
 
-        for (int i=0; i<meshes.size(); i++) {
+        for (unsigned i=0; i<meshes.size(); i++) {
             bindtex(textures[meshes[i].materialIndex-1]);
             glBindBuffer(GL_ARRAY_BUFFER, meshes[i].bufferObjects[VERTEX_DATA]);
             glVertexPointer(3, GL_FLOAT, 0, 0);
@@ -415,23 +421,28 @@ public:
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes[i].bufferObjects[INDEX_DATA]);
             glDrawElements(GL_TRIANGLES, (GLsizei)meshes[i].indices.size(), GL_UNSIGNED_INT, 0); // Index 1 of trdis has no texture coords!
         }
+		glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind, fixes SFML Text display
         glDisableClientState(GL_NORMAL_ARRAY);
         glDisableClientState(GL_TEXTURE_COORD_ARRAY);
         glDisableClientState(GL_VERTEX_ARRAY);
     }
 
-
     j7Model(std::string filename) {
 		Assimp::Importer importer;
 		const aiScene *scene = importer.ReadFile(filename, aiProcessPreset_TargetRealtime_Quality);
-        if (scene->HasMeshes()) for (int i=0; i < scene->mNumMeshes; i++) {
-            meshes.push_back(j7Mesh_nonindexed(scene->mMeshes[i]));
+		if (!scene) {
+			std::cerr << "Failed to load mesh \"" << filename << "\"" << std::endl;
+			return; // Couldn't load mesh, abort
+		}
+        if (scene->HasMeshes()) for (unsigned i=0; i < scene->mNumMeshes; i++) {
+            meshes.push_back(j7Mesh(scene->mMeshes[i]));
         }
-        importTextures(scene);
+		if (scene->HasMaterials()) importTextures(scene); // ::TODO:: Does not support embedded textures, external bump maps, etc
     }
+
 private:
-    std::vector<j7Mesh_nonindexed> meshes;
-    std::vector<GLuint> textures;
+    std::vector<j7Mesh> meshes;
+    std::vector<GLuint> textures; // Vector of texture IDs. ::TODO:: Make texture 0 all-white to handle meshes with no texture. Also means we don't need the "-1" kludge for materialindex->textureid
 
     void bindtex(GLuint id) {
         glActiveTexture(GL_TEXTURE0);
@@ -447,12 +458,14 @@ private:
 				scene->mMaterials[i]->GetTexture(aiTextureType_DIFFUSE, j, &path);
                 sf::Image texture;
                 texture.loadFromFile(path.data);
+
                 GLuint id;
                 glGenTextures(1, &id);
                 glBindTexture(GL_TEXTURE_2D, id);
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texture.getSize().x, texture.getSize().y, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.getPixelsPtr());
                 glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
                 glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
                 textures.push_back(id);
 			}
 		}

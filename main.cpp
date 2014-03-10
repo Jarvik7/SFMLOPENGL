@@ -8,16 +8,13 @@
 
 #include <iostream> // For std::cout, std::endl
 #include <string> // For std::String
-#include <map>
-
-#include <assimp/Importer.hpp>	//For 3D model loading
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
 
 #include <GLEW/glew.h>	// For OpenGL Extensions
+
 #include <SFML/OpenGL.hpp> // For OpenGL functions
 #include <SFML/Graphics.hpp> // For SFML functions (window handling, ttf text drawing, vector2u)
 #include <SFML/Audio.hpp> // For SFML MP3 playback
+
 #include "j7util.hpp"
 
 // Enable to display debug output ::TODO:: change this to read project build settings?
@@ -48,7 +45,7 @@ void displayWindowsMenubar(sf::RenderWindow *window)
 
 	//For Windows
 	#if defined(SFML_SYSTEM_WINDOWS)
-	generateMenu(window);
+//	generateMenu(window);
 	#endif
 
 
@@ -184,7 +181,7 @@ int main(int argc, const char * argv[])
         if (modelno==1) tardis.drawVBO();
         if (modelno==2) doctor.drawVBO();
 
-       // if (showfps) showFPS(&window); // Display the FPS
+        if (showfps) showFPS(&window); // Display the FPS
         window.display();
 
         //Handle window events
