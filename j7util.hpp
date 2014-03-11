@@ -403,6 +403,7 @@ public:
 	j7Cam() {
 
 		mouseSensitivity=0.01f;
+		moveSpeed=0.1f;
 		mouseLock=true;
 
 		// ::TODO:: Figure out the magic numbers here.
@@ -419,7 +420,7 @@ public:
 	}
 private:
 	float mouseSensitivity;
-
+	float moveSpeed;
 	sf::Vector3f eye;
 	sf::Vector3f center;
 	sf::Vector3f up;
@@ -446,19 +447,19 @@ private:
 		
 		// Straight
 		sf::Vector3f back(modelview[2], modelview[6], modelview[10]);
-		if (sf::Keyboard::isKeyPressed(key_move_forward)) eye-=back;
-		if (sf::Keyboard::isKeyPressed(key_move_backward)) eye+=back;
+		if (sf::Keyboard::isKeyPressed(key_move_forward)) eye-=back*moveSpeed;
+		if (sf::Keyboard::isKeyPressed(key_move_backward)) eye+=back*moveSpeed;
 
 		//Strafing
 		sf::Vector3f right(modelview[0],modelview[4],modelview[8]);
-		if (sf::Keyboard::isKeyPressed(key_move_left)) eye-=right;;
-		if (sf::Keyboard::isKeyPressed(key_move_right)) eye+=right;
+		if (sf::Keyboard::isKeyPressed(key_move_left)) eye-=right*moveSpeed;
+		if (sf::Keyboard::isKeyPressed(key_move_right)) eye+=right*moveSpeed;
 
 
 		//Vertical ::TODO:: Give this support to toggle between fly and jump/crouch
 		sf::Vector3f up(modelview[1], modelview[5], modelview[9]);
-		if (sf::Keyboard::isKeyPressed(key_move_up)) eye+=up;
-		if (sf::Keyboard::isKeyPressed(key_move_down)) eye-=up;
+		if (sf::Keyboard::isKeyPressed(key_move_up)) eye+=up*moveSpeed;
+		if (sf::Keyboard::isKeyPressed(key_move_down)) eye-=up*moveSpeed;
 
 	}
 	void updateAngle(sf::RenderWindow *window) {

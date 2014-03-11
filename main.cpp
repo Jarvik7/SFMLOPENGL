@@ -170,7 +170,7 @@ int main(int argc, const char * argv[])
 	
 
 	//Load our mesh
-	j7Model doctor("Blonde Elexis - nude.obj");
+	j7Model apartment("apartment.obj");
 	j7Model cube("2texcube.obj");
 	j7Model tardis("tardis.obj");
 	j7Cam camera;
@@ -194,7 +194,7 @@ int main(int argc, const char * argv[])
 		//Draw our spinny object
 		glPushMatrix();
 
-		glTranslatef(0.0f, 0.0f, -5.0f); // Move into the screen
+		glTranslatef(0.0f, 1.0f, -5.0f); // Move into the screen
         if(rotation) rquad+=02.0f;
         glRotatef(rquad * .5f, 1.0f, 0.0f, 0.0f);
         glRotatef(rquad * .3f, 0.0f, 1.0f, 0.0f);
@@ -202,10 +202,10 @@ int main(int argc, const char * argv[])
 
         if (modelno==0) cube.drawVBO();
         if (modelno==1) tardis.drawVBO();
-        if (modelno==2) doctor.drawVBO();
+        //if (modelno==2) apartment.drawVBO();
 
 		glPopMatrix();
-
+		apartment.drawVBO();
         if (showfps) showFPS(&window); // Display the FPS
 
         window.display();
