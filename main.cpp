@@ -37,6 +37,7 @@ const sf::Keyboard::Key key_toggle_lighting = sf::Keyboard::Num3;
 const sf::Keyboard::Key key_toggle_model = sf::Keyboard::O;
 
 //Navigation keys
+/*
 const sf::Keyboard::Key key_move_forward = sf::Keyboard::W;
 const sf::Keyboard::Key key_move_left = sf::Keyboard::A;
 const sf::Keyboard::Key key_move_backward = sf::Keyboard::S;
@@ -45,7 +46,7 @@ const sf::Keyboard::Key key_move_up = sf::Keyboard::Space;
 const sf::Keyboard::Key key_move_down = sf::Keyboard::LControl;
 const sf::Keyboard::Key key_move_CW = sf::Keyboard::E;
 const sf::Keyboard::Key key_move_CCW = sf::Keyboard::Q;
-
+*/
 const sf::Keyboard::Key key_lock_mouse = sf::Keyboard::L;
 //M-Look while mouse1 is down?
 
@@ -173,19 +174,21 @@ int main(int argc, const char * argv[])
 	j7Model doctor("Blonde Elexis - nude.obj");
 	j7Model cube("2texcube.obj");
 	j7Model tardis("tardis.obj");
+	j7Cam camera;
 
-	//MessageBox(window.getSystemHandle(),"Unable to load mesh","Error",MB_ICONHAND);
     // Begin game loop
+	if (mouseLock) sf::Mouse::setPosition(sf::Vector2i(windowsize.x/2, windowsize.y/2), window);
     while (!gameover)
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glLoadIdentity();
+		camera.update(&window);
 
-		glTranslatef(movement.x, movement.y, movement.z); // Do our navigation
+		//glTranslatef(movement.x, movement.y, movement.z); // Do our navigation
 	/*	glRotatef(mouseDelta.y*.1f, 1.0f, 0.f, 0.f);
 		glRotatef(mouseDelta.x*.1f, 0.f, 1.f, 0.f);*/
 
-
+		drawGround();
 		glTranslatef(0.0f, 0.0f, -5.0f); // Move into the screen
         if(rotation) rquad+=02.0f;
         glRotatef(rquad * .5f, 1.0f, 0.0f, 0.0f);
@@ -205,18 +208,18 @@ int main(int argc, const char * argv[])
         window.display();
 
 		//Navigation
-		if (sf::Keyboard::isKeyPressed(key_move_forward)) movement.z+=moveDelta;
+		/*if (sf::Keyboard::isKeyPressed(key_move_forward)) movement.z+=moveDelta;
 		if (sf::Keyboard::isKeyPressed(key_move_backward)) movement.z-=moveDelta;
 		if (sf::Keyboard::isKeyPressed(key_move_left)) movement.x+=moveDelta;
 		if (sf::Keyboard::isKeyPressed(key_move_right)) movement.x-=moveDelta;
 		if (sf::Keyboard::isKeyPressed(key_move_up)) movement.y-=moveDelta;
-		if (sf::Keyboard::isKeyPressed(key_move_down)) movement.y+=moveDelta;
+		if (sf::Keyboard::isKeyPressed(key_move_down)) movement.y+=moveDelta;*/
 		//Mouse look
-		sf::Vector2i mouseOffset=sf::Mouse::getPosition(window);
+	/*	sf::Vector2i mouseOffset=sf::Mouse::getPosition(window);
 		mouseOffset.x-=windowsize.x/2;
 		mouseOffset.y-=windowsize.y/2;
 		mouseDelta+=mouseOffset;
-		if (mouseLock) sf::Mouse::setPosition(sf::Vector2i(windowsize.x/2, windowsize.y/2), window);
+		if (mouseLock) sf::Mouse::setPosition(sf::Vector2i(windowsize.x/2, windowsize.y/2), window);*/
 
 
         //Handle window events
