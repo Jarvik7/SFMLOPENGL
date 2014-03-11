@@ -78,7 +78,6 @@ bool initGL()
     glDepthFunc(GL_LEQUAL);                         // The Type Of Depth Testing To Do
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 	glEnable(GL_TEXTURE_2D);
-
 	if (glewInit()) {
 		std::cerr << "Error: Couldn't initialize GLew." << std::endl;
 		return false;
@@ -181,46 +180,35 @@ int main(int argc, const char * argv[])
     while (!gameover)
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glLoadIdentity();
+        
 		camera.update(&window);
 
 		//glTranslatef(movement.x, movement.y, movement.z); // Do our navigation
 	/*	glRotatef(mouseDelta.y*.1f, 1.0f, 0.f, 0.f);
 		glRotatef(mouseDelta.x*.1f, 0.f, 1.f, 0.f);*/
 
+
+		//Draw the ground
 		drawGround();
+
+		//Draw our spinny object
+		glPushMatrix();
+
 		glTranslatef(0.0f, 0.0f, -5.0f); // Move into the screen
         if(rotation) rquad+=02.0f;
         glRotatef(rquad * .5f, 1.0f, 0.0f, 0.0f);
         glRotatef(rquad * .3f, 0.0f, 1.0f, 0.0f);
         glRotatef(rquad * .9f, 0.0f, 0.0f, 1.0f);
 
-		//if (modelno==0) glCallList(cube.displayList); // Display the cube
-	//	if (modelno==1) glCallList(tardis.displayList); // Display the cube
-	//	if (modelno==2) glCallList(doctor.displayList); // Display the cube
-
         if (modelno==0) cube.drawVBO();
         if (modelno==1) tardis.drawVBO();
         if (modelno==2) doctor.drawVBO();
 
+		glPopMatrix();
 
         if (showfps) showFPS(&window); // Display the FPS
+
         window.display();
-
-		//Navigation
-		/*if (sf::Keyboard::isKeyPressed(key_move_forward)) movement.z+=moveDelta;
-		if (sf::Keyboard::isKeyPressed(key_move_backward)) movement.z-=moveDelta;
-		if (sf::Keyboard::isKeyPressed(key_move_left)) movement.x+=moveDelta;
-		if (sf::Keyboard::isKeyPressed(key_move_right)) movement.x-=moveDelta;
-		if (sf::Keyboard::isKeyPressed(key_move_up)) movement.y-=moveDelta;
-		if (sf::Keyboard::isKeyPressed(key_move_down)) movement.y+=moveDelta;*/
-		//Mouse look
-	/*	sf::Vector2i mouseOffset=sf::Mouse::getPosition(window);
-		mouseOffset.x-=windowsize.x/2;
-		mouseOffset.y-=windowsize.y/2;
-		mouseDelta+=mouseOffset;
-		if (mouseLock) sf::Mouse::setPosition(sf::Vector2i(windowsize.x/2, windowsize.y/2), window);*/
-
 
         //Handle window events
         while (window.pollEvent(event))

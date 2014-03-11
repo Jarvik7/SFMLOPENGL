@@ -11,7 +11,7 @@
 
 #include <vector>
 #include <iostream>
-#include <functional> // For hash
+//#include <functional> // For hash
 //#include <Windows.h>
 
 #include <assimp/Importer.hpp>	//For 3D model loading
@@ -61,7 +61,6 @@ void drawGround() {
 	glEnd();
 
 }
-
 
 float degtorad(float degrees) //Converts degrees to radians
 {
@@ -224,117 +223,6 @@ void generateMenu(sf::RenderWindow *window)
 	rootmenu.addchild(rendermenu);
 	rootmenu.draw(window);
 }*/
-
-class j7mesh_drawinglist {
-/*
-This class is to handle loading meshes and textures from a file and supplying functions to create a
-- DisplayList
-- Vertex Array
-- VBO
-
-It does not handle anything other than a basic diffuse texture and maybe material color.
-It only handles triangulated meshes.
-*/
-
-public:
-	bool isloaded;
-	GLuint displayList;
-	j7mesh_drawinglist(std::string path)
-	{
-		isloaded=false;
-		Assimp::Importer importer;
-		scene = importer.ReadFile(path, aiProcessPreset_TargetRealtime_Quality);
-		if (scene) {
-			isloaded=true;
-			getTextures();
-			displayList = glGenLists(1);
-			glNewList(displayList,GL_COMPILE);
-			generateDisplayList(scene, scene->mRootNode);
-			glEndList();
-		}
-		else {
-			std::cerr << "Couldn't load mesh." << std::endl;
-		}
-	}
-
-private:
-	unsigned numFaces;
-	const aiScene* scene;
-	std::map<std::string, GLuint> textureIdMap; // Filename to textureID map
-	void generateDisplayList(const aiScene *sc, const aiNode *nd)
-	{
-		for (unsigned i=0; i<nd->mNumMeshes; i++) {
-			const struct aiMesh* mesh = scene->mMeshes[nd->mMeshes[i]];
-			
-			//Load the texture for this node
-			aiString texPath;
-			if(AI_SUCCESS == sc->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_DIFFUSE, 0, &texPath)) {
-				GLuint texId = textureIdMap[texPath.data];
-				glBindTexture(GL_TEXTURE_2D, texId);
-			}
-
-			//Draw the faces for this node
-			for (unsigned t = 0; t < mesh->mNumFaces; ++t) {
-				const struct aiFace* face = &mesh->mFaces[t];
-
-				glBegin(GL_TRIANGLES);
-			
-				for(unsigned i = 0; i < face->mNumIndices; i++)	// go through all vertices in face
-				{
-					int vertexIndex = face->mIndices[i];	// get group index for current index
-					if(mesh->mColors[0] != NULL) glColor4fv(&mesh->mColors[0][vertexIndex].r);
-					if(mesh->mNormals != NULL) {
-						if(mesh->HasTextureCoords(0))
-						{
-							glTexCoord2f(mesh->mTextureCoords[0][vertexIndex].x, 1 - mesh->mTextureCoords[0][vertexIndex].y); //mTextureCoords[channel][vertex]
-						}
-					}
-					glNormal3fv(&mesh->mNormals[vertexIndex].x);
-					glVertex3fv(&mesh->mVertices[vertexIndex].x);
-				}
-				glEnd();
-			}
-		}
-		for (unsigned i=0; i< nd->mNumChildren; i++) generateDisplayList(sc, nd->mChildren[i]);
-	}
-	void getTextures()
-	{
-		for (unsigned i=0; i < scene->mNumMaterials; i++)
-		{
-			//Get number of textures and create a map entry for each filename
-			aiString path;	// filename
-			for (unsigned j=0; j< scene->mMaterials[i]->GetTextureCount(aiTextureType_DIFFUSE);j++) {
-				scene->mMaterials[i]->GetTexture(aiTextureType_DIFFUSE, j, &path);
-				textureIdMap[path.data] = NULL; //fill map with paths
-				//std::cout << "Indexed material #" << i << ", texture #" << j << ": " << path.data << std::endl;
-			}
-		}
-		auto numTextures = textureIdMap.size();
-		
-		std::map<std::string, GLuint>::iterator itr = textureIdMap.begin();
-		for (unsigned i=0; i<numTextures; i++) {
-			GLuint textureid=0;
-			glGenTextures(1, &textureid); // Generate an OpenGL ID
-			(*itr).second = textureid; // Add ID to map
-
-			//Load texture from disc
-			std::string texturepath = (*itr).first; // Get filename from map
-			itr++;								  // next texture
-			sf::Image texturedata;
-			texturedata.loadFromFile(texturepath);
-			//std::cout << "Loaded texture number " << i << ": " << texturepath << ", ID: " << textureid << std::endl;
-
-			// Associate texture with ID
-			glBindTexture(GL_TEXTURE_2D, textureid);
-			gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA, texturedata.getSize().x, texturedata.getSize().y, GL_RGBA, GL_UNSIGNED_BYTE, texturedata.getPixelsPtr());
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-			glBindTexture(GL_TEXTURE_2D, 0);
-		}
-	}
-	
-		
-};
 
 class j7Mesh {
 public:
@@ -513,11 +401,16 @@ private:
 class j7Cam {
 public:
 	j7Cam() {
-		position=sf::Vector3f(0,0,0);
-		rotation=sf::Vector3f(0,0,0);
-		mouseSensitivity.x=0.1f;
-		mouseSensitivity.y=0.1f;
+
+		mouseSensitivity=0.01f;
 		mouseLock=true;
+
+		// ::TODO:: Figure out the magic numbers here.
+		up = sf::Vector3f(0.0f, 1.0f, 0.0f);
+		eye = sf::Vector3f(0, 1.0f, 5.0f);
+		center = sf::Vector3f(0, 1.0f, 0);
+
+		angle = sf::Vector2f(0, 0);
 	}
 	void update(sf::RenderWindow *window) {
 		updatePosition();
@@ -525,56 +418,48 @@ public:
 		move();
 	}
 private:
-	sf::Vector3f movementSpeed;
-	sf::Vector2f mouseSensitivity;
+	float mouseSensitivity;
+
+	sf::Vector3f eye;
+	sf::Vector3f center;
+	sf::Vector3f up;
+	sf::Vector2f angle;
 	bool mouseLock;
 
-	sf::Vector3f position;
-	sf::Vector3f rotation;
-
 	void move() {
-		glRotatef(rotation.x, 1.f, 0.f, 0.f);
-		glRotatef(rotation.y, 0.f, 1.f, 0.f);
-		glTranslatef(-position.x, -position.y, -position.x);
-	}
+		//Mouselook
+		center.x = eye.x + sin(angle.x)*cos(angle.y);
+		center.y = eye.y + sin(angle.y);
+		center.z = eye.z + cos(angle.x)*cos(angle.y);
 
-	void normalize(sf::Vector3f *vec) {
-		float magnitude = sqrt((vec->x * vec->x) + (vec->y * vec->y) + (vec->z * vec->z));
-		if (magnitude != 0) {
-			vec->x /= magnitude;
-            vec->y /= magnitude;
-            vec->z /= magnitude;
-        }
+		glLoadIdentity();
+		gluLookAt(eye.x, eye.y, eye.z,
+				  center.x, center.y, center.z,
+				  up.x, up.y, up.z);
 	}
 
 	void updatePosition() {
-		sf::Vector3f movement(0,0,0);
-		double sinXRot = sin( degtorad( rotation.x ) );
-		double cosXRot = cos( degtorad( rotation.x ) );
-		double sinYRot = sin( degtorad( rotation.y ) );
-		double cosYRot = cos( degtorad( rotation.y ) );
-		double pitchLimitFactor = cosXRot;
 
-		if (sf::Keyboard::isKeyPressed(key_move_forward)) {
-			movement.x += sinYRot * pitchLimitFactor;
-			movement.y += -sinXRot;
-			movement.z += -cosYRot * pitchLimitFactor;
-		}
-		if (sf::Keyboard::isKeyPressed(key_move_backward)) {
-			movement.x += -sinYRot * pitchLimitFactor;
-			movement.y += sinXRot;
-			movement.z += cosYRot * pitchLimitFactor;
-		}
-		if (sf::Keyboard::isKeyPressed(key_move_left)) {
-			movement.x += -cosYRot;
-			movement.z += -sinYRot;
-		}
-		if (sf::Keyboard::isKeyPressed(key_move_right)) {
-			movement.x += cosYRot;
-			movement.z += sinYRot;
-		}
-		normalize(&movement);
-		position+=movement;
+		//Get our current MODELVIEW's right vector
+		GLdouble modelview[16];
+		glGetDoublev(GL_MODELVIEW_MATRIX, &modelview[0]);
+		
+		// Straight
+		sf::Vector3f back(modelview[2], modelview[6], modelview[10]);
+		if (sf::Keyboard::isKeyPressed(key_move_forward)) eye-=back;
+		if (sf::Keyboard::isKeyPressed(key_move_backward)) eye+=back;
+
+		//Strafing
+		sf::Vector3f right(modelview[0],modelview[4],modelview[8]);
+		if (sf::Keyboard::isKeyPressed(key_move_left)) eye-=right;;
+		if (sf::Keyboard::isKeyPressed(key_move_right)) eye+=right;
+
+
+		//Vertical ::TODO:: Give this support to toggle between fly and jump/crouch
+		sf::Vector3f up(modelview[1], modelview[5], modelview[9]);
+		if (sf::Keyboard::isKeyPressed(key_move_up)) eye+=up;
+		if (sf::Keyboard::isKeyPressed(key_move_down)) eye-=up;
+
 	}
 	void updateAngle(sf::RenderWindow *window) {
 		sf::Vector2u windowsize = window->getSize();
@@ -582,16 +467,9 @@ private:
 
 		mouseOffset.x-=(windowsize.x/2);
 		mouseOffset.y-=(windowsize.y/2);
-		mouseOffset.x*=mouseSensitivity.x;
-		mouseOffset.y*=mouseSensitivity.y;
+		angle.x-=mouseOffset.x*mouseSensitivity;
+		angle.y-=mouseOffset.y*mouseSensitivity;
 		if (mouseLock) sf::Mouse::setPosition(sf::Vector2i(windowsize.x/2, windowsize.y/2), *window);
-
-		rotation.x+=mouseOffset.y;
-		rotation.y+=mouseOffset.x;
-		if (rotation.x<-90) rotation.x=-90;
-		if (rotation.x>90) rotation.x=90;
-	/*	if (rotation.y<0) rotation.y+=360;
-		if (rotation.y>360) rotation.y-=360;*/
 	}
 };
 
