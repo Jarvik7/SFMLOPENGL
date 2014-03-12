@@ -36,20 +36,7 @@ const sf::Keyboard::Key key_toggle_wireframe = sf::Keyboard::Num1;
 const sf::Keyboard::Key key_toggle_texturing = sf::Keyboard::Num2;
 const sf::Keyboard::Key key_toggle_lighting = sf::Keyboard::Num3;
 const sf::Keyboard::Key key_toggle_model = sf::Keyboard::O;
-
-//Navigation keys
-/*
-const sf::Keyboard::Key key_move_forward = sf::Keyboard::W;
-const sf::Keyboard::Key key_move_left = sf::Keyboard::A;
-const sf::Keyboard::Key key_move_backward = sf::Keyboard::S;
-const sf::Keyboard::Key key_move_right = sf::Keyboard::D;
-const sf::Keyboard::Key key_move_up = sf::Keyboard::Space;
-const sf::Keyboard::Key key_move_down = sf::Keyboard::LControl;
-const sf::Keyboard::Key key_move_CW = sf::Keyboard::E;
-const sf::Keyboard::Key key_move_CCW = sf::Keyboard::Q;
-*/
 const sf::Keyboard::Key key_lock_mouse = sf::Keyboard::L;
-//M-Look while mouse1 is down?
 
 const std::string windowTitle = "SFML OpenGL";
 
@@ -66,7 +53,6 @@ void displayWindowsMenubar(sf::RenderWindow *window)
 
 	//For OSX
 }
-
 
 bool initGL()
 {
@@ -185,11 +171,6 @@ int main(int argc, const char * argv[])
         
 		camera.update(&window);
 
-		//glTranslatef(movement.x, movement.y, movement.z); // Do our navigation
-	/*	glRotatef(mouseDelta.y*.1f, 1.0f, 0.f, 0.f);
-		glRotatef(mouseDelta.x*.1f, 0.f, 1.f, 0.f);*/
-
-
 		//Draw the ground
 		drawGround();
 
@@ -208,6 +189,7 @@ int main(int argc, const char * argv[])
         //if (modelno==2) apartment.drawVBO();
 
 		glPopMatrix();
+
 		apartment.drawVBO();
         if (showfps) showFPS(&window); // Display the FPS
 

@@ -19,7 +19,7 @@
 #include <assimp/postprocess.h>
 
 #ifndef M_PI
-#define M_PI 3.14159265358979323846
+	#define M_PI 3.14159265358979323846
 #endif
 
 const bool DISPLAYDEBUGOUTPUT = true;
@@ -415,30 +415,34 @@ public:
 		angle = sf::Vector2f(0, 0);
 	}
 	void update(sf::RenderWindow *window) {
-		updatePosition();
-		updateAngle(window);
-		move();
+		updatePosition(); // Movement
+		updateAngle(window); // Look
+		move(); // Apply change
 	}
 
-	void setMouseLock(bool locked, sf::RenderWindow *window) {
+	void setMouseLock(bool locked, sf::RenderWindow *window) { // Toggle mouse locking
 		mouseLock=locked;
 		window->setMouseCursorVisible(!mouseLock);
 	}
 private:
 	float mouseSensitivity;
 	float moveSpeed;
+
+	//View matrices
 	sf::Vector3f eye;
 	sf::Vector3f center;
 	sf::Vector3f up;
+	//Mouse angle
 	sf::Vector2f angle;
 	bool mouseLock;
 
 	void move() {
-		//Mouselook
+		//Calculate mouselook
 		center.x = eye.x + sin(angle.x)*cos(angle.y);
 		center.y = eye.y + sin(angle.y);
 		center.z = eye.z + cos(angle.x)*cos(angle.y);
 
+		//Push camera matrix to GL
 		glLoadIdentity();
 		gluLookAt(eye.x, eye.y, eye.z,
 				  center.x, center.y, center.z,
@@ -446,24 +450,22 @@ private:
 	}
 
 	void updatePosition() {
-
-		//Get our current MODELVIEW's right vector
+		//Get our current MODELVIEW matrix
 		GLdouble modelview[16];
 		glGetDoublev(GL_MODELVIEW_MATRIX, &modelview[0]);
 		
-		// Straight
-		sf::Vector3f back(modelview[2], modelview[6], modelview[10]);
+		// Straight ::TODO:: Add support for sprinting
+		sf::Vector3f back(modelview[2], modelview[6], modelview[10]); // Back vector
 		if (sf::Keyboard::isKeyPressed(key_move_forward)) eye-=back*moveSpeed;
 		if (sf::Keyboard::isKeyPressed(key_move_backward)) eye+=back*moveSpeed;
 
 		//Strafing
-		sf::Vector3f right(modelview[0],modelview[4],modelview[8]);
+		sf::Vector3f right(modelview[0],modelview[4],modelview[8]); // Right vector
 		if (sf::Keyboard::isKeyPressed(key_move_left)) eye-=right*moveSpeed;
 		if (sf::Keyboard::isKeyPressed(key_move_right)) eye+=right*moveSpeed;
 
-
 		//Vertical ::TODO:: Give this support to toggle between fly and jump/crouch
-		sf::Vector3f up(modelview[1], modelview[5], modelview[9]);
+		sf::Vector3f up(modelview[1], modelview[5], modelview[9]); // Up vector
 		if (sf::Keyboard::isKeyPressed(key_move_up)) eye+=up*moveSpeed;
 		if (sf::Keyboard::isKeyPressed(key_move_down)) eye-=up*moveSpeed;
 
