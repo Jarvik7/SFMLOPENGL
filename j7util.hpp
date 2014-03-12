@@ -402,14 +402,14 @@ private:
 class j7Cam {
 public:
 	j7Cam() {
-
+		//Initialize control settings
 		mouseSensitivity=0.01f;
 		moveSpeed=0.1f;
 		mouseLock=false;
 
-		// ::TODO:: Figure out the magic numbers here.
+		//Initialize our camera matrices
 		up = sf::Vector3f(0.0f, 1.0f, 0.0f);
-		eye = sf::Vector3f(0, 1.0f, 5.0f);
+		eye = sf::Vector3f(0, 1.0f, 5.0f); // Start 5 units back
 		center = sf::Vector3f(0, 1.0f, 0);
 
 		angle = sf::Vector2f(0, 0);
@@ -423,6 +423,10 @@ public:
 	void setMouseLock(bool locked, sf::RenderWindow *window) { // Toggle mouse locking
 		mouseLock=locked;
 		window->setMouseCursorVisible(!mouseLock);
+		if (mouseLock) {
+			sf::Vector2u windowsize = window->getSize();
+			sf::Mouse::setPosition(sf::Vector2i(windowsize.x/2, windowsize.y/2), *window);
+		}
 	}
 private:
 	float mouseSensitivity;
@@ -471,6 +475,7 @@ private:
 
 	}
 	void updateAngle(sf::RenderWindow *window) {
+		//::TODO:: Add toggle to enable/disable the camera from flipping upside down (FPS cam vs flightsim cam)
 		if (mouseLock) {
 			sf::Vector2u windowsize = window->getSize();
 			sf::Vector2i mouseOffset=sf::Mouse::getPosition(*window);

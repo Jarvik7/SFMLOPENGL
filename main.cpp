@@ -133,6 +133,7 @@ int main(int argc, const char * argv[])
     // Animation control vars
     bool rotation = true;
     float rquad = 0;
+	float fov=75.0f;
     bool showfps = true;
 	bool wireframe=false;
 	short modelno=0;
@@ -315,13 +316,14 @@ int main(int argc, const char * argv[])
                     }
                     break;
 
-         /*       case sf::Event::MouseWheelMoved:
-					zoom += event.mouseWheel.delta * .5f;
-                    break;*/
+                case sf::Event::MouseWheelMoved: // Zoom
+					fov -= event.mouseWheel.delta*1.5f;
+					adjustPerspective(windowsize, fov);
+                    break;
 
                 case sf::Event::Resized:
                     windowsize = window.getSize();
-                    adjustPerspective(windowsize);
+                    adjustPerspective(windowsize, fov);
                     break;
 
 			/*	case sf::Event::MenuitemSelected:
