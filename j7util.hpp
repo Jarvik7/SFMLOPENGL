@@ -360,6 +360,7 @@ public:
 			std::cerr << "Failed to load mesh \"" << filename << "\"" << std::endl;
 			return; // Couldn't load mesh, abort
 		}
+		std::cout << "Number of Meshes in this model: " << scene->mNumMaterials << '\n';
         if (scene->HasMeshes()) for (unsigned i=0; i < scene->mNumMeshes; i++) {
             meshes.push_back(j7Mesh(scene->mMeshes[i]));
         }
@@ -404,7 +405,7 @@ public:
 
 		mouseSensitivity=0.01f;
 		moveSpeed=0.1f;
-		mouseLock=true;
+		mouseLock=false;
 
 		// ::TODO:: Figure out the magic numbers here.
 		up = sf::Vector3f(0.0f, 1.0f, 0.0f);
@@ -417,6 +418,11 @@ public:
 		updatePosition();
 		updateAngle(window);
 		move();
+	}
+
+	void setMouseLock(bool locked, sf::RenderWindow *window) {
+		mouseLock=locked;
+		window->setMouseCursorVisible(!mouseLock);
 	}
 private:
 	float mouseSensitivity;
@@ -463,14 +469,16 @@ private:
 
 	}
 	void updateAngle(sf::RenderWindow *window) {
-		sf::Vector2u windowsize = window->getSize();
-		sf::Vector2i mouseOffset=sf::Mouse::getPosition(*window);
+		if (mouseLock) {
+			sf::Vector2u windowsize = window->getSize();
+			sf::Vector2i mouseOffset=sf::Mouse::getPosition(*window);
 
-		mouseOffset.x-=(windowsize.x/2);
-		mouseOffset.y-=(windowsize.y/2);
-		angle.x-=mouseOffset.x*mouseSensitivity;
-		angle.y-=mouseOffset.y*mouseSensitivity;
-		if (mouseLock) sf::Mouse::setPosition(sf::Vector2i(windowsize.x/2, windowsize.y/2), *window);
+			mouseOffset.x-=(windowsize.x/2);
+			mouseOffset.y-=(windowsize.y/2);
+			angle.x-=mouseOffset.x*mouseSensitivity;
+			angle.y-=mouseOffset.y*mouseSensitivity;
+			sf::Mouse::setPosition(sf::Vector2i(windowsize.x/2, windowsize.y/2), *window);
+		}
 	}
 };
 

@@ -24,6 +24,7 @@
 const sf::Keyboard::Key key_quit = sf::Keyboard::Escape;
 const sf::Keyboard::Key key_showfps = sf::Keyboard::Tab;
 const sf::Keyboard::Key key_toggle_rotate = sf::Keyboard::R;
+const sf::Keyboard::Key key_reset_rotate = sf::Keyboard::H;
 const sf::Keyboard::Key key_toggle_music = sf::Keyboard::M;
 const sf::Keyboard::Key key_toggle_fullscreen = sf::Keyboard::F;
 const sf::Keyboard::Key key_toggle_vsync = sf::Keyboard::V;
@@ -153,7 +154,7 @@ int main(int argc, const char * argv[])
 	float moveDelta = 0.1f;
 	sf::Vector2i mouseDelta(0,0);
 	
-	bool mouseLock=true;
+	bool mouseLock=false;
 
 	// Setup fog
 	glClearColor(0.5f,0.5f,0.5f,1.0f); 
@@ -173,6 +174,7 @@ int main(int argc, const char * argv[])
 	j7Model apartment("apartment.obj");
 	j7Model cube("2texcube.obj");
 	j7Model tardis("tardis.obj");
+	j7Model zombie("zsec_machinegun\\zsecmachinegun.md5mesh");
 	j7Cam camera;
 
     // Begin game loop
@@ -202,6 +204,7 @@ int main(int argc, const char * argv[])
 
         if (modelno==0) cube.drawVBO();
         if (modelno==1) tardis.drawVBO();
+		if (modelno==2) { glScalef(0.02f, 0.02f, 0.02f); zombie.drawVBO(); }
         //if (modelno==2) apartment.drawVBO();
 
 		glPopMatrix();
@@ -229,7 +232,7 @@ int main(int argc, const char * argv[])
 
 						case key_lock_mouse:
 							mouseLock=!mouseLock;
-							window.setMouseCursorVisible(!mouseLock);
+							camera.setMouseLock(mouseLock, &window);
 							break;
 
 
@@ -255,6 +258,10 @@ int main(int argc, const char * argv[])
                         case key_toggle_rotate:
                             rotation=!rotation;
                             break;
+
+						case key_reset_rotate:
+							rquad=0;
+							break;
 
 						case key_toggle_wireframe:
 							wireframe=!wireframe;
