@@ -310,7 +310,7 @@ private:
 
 class j7Model { // ::TODO:: Make into a VAO
 public:
-    std::vector<GLuint> vao;
+  //  std::vector<GLuint> vao;
 
     void drawArray() { // Indexed Vertex Array
         glEnableClientState(GL_VERTEX_ARRAY);
@@ -360,16 +360,16 @@ public:
 			std::cerr << "Failed to load mesh \"" << filename << "\"" << std::endl;
 			return; // Couldn't load mesh, abort
 		}
-		std::cout << "Number of Meshes in this model: " << scene->mNumMaterials << '\n';
+
         if (scene->HasMeshes()) for (unsigned i=0; i < scene->mNumMeshes; i++) {
             meshes.push_back(j7Mesh(scene->mMeshes[i]));
         }
-		if (scene->HasMaterials()) importTextures(scene); // ::TODO:: Does not support embedded textures, external bump maps, etc
+		if (scene->HasMaterials()) importTextures(scene); // ::TODO:: Only supports external diffuse textures right now
     }
 
 private:
     std::vector<j7Mesh> meshes;
-    std::vector<GLuint> textures; // Vector of texture IDs. ::TODO:: Make texture 0 all-white to handle meshes with no texture. Also means we don't need the "-1" kludge for materialindex->textureid
+    std::vector<GLuint> textures; // Vector of texture IDs. ::TODO:: Make texture 0 all-white to handle meshes with no texture? Also means we don't need the "-1" kludge for materialindex->textureid
 
     void bindtex(GLuint id) {
         glActiveTexture(GL_TEXTURE0);
@@ -381,6 +381,7 @@ private:
 		{
 			//Get number of textures and create a map entry for each filename
 			aiString path;	// filename
+		//	textures.push_back(0); // Default empty texture? TEST
 			for (unsigned j=0; j< scene->mMaterials[i]->GetTextureCount(aiTextureType_DIFFUSE);j++) { // should only be one
 				scene->mMaterials[i]->GetTexture(aiTextureType_DIFFUSE, j, &path);
                 sf::Image texture;

@@ -162,6 +162,7 @@ int main(int argc, const char * argv[])
 	j7Model cube("2texcube.obj");
 	j7Model tardis("tardis.obj");
 	j7Model zombie("zsec_machinegun\\zsecmachinegun.md5mesh");
+	j7Model quake3("test_bigbox.pk3");
 	j7Cam camera;
 
     // Begin game loop
@@ -185,7 +186,7 @@ int main(int argc, const char * argv[])
         glRotatef(rquad * .9f, 0.0f, 0.0f, 1.0f);
 
         if (modelno==0) cube.drawVBO();
-        if (modelno==1) tardis.drawVBO();
+        if (modelno==1) quake3.drawVBO(); //tardis.drawVBO();
 		if (modelno==2) { glScalef(0.02f, 0.02f, 0.02f); zombie.drawVBO(); }
         //if (modelno==2) apartment.drawVBO();
 
