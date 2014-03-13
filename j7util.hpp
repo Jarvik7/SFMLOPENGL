@@ -425,13 +425,18 @@ public:
 		mouseLock=locked;
 		window->setMouseCursorVisible(!mouseLock);
 		if (mouseLock) {
+			savedMousePosition = sf::Mouse::getPosition(); // Save mouse position
 			sf::Vector2u windowsize = window->getSize();
 			sf::Mouse::setPosition(sf::Vector2i(windowsize.x/2, windowsize.y/2), *window);
 		}
+		else sf::Mouse::setPosition(savedMousePosition); // Restore mouse position
+
 	}
 private:
 	float mouseSensitivity;
 	float moveSpeed;
+
+	sf::Vector2i savedMousePosition;
 
 	//View matrices
 	sf::Vector3f eye;
@@ -470,13 +475,13 @@ private:
 		if (sf::Keyboard::isKeyPressed(key_move_right)) eye+=right*moveSpeed;
 
 		//Vertical ::TODO:: Give this support to toggle between fly and jump/crouch
+		// ::TODO:: This doesn't work properly when looking up/down
 		sf::Vector3f up(modelview[1], modelview[5], modelview[9]); // Up vector
 		if (sf::Keyboard::isKeyPressed(key_move_up)) eye+=up*moveSpeed;
 		if (sf::Keyboard::isKeyPressed(key_move_down)) eye-=up*moveSpeed;
 
 	}
 	void updateAngle(sf::RenderWindow *window) {
-		//::TODO:: Add toggle to enable/disable the camera from flipping upside down (FPS cam vs flightsim cam)
 		if (mouseLock) {
 			sf::Vector2u windowsize = window->getSize();
 			sf::Vector2i mouseOffset=sf::Mouse::getPosition(*window);
@@ -485,6 +490,13 @@ private:
 			mouseOffset.y-=(windowsize.y/2);
 			angle.x-=mouseOffset.x*mouseSensitivity;
 			angle.y-=mouseOffset.y*mouseSensitivity;
+			
+			// Cap vertical angle to roughly +/- 90 degrees (roughly 1.57 rads) - FPS cam
+			// ::TODO:: Enable this to be toggled to flightsim-style camera control
+			if (angle.y>=1.57) angle.y=1.57f;
+			else if (angle.y<=-1.57) angle.y=-1.57f;
+			
+			// Reset cursor to center of screen
 			sf::Mouse::setPosition(sf::Vector2i(windowsize.x/2, windowsize.y/2), *window);
 		}
 	}

@@ -215,10 +215,15 @@ int main(int argc, const char * argv[])
 						// Toggles
 
 						case key_lock_mouse:
-							mouseLock=!mouseLock;
-							camera.setMouseLock(mouseLock, &window);
-							break;
+							{
+								mouseLock=!mouseLock;
+								
 
+								
+								// Inform camera
+								camera.setMouseLock(mouseLock, &window);
+								break;
+							}
 
 						case key_toggle_model:
 							modelno=(modelno+1)%3;
