@@ -32,6 +32,7 @@ const sf::Keyboard::Key key_move_up = sf::Keyboard::Space;
 const sf::Keyboard::Key key_move_down = sf::Keyboard::LControl;
 const sf::Keyboard::Key key_move_CW = sf::Keyboard::E;
 const sf::Keyboard::Key key_move_CCW = sf::Keyboard::Q;
+const sf::Keyboard::Key key_move_run = sf::Keyboard::LShift;
 
 void drawGround() {
 	static bool loaded=false;
@@ -51,13 +52,13 @@ void drawGround() {
 	glBindTexture(GL_TEXTURE_2D, concretetex);
 	glBegin(GL_QUADS);
 		glTexCoord2f(1,1);
-		glVertex3f(-50,-1, 50);
+		glVertex3f(-50,-0.01f, 50);
 		glTexCoord2f(1,0);
-		glVertex3f( 50,-1, 50);
+		glVertex3f( 50,-0.01f, 50);
 		glTexCoord2f(0,1);
-		glVertex3f( 50,-1,-50);
+		glVertex3f( 50,-0.01f,-50);
 		glTexCoord2f(0,0);
-		glVertex3f(-50,-1,-50);
+		glVertex3f(-50,-0.01f,-50);
 	glEnd();
 
 }
@@ -360,7 +361,8 @@ public:
 			std::cerr << "Failed to load mesh \"" << filename << "\"" << std::endl;
 			return; // Couldn't load mesh, abort
 		}
-
+		std::cout << "There are this many meshes: " << scene->mNumMeshes;
+		std::cout << "Mesh 1 has this many faces: " << scene->mMeshes[0]->mNumFaces << " with a total of this many vertices: " << scene->mMeshes[0]->mNumVertices << '\n';
         if (scene->HasMeshes()) for (unsigned i=0; i < scene->mNumMeshes; i++) {
             meshes.push_back(j7Mesh(scene->mMeshes[i]));
         }
@@ -377,15 +379,28 @@ private:
     }
 
     void importTextures(const aiScene *scene) {
+		std::cout << "Materials: " << scene->mNumMaterials << ", Textures: " << scene->mNumTextures << '\n';
 		for (unsigned i=0; i < scene->mNumMaterials; i++)
 		{
-			//Get number of textures and create a map entry for each filename
 			aiString path;	// filename
-		//	textures.push_back(0); // Default empty texture? TEST
-			for (unsigned j=0; j< scene->mMaterials[i]->GetTextureCount(aiTextureType_DIFFUSE);j++) { // should only be one
-				scene->mMaterials[i]->GetTexture(aiTextureType_DIFFUSE, j, &path);
+			std::cout << "Trying to load material number " << i;
+			//for (unsigned j=0; j< scene->mMaterials[i]->GetTextureCount(aiTextureType_DIFFUSE);j++) { // should only be one?
+			if (scene->mMaterials[i]->GetTextureCount(aiTextureType_DIFFUSE)!=0) { 
+				// Get path for diffuse texture
+				scene->mMaterials[i]->GetTexture(aiTextureType_DIFFUSE, 0, &path);
+				std::cout << ": " << path.data << '\n';
                 sf::Image texture;
-                texture.loadFromFile(path.data);
+				if (path.data[0] != '*') texture.loadFromFile(path.data);
+				else {
+					std::cout << "Probably internal Q3BSP texture: ";
+					//Grab the string name without the initial * (this can probably be done with some string func)
+	
+					unsigned id = atoi(&path.data[1]);
+					if (scene->mTextures[id]->mHeight == 0) {
+						std::cout << "Texture is compressed.\n";
+						texture.loadCompressedFromMemory(reinterpret_cast<unsigned char*>(scene->mTextures[id]->pcData),scene->mTextures[id]->mWidth);
+					}
+				}
 
                 GLuint id;
                 glGenTextures(1, &id);
@@ -400,27 +415,36 @@ private:
     }
 };
 
+class J7Material {
+public:
+	std::vector<GLuint> diffuse_tex;
+
+
+private:
+
+};
+
 class j7Cam {
 public:
 	j7Cam() {
 		//Initialize control settings
 		mouseSensitivity=0.01f;
-		moveSpeed=0.1f;
-		mouseLock=false;
+		moveSpeed=0.05f;
+		runSpeedMultiplier=2.0f;
+		mouseLock=false;		
 
 		//Initialize our camera matrices
 		up = sf::Vector3f(0.0f, 1.0f, 0.0f);
 		eye = sf::Vector3f(0, 1.0f, 5.0f); // Start 5 units back
 		center = sf::Vector3f(0, 1.0f, 0);
 
-		angle = sf::Vector2f(0, 0);
+		angle = sf::Vector2f(M_PI, 0); // ::TODO:: Face the other way
 	}
 	void update(sf::RenderWindow *window) {
 		updatePosition(); // Movement
 		updateAngle(window); // Look
 		move(); // Apply change
 	}
-
 	void setMouseLock(bool locked, sf::RenderWindow *window) { // Toggle mouse locking
 		mouseLock=locked;
 		window->setMouseCursorVisible(!mouseLock);
@@ -435,6 +459,8 @@ public:
 private:
 	float mouseSensitivity;
 	float moveSpeed;
+	float runSpeedMultiplier;
+
 
 	sf::Vector2i savedMousePosition;
 
@@ -466,6 +492,7 @@ private:
 		
 		// Straight ::TODO:: Add support for sprinting
 		sf::Vector3f back(modelview[2], modelview[6], modelview[10]); // Back vector
+		if (sf::Keyboard::isKeyPressed(key_move_run)) back*=runSpeedMultiplier;
 		if (sf::Keyboard::isKeyPressed(key_move_forward)) eye-=back*moveSpeed;
 		if (sf::Keyboard::isKeyPressed(key_move_backward)) eye+=back*moveSpeed;
 
@@ -476,6 +503,7 @@ private:
 
 		//Vertical ::TODO:: Give this support to toggle between fly and jump/crouch
 		// ::TODO:: This doesn't work properly when looking up/down
+		// ::TODO:: Crouch/jump should use linear interpolation?
 		sf::Vector3f up(modelview[1], modelview[5], modelview[9]); // Up vector
 		if (sf::Keyboard::isKeyPressed(key_move_up)) eye+=up*moveSpeed;
 		if (sf::Keyboard::isKeyPressed(key_move_down)) eye-=up*moveSpeed;
