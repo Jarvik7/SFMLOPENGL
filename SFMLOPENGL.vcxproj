@@ -75,9 +75,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="q3bsploader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="j7util.hpp" />
+    <ClInclude Include="q3bsploader.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

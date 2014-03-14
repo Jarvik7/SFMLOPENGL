@@ -13,6 +13,7 @@
 #include <iostream>
 //#include <functional> // For hash
 //#include <Windows.h>
+//#include "q3bsploader.h"
 
 #include <assimp/Importer.hpp>	//For 3D model loading
 #include <assimp/scene.h>
@@ -21,6 +22,13 @@
 #ifndef M_PI
 	#define M_PI 3.14159265358979323846
 #endif
+
+enum BUFFERTYPES {
+	VERTEX_DATA=0,
+	NORMAL_DATA,
+	TEXTURE_DATA,
+	INDEX_DATA
+};
 
 const bool DISPLAYDEBUGOUTPUT = true;
 
@@ -225,6 +233,55 @@ void generateMenu(sf::RenderWindow *window)
 	rootmenu.draw(window);
 }*/
 
+
+class j7Light {
+public:
+
+
+	j7Light(aiVector3D pos, aiVector3D dir, aiColor3D amb, aiColor3D diff, aiColor3D spec) {
+		position.push_back(pos.x);
+		position.push_back(pos.y);
+		position.push_back(pos.z);
+
+		direction.push_back(dir.x);
+		direction.push_back(dir.y);
+		direction.push_back(dir.z);
+
+		colorAmbient.push_back(amb.r);
+		colorAmbient.push_back(amb.g);
+		colorAmbient.push_back(amb.b);
+
+		colorDiffuse.push_back(diff.r);
+		colorDiffuse.push_back(diff.g);
+		colorDiffuse.push_back(diff.b);
+
+		colorSpecular.push_back(spec.r);
+		colorSpecular.push_back(spec.g);
+		colorSpecular.push_back(spec.b);
+
+		std::cout << "Added new light at (" << position[0] << ',' << position[1] << ',' << position[2] << "), pointing at (" << direction[0] << ',' << direction[1] << ',' << direction[2] << ")\n";
+	}
+
+	void draw() {
+
+
+	// Place it
+	//Fixed function OpenGL only supports 8 lights. We're going to need shaders
+	/*glLightfv(GL_LIGHT0, GL_AMBIENT, colorAmbient);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, colorDiffuse);
+	glLightfv(GL_LIGHT0, GL_SPECULAR, colorSpecular);
+	glLightfv(GL_LIGHT0, GL_POSITION, position);*/
+	}
+private:
+	// Coordinates
+	std::vector<GLfloat> position;
+	std::vector<GLfloat> direction;
+	// Colors
+	std::vector<GLfloat> colorAmbient;
+	std::vector<GLfloat> colorDiffuse;
+	std::vector<GLfloat> colorSpecular;
+};
+
 class j7Mesh {
 public:
 	std::vector<GLfloat> vertices;
@@ -283,14 +340,27 @@ public:
         makeVBO(); // ::TODO:: Make VBO generation dependent on passing a bool to constructor
 
     }
+
+	j7Mesh(q3BSP bsp) {
+		vertices = bsp.getVertices();
+		indices = bsp.getIndices();
+		normals = bsp.getNormals();
+		glGenBuffers(2, bufferObjects);
+        // Vertex data
+        glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[VERTEX_DATA]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+		// Normal data
+        glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[NORMAL_DATA]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * normals.size(), normals.data(), GL_STATIC_DRAW);
+        // Indexes
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferObjects[INDEX_DATA]);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indices.size(), indices.data(), GL_STATIC_DRAW);
+	}
 private:
 
     void makeVBO() {
 
-#define VERTEX_DATA 0
-#define NORMAL_DATA 1
-#define TEXTURE_DATA 2
-#define INDEX_DATA 3
+
         glGenBuffers(4, bufferObjects);
         // Copy data to video memory
         // Vertex data
@@ -329,13 +399,32 @@ public:
         glDisableClientState(GL_VERTEX_ARRAY);
     }
 
+	void drawBSP() {
+		glEnableClientState(GL_VERTEX_ARRAY);
+		//Vertices
+		glBindBuffer(GL_ARRAY_BUFFER, meshes[0].bufferObjects[VERTEX_DATA]);
+		glVertexPointer(3, GL_FLOAT, 0, 0);
+        // Normal data
+        glBindBuffer(GL_ARRAY_BUFFER, meshes[0].bufferObjects[NORMAL_DATA]);
+        glNormalPointer(GL_FLOAT, 0, 0);
+		// Indexes
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes[0].bufferObjects[INDEX_DATA]);
+		glDrawElements(GL_TRIANGLES, (GLsizei)meshes[0].indices.size(), GL_UNSIGNED_INT, 0); // Index 1 of trdis has no texture coords!
+		
+		glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind, fixes SFML Text display
+
+        glDisableClientState(GL_VERTEX_ARRAY);
+
+
+	}
+
     void drawVBO() { // Indexed VBO
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         glEnableClientState(GL_NORMAL_ARRAY);
 
         for (unsigned i=0; i<meshes.size(); i++) {
-            bindtex(textures[meshes[i].materialIndex-1]);
+            bindtex(textures[meshes[i].materialIndex/*-1*/]);
             glBindBuffer(GL_ARRAY_BUFFER, meshes[i].bufferObjects[VERTEX_DATA]);
             glVertexPointer(3, GL_FLOAT, 0, 0);
             // Normal data
@@ -356,22 +445,39 @@ public:
 
     j7Model(std::string filename) {
 		Assimp::Importer importer;
+		std::cout << "\nTrying to load mesh file: " << filename << '\n';
 		const aiScene *scene = importer.ReadFile(filename, aiProcessPreset_TargetRealtime_Quality);
 		if (!scene) {
 			std::cerr << "Failed to load mesh \"" << filename << "\"" << std::endl;
 			return; // Couldn't load mesh, abort
 		}
-		std::cout << "There are this many meshes: " << scene->mNumMeshes;
+	/*	std::cout << "There are this many meshes: " << scene->mNumMeshes;
 		std::cout << "Mesh 1 has this many faces: " << scene->mMeshes[0]->mNumFaces << " with a total of this many vertices: " << scene->mMeshes[0]->mNumVertices << '\n';
+		std::cout << "There are this many lights: " << scene->mNumLights << '\n';
+		std::cout << "There are this many cams: " << scene->mNumCameras << '\n';*/
         if (scene->HasMeshes()) for (unsigned i=0; i < scene->mNumMeshes; i++) {
             meshes.push_back(j7Mesh(scene->mMeshes[i]));
         }
 		if (scene->HasMaterials()) importTextures(scene); // ::TODO:: Only supports external diffuse textures right now
-    }
+		if (scene->HasLights()) for (unsigned i=0; i< scene->mNumLights; ++i) {
+			lights.push_back(j7Light(scene->mLights[i]->mPosition,
+									scene->mLights[i]->mDirection,
+									scene->mLights[i]->mColorAmbient,
+									scene->mLights[i]->mColorDiffuse,
+									scene->mLights[i]->mColorSpecular));
+		}
+    } // Load from filesystem
+
+	j7Model(q3BSP bsp) { // Load from a BSP object
+		meshes.push_back(j7Mesh(bsp));
+		//importTextures(bsp);
+	}
 
 private:
     std::vector<j7Mesh> meshes;
     std::vector<GLuint> textures; // Vector of texture IDs. ::TODO:: Make texture 0 all-white to handle meshes with no texture? Also means we don't need the "-1" kludge for materialindex->textureid
+	std::vector<j7Light> lights;
+	//std::vector<j7Bone> bones; //::TODO::
 
     void bindtex(GLuint id) {
         glActiveTexture(GL_TEXTURE0);
@@ -380,42 +486,89 @@ private:
 
     void importTextures(const aiScene *scene) {
 		std::cout << "Materials: " << scene->mNumMaterials << ", Textures: " << scene->mNumTextures << '\n';
+		unsigned count=0;
+		std::vector<unsigned char> rawTexture;
 		for (unsigned i=0; i < scene->mNumMaterials; i++)
 		{
 			aiString path;	// filename
-			std::cout << "Trying to load material number " << i;
+			std::cout << "Trying to load material number " << i << '\n';
 			//for (unsigned j=0; j< scene->mMaterials[i]->GetTextureCount(aiTextureType_DIFFUSE);j++) { // should only be one?
 			if (scene->mMaterials[i]->GetTextureCount(aiTextureType_DIFFUSE)!=0) { 
 				// Get path for diffuse texture
 				scene->mMaterials[i]->GetTexture(aiTextureType_DIFFUSE, 0, &path);
-				std::cout << ": " << path.data << '\n';
-                sf::Image texture;
-				if (path.data[0] != '*') texture.loadFromFile(path.data);
-				else {
-					std::cout << "Probably internal Q3BSP texture: ";
-					//Grab the string name without the initial * (this can probably be done with some string func)
-	
-					unsigned id = atoi(&path.data[1]);
-					if (scene->mTextures[id]->mHeight == 0) {
-						std::cout << "Texture is compressed.\n";
-						texture.loadCompressedFromMemory(reinterpret_cast<unsigned char*>(scene->mTextures[id]->pcData),scene->mTextures[id]->mWidth);
-					}
+			}
+			else if (scene->mMaterials[i]->GetTextureCount(aiTextureType_LIGHTMAP)!=0) { 
+				scene->mMaterials[i]->GetTexture(aiTextureType_LIGHTMAP, 1, &path);
+				std::cout << "Tried loading lightmap file: " << path.data << '\n';
+			}
+			else { // Reserve an id even for unloaded textures?
+				std::cout << ": No diffuse/lightmap texture found??\n";
+
+				std::cout << scene->mMaterials[i]->GetTextureCount(aiTextureType_SPECULAR ) << '\n';
+				std::cout << scene->mMaterials[i]->GetTextureCount(aiTextureType_AMBIENT ) << '\n';
+				std::cout << scene->mMaterials[i]->GetTextureCount(aiTextureType_EMISSIVE ) << '\n';
+				std::cout << scene->mMaterials[i]->GetTextureCount(aiTextureType_HEIGHT ) << '\n';
+				std::cout << scene->mMaterials[i]->GetTextureCount(aiTextureType_NORMALS ) << '\n';
+				std::cout << scene->mMaterials[i]->GetTextureCount(aiTextureType_SHININESS ) << '\n';
+				std::cout << scene->mMaterials[i]->GetTextureCount(aiTextureType_OPACITY ) << '\n';
+				std::cout << scene->mMaterials[i]->GetTextureCount(aiTextureType_DISPLACEMENT ) << '\n';
+				std::cout << scene->mMaterials[i]->GetTextureCount(aiTextureType_REFLECTION ) << '\n';
+				std::cout << scene->mMaterials[i]->GetTextureCount(aiTextureType_UNKNOWN ) << '\n';
+				GLuint garbageid;
+				glGenTextures(1, &garbageid);
+				textures.push_back(garbageid);
+				continue;
+			}
+			std::cout << ": " << path.data << '\n';
+            sf::Image texture;
+
+			if (path.data[0] != '*') { // Texture is a file
+				if (!texture.loadFromFile(path.data)) std::cerr << "Unable to load texture file: " << path.data << '\n';
+			}
+			else { // Texture is internal
+				std::cout << "Loading internal texture\n";
+				unsigned id = atoi(&path.data[1]); // Get texture index from "path"
+				unsigned size;
+
+				if (scene->mTextures[id]->mHeight == 0) {
+					size = scene->mTextures[id]->mWidth; // Compressed texture
+					texture.loadFromMemory(reinterpret_cast<unsigned char*>(scene->mTextures[id]->pcData),size);
 				}
 
-                GLuint id;
-                glGenTextures(1, &id);
-                glBindTexture(GL_TEXTURE_2D, id);
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texture.getSize().x, texture.getSize().y, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.getPixelsPtr());
-                glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-                textures.push_back(id);
+				else {
+					std::cout << "Texture is NOT compressed (" << scene->mTextures[id]->mWidth << 'x' << scene->mTextures[id]->mHeight << "). Size: ";
+					size=scene->mTextures[id]->mWidth * scene->mTextures[id]->mHeight; // Number of texels
+					std::vector<unsigned char> texels;
+					for (int i=0; i< size; ++i) { // Convert aiTexel's ARGB8888 to SFML's RGBA8888
+						aiTexel temp = scene->mTextures[id]->pcData[i]; //Get the texel
+						rawTexture.push_back(temp.r);
+						rawTexture.push_back(temp.g);
+						rawTexture.push_back(temp.b);
+						rawTexture.push_back(temp.a);
+					}
+				}
 			}
+			count++;
+            GLuint id;
+            glGenTextures(1, &id);
+            glBindTexture(GL_TEXTURE_2D, id);
+			//if (rawTexture.size()!=0) glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, scene->mTextures[id]->mWidth, scene->mTextures[id]->mHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, rawTexture.data());
+			
+            /*else*/ glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texture.getSize().x, texture.getSize().y, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.getPixelsPtr());
+            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+            textures.push_back(id);
+			std::cout << "Pushed to texture number: " << textures.size() << '\n';
 		}
+			
+	std::cout << "Total no of textures loaded: " << count << '\n';
     }
 };
 
-class J7Material {
+
+
+class j7Material {
 public:
 	std::vector<GLuint> diffuse_tex;
 

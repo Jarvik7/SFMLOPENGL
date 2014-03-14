@@ -14,8 +14,9 @@
 #include <SFML/OpenGL.hpp> // For OpenGL functions
 #include <SFML/Graphics.hpp> // For SFML functions (window handling, ttf text drawing, vector2u)
 #include <SFML/Audio.hpp> // For SFML MP3 playback
-
+#include "q3bsploader.h"
 #include "j7util.hpp"
+
 
 // Enable to display debug output ::TODO:: change this to read project build settings?
 //const bool DISPLAYDEBUGOUTPUT = true;
@@ -163,7 +164,9 @@ int main(int argc, const char * argv[])
 	j7Model cube("2texcube.obj");
 	j7Model tardis("tardis.obj");
 	//j7Model zombie("zsec_machinegun\\zsecmachinegun.md5mesh");
-	j7Model quake3("q3dm.pk3");
+	//j7Model quake3("q3dm.pk3");
+	q3BSP test("test_bigbox.bsp");
+	j7Model quake3(test);
 	j7Cam camera;
 
     // Begin game loop
@@ -187,9 +190,9 @@ int main(int argc, const char * argv[])
         glRotatef(rquad * .9f, 0.0f, 0.0f, 1.0f);
 
         if (modelno==0) cube.drawVBO();
-		if (modelno==1) { glScalef(0.02f, 0.02f, 0.02f); quake3.drawVBO(); } //tardis.drawVBO();
+		if (modelno==1) { glScalef(0.02f, 0.02f, 0.02f); glRotatef(-90, 1.f, 0.f, 0.f); quake3.drawBSP(); } //tardis.drawVBO();
 		//if (modelno==2) { glScalef(0.02f, 0.02f, 0.02f); zombie.drawVBO(); }
-        //if (modelno==2) apartment.drawVBO();
+        if (modelno==2) apartment.drawVBO();
 
 		glPopMatrix();
 
