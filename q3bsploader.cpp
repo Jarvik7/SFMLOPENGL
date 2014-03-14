@@ -165,7 +165,6 @@ enum LUMPNAMES {
 		for (unsigned i = 0; i < faces.size(); ++i) {
 			if (faces[i].type != 1) continue; // Not a polygon, skip
 			std::cout << "Face #" << i;
-			//temp.push_back(faces[i].vertex); // First vertex
 			for (unsigned j = 0; j < faces[i].n_meshverts; ++j) {
 				std::cout << '.';
 				// Remaining vertices in meshvert offset from first vertex
@@ -179,13 +178,25 @@ enum LUMPNAMES {
 		std::cout << '\n';
 		return temp;
 	}
-	/*
+
 	std::vector<GLfloat> q3BSP::getTextureCoordinates() {
-		return new std::vector<GLfloat>;
+		std::vector<GLfloat> temp;
+        for (int i = 0; i < vertices.size(); ++i) {
+            temp.push_back(vertices[i].texcoord[0][0]); //[1][x] is lightmap coords
+            temp.push_back(vertices[i].texcoord[0][1]);
+        }
+        return temp;
 	}
 	std::vector<std::string> q3BSP::getTextureNames() {
-		return new std::vector<std::string>;
-	} // Actual loading to be done by j7Model*/
+        std::vector<std::string> temp;
+        std::string name;
+        for (int i = 0; i < textures.size(); ++i) {
+            name = textures[i].name;
+            temp.push_back(name + ".jpg");
+        }
+
+        return temp;
+	}
 
 
 

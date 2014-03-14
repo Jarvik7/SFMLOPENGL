@@ -139,9 +139,6 @@ int main(int argc, const char * argv[])
     bool showfps = true;
 	bool wireframe=false;
 	short modelno=0;
-	sf::Vector3f movement(0,0,0);
-	float moveDelta = 0.1f;
-	sf::Vector2i mouseDelta(0,0);
 	
 	bool mouseLock=false;
 
@@ -160,9 +157,9 @@ int main(int argc, const char * argv[])
 	
 
 	//Load our mesh
-	j7Model apartment("apartment.obj");
-	j7Model cube("2texcube.obj");
-	j7Model tardis("tardis.obj");
+//	j7Model apartment("apartment.obj");
+//	j7Model cube("2texcube.obj");
+//	j7Model tardis("tardis.obj");
 	//j7Model zombie("zsec_machinegun\\zsecmachinegun.md5mesh");
 	//j7Model quake3("q3dm.pk3");
 	q3BSP test("test_bigbox.bsp");
@@ -178,7 +175,7 @@ int main(int argc, const char * argv[])
 		camera.update(&window);
 
 		//Draw the ground
-		drawGround();
+		//drawGround();
 
 		//Draw our spinny object
 		glPushMatrix();
@@ -189,14 +186,14 @@ int main(int argc, const char * argv[])
         glRotatef(rquad * .3f, 0.0f, 1.0f, 0.0f);
         glRotatef(rquad * .9f, 0.0f, 0.0f, 1.0f);
 
-        if (modelno==0) cube.drawVBO();
-		if (modelno==1) { glScalef(0.02f, 0.02f, 0.02f); glRotatef(-90, 1.f, 0.f, 0.f); quake3.drawBSP(); } //tardis.drawVBO();
+      //  if (modelno==0) cube.drawVBO();
+		if (true) { glScalef(0.02f, 0.02f, 0.02f); glRotatef(-90, 1.f, 0.f, 0.f); quake3.drawVBO(); } //tardis.drawVBO();
 		//if (modelno==2) { glScalef(0.02f, 0.02f, 0.02f); zombie.drawVBO(); }
-        if (modelno==2) apartment.drawVBO();
+     //   if (modelno==2) apartment.drawVBO();
 
 		glPopMatrix();
 
-		apartment.drawVBO();
+	//	apartment.drawVBO();
         if (showfps) showFPS(&window); // Display the FPS
 
         window.display();
