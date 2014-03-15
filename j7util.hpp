@@ -27,7 +27,8 @@ enum BUFFERTYPES {
 	VERTEX_DATA=0,
 	NORMAL_DATA,
 	TEXTURE_DATA,
-	INDEX_DATA
+	INDEX_DATA,
+    COLOR_DATA
 };
 
 const bool DISPLAYDEBUGOUTPUT = true;
@@ -287,10 +288,10 @@ public:
 	std::vector<GLfloat> vertices;
 	std::vector<GLfloat> normals;
 	std::vector<GLfloat> textureCoordinates;
-    std::vector<aiColor4D> vertexColors; // ::TODO:: This probably should be GLfloats or something
+    std::vector<GLfloat> vertexColors; // ::TODO:: This probably should be GLfloats or something
     std::vector<GLuint> indices;
     unsigned materialIndex;
-    GLuint bufferObjects[4];
+    GLuint bufferObjects[5];
 
     j7Mesh(aiMesh* mesh) {
         materialIndex = mesh->mMaterialIndex;
@@ -331,9 +332,12 @@ public:
             textureCoordinates.push_back(0);
         }
 
-        if (mesh->HasVertexColors(0)) { // ::TODO:: Colors are not rendered yet
+        if (mesh->HasVertexColors(0)) {
             for (unsigned i=0; i<mesh->mNumVertices; i++) {
-                vertexColors.push_back(mesh->mColors[0][i]);
+                vertexColors.push_back(mesh->mColors[0][i].r);
+                vertexColors.push_back(mesh->mColors[0][i].g);
+                vertexColors.push_back(mesh->mColors[0][i].b);
+                vertexColors.push_back(mesh->mColors[0][i].a);
             }
         }
 
@@ -341,17 +345,19 @@ public:
 
     }
 
-	j7Mesh(q3BSP bsp) { // Only supports 1 texture right now
+	j7Mesh(q3BSP bsp) { // Only supports 1 texture right now. Need to split into mesh by texture
 		vertices = bsp.getVertices();
 		indices = bsp.getIndices();
 		normals = bsp.getNormals();
         textureCoordinates = bsp.getTextureCoordinates();
+        vertexColors = bsp.getVertexColors();
         makeVBO();
 	}
+
 private:
 
     void makeVBO() {
-        glGenBuffers(4, bufferObjects);
+        glGenBuffers(5, bufferObjects);
         // Copy data to video memory
         // Vertex data
         glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[VERTEX_DATA]);
@@ -365,7 +371,9 @@ private:
         // Indexes
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferObjects[INDEX_DATA]);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indices.size(), indices.data(), GL_STATIC_DRAW);
-        
+        // Colors
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferObjects[COLOR_DATA]);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * vertexColors.size(), vertexColors.data(), GL_STATIC_DRAW);
     } // ::TODO:: Can we put directly into the buffer from the assimp structure without making arrays?
 };
 
@@ -380,7 +388,7 @@ public:
         for (unsigned i=0; i<meshes.size(); i++) {
             bindtex(textures[meshes[i].materialIndex-1]);
             glVertexPointer(3, GL_FLOAT, 0, meshes[i].vertices.data());
-           // glTexCoordPointer(2, GL_FLOAT, 0, meshes[i].textureCoordinates.data());
+            glTexCoordPointer(2, GL_FLOAT, 0, meshes[i].textureCoordinates.data());
             glNormalPointer(GL_FLOAT, 0, meshes[i].normals.data());
             glDrawElements(GL_TRIANGLES, (GLsizei)meshes[i].indices.size(), GL_UNSIGNED_INT, meshes[i].indices.data());
         }
@@ -393,6 +401,8 @@ public:
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         glEnableClientState(GL_NORMAL_ARRAY);
+        glEnableClientState(GL_COLOR_ARRAY);
+
 
         for (unsigned i=0; i<meshes.size(); i++) {
           //  bindtex(textures[meshes[i].materialIndex/*-1*/]);
@@ -407,8 +417,12 @@ public:
             // Indexes
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes[i].bufferObjects[INDEX_DATA]);
             glDrawElements(GL_TRIANGLES, (GLsizei)meshes[i].indices.size(), GL_UNSIGNED_INT, 0); // Index 1 of trdis has no texture coords!
+            // Vertex colors
+            glBindBuffer(GL_ARRAY_BUFFER, meshes[i].bufferObjects[COLOR_DATA]);
+            glColorPointer(4, GL_FLOAT, 0, 0);
         }
 		glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind, fixes SFML Text display
+        glDisableClientState(GL_COLOR_ARRAY);
         glDisableClientState(GL_NORMAL_ARRAY);
         glDisableClientState(GL_TEXTURE_COORD_ARRAY);
         glDisableClientState(GL_VERTEX_ARRAY);
@@ -440,7 +454,7 @@ public:
     } // Load from filesystem
 
 	j7Model(q3BSP bsp) { // Load from a BSP object
-		meshes.push_back(j7Mesh(bsp));
+		for (int i = 0; i < bsp.facesByTexture.size(); ++i) meshes.push_back(bsp.facesByTexture[i]);
 		importTextures(bsp);
 	}
 
@@ -458,7 +472,14 @@ private:
         sf::Image texture;
 
        // if (path.data[0] != '*') { // Texture is a file
+        if (!texture.loadFromFile(filename)) {
+            unsigned long len = filename.size(); // Try TGA instead of JPG ::TODO:: cludge
+            filename[len-3]='t';
+            filename[len-2]='g';
+            filename[len-1]='a';
             if (!texture.loadFromFile(filename)) std::cerr << "Unable to load texture file: " << filename << '\n';
+        }
+
         //}
         /*
         else { // Texture is internal

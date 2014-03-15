@@ -162,7 +162,8 @@ int main(int argc, const char * argv[])
 //	j7Model tardis("tardis.obj");
 	//j7Model zombie("zsec_machinegun\\zsecmachinegun.md5mesh");
 	//j7Model quake3("q3dm.pk3");
-	q3BSP test("test_bigbox.bsp");
+	//q3BSP test("test_bigbox.bsp");
+    q3BSP test("q3dm0.bsp");
 	j7Model quake3(test);
 	j7Cam camera;
 
@@ -185,12 +186,12 @@ int main(int argc, const char * argv[])
         glRotatef(rquad * .5f, 1.0f, 0.0f, 0.0f);
         glRotatef(rquad * .3f, 0.0f, 1.0f, 0.0f);
         glRotatef(rquad * .9f, 0.0f, 0.0f, 1.0f);
-
+        glFrontFace(GL_CW);
       //  if (modelno==0) cube.drawVBO();
 		if (true) { glScalef(0.02f, 0.02f, 0.02f); glRotatef(-90, 1.f, 0.f, 0.f); quake3.drawVBO(); } //tardis.drawVBO();
 		//if (modelno==2) { glScalef(0.02f, 0.02f, 0.02f); zombie.drawVBO(); }
      //   if (modelno==2) apartment.drawVBO();
-
+        glFrontFace(GL_CCW);
 		glPopMatrix();
 
 	//	apartment.drawVBO();

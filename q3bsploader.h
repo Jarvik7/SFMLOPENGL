@@ -11,7 +11,7 @@ typedef struct {
 
 typedef struct
 {
-    char* entities;
+    std::string entities;
 } BSPEntities; // Lump 0
 
 typedef struct
@@ -57,8 +57,10 @@ public:
 	q3BSP(std::string filename);
 	std::vector<GLfloat> getVertices();
 	std::vector<GLfloat> getNormals();
+    std::vector<GLfloat> getVertexColors();
 	std::vector<GLuint> getIndices();
 	std::vector<GLfloat> getTextureCoordinates();
+    std::vector<std::vector<BSPFace>> facesByTexture;
 	std::vector<std::string> getTextureNames(); // Actual loading to be done by j7Model
 
 private:
@@ -68,4 +70,5 @@ private:
 	std::vector<BSPVertex> vertices;
 	std::vector<BSPMeshVert> meshVerts;
 	std::vector<BSPFace> faces;
+    void groupMeshByTexture();
 };
