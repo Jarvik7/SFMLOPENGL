@@ -194,22 +194,19 @@ std::vector<GLfloat> q3BSP::getVertexColors() {
 //     std::cout << '\n';*/
 //    return temp;
 //}
-std::vector<std::vector<GLuint>> q3BSP::getIndices() {
-    std::vector<std::vector<GLuint>> temp; // A vector of lists of indices
-    temp.resize(facesByTexture.size());
-
-    for (unsigned i = 0; i < facesByTexture.size(); ++i) { // For each set
-        if (facesByTexture[i].size()!= 0 && facesByTexture[i][0].type != 1) {
-            std::cout << "Face group " << i << " is type " << facesByTexture[i][0].type << '\n';
-            continue; // Not a polygon, skip
+std::vector<GLuint> q3BSP::getIndices(unsigned entry) {
+    std::vector<GLuint> temp; // A vector of lists of indices
+   // temp.resize(facesByTexture.size());
+        if (facesByTexture[entry].size()!= 0 && facesByTexture[entry][0].type != 1) {
+            std::cout << "Face group " << entry << " is type " << facesByTexture[entry][0].type << '\n';
         }
-        for (int j = 0; j < facesByTexture[i].size(); ++j) { // For each face in set
-            for (unsigned k = 0; k < facesByTexture[i][j].n_meshverts; ++k) { // For each meshvert in face
-                GLuint value = facesByTexture[i][j].vertex + meshVerts[k + facesByTexture[i][j].meshvert].offset;
-                temp[i].push_back(value);
+        else for (int j = 0; j < facesByTexture[entry].size(); ++j) { // For each face in set
+            for (unsigned k = 0; k < facesByTexture[entry][j].n_meshverts; ++k) { // For each meshvert in face
+                GLuint value = facesByTexture[entry][j].vertex + meshVerts[k + facesByTexture[entry][j].meshvert].offset;
+                temp.push_back(value);
             }
         }
-    }
+
 
     return temp;
 }

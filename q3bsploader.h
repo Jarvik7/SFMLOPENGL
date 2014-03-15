@@ -58,7 +58,7 @@ public:
 	std::vector<GLfloat> getVertices();
 	std::vector<GLfloat> getNormals();
     std::vector<GLfloat> getVertexColors();
-	std::vector<std::vector<GLuint>> getIndices();
+	std::vector<GLuint> getIndices(unsigned entry);
 	std::vector<GLfloat> getTextureCoordinates();
     std::vector<std::vector<BSPFace>> facesByTexture;
 	std::vector<std::string> getTextureNames(); // Actual loading to be done by j7Model

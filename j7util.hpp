@@ -351,49 +351,46 @@ public:
 
     }
 
-	j7Mesh(q3BSP bsp, unsigned faceSetIndex) { // ::TODO:: Move vertex info into j7Model. Mesh should just have indices and texture id
-		vertices = bsp.getVertices();
-	//	indices = bsp.getIndices();
-		normals = bsp.getNormals();
-        textureCoordinates = bsp.getTextureCoordinates();
-        vertexColors = bsp.getVertexColors();
+	j7Mesh(q3BSP *bsp, unsigned faceSetIndex) { // ::TODO:: Move vertex info into j7Model. Mesh should just have indices and texture id
+
         materialIndex = 0;
-        if (bsp.facesByTexture[faceSetIndex].size() != 0) materialIndex = bsp.facesByTexture[faceSetIndex][0].texture;
-        std::vector<std::vector<GLuint>> temp = bsp.getIndices();
-        for (int i = 0; i < temp[faceSetIndex].size(); ++i) { //For each index in this set
-            indices.push_back(temp[faceSetIndex][i]);
+        if (bsp->facesByTexture[faceSetIndex].size() != 0) materialIndex = bsp->facesByTexture[faceSetIndex][0].texture;
+        std::vector<GLuint> temp = bsp->getIndices(faceSetIndex);
+        for (int i = 0; i < temp.size(); ++i) { //For each index in this set
+            indices.push_back(temp[i]);
         }
 
-        makeVBO();
+        makeVBO(false); // Don't need objects for anything other than indices
 	}
 
 private:
 
-    void makeVBO() {
+    void makeVBO(bool generateVertexBuffers=true) {
         glGenBuffers(5, bufferObjects);
         // Copy data to video memory
-        // Vertex data
-        glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[VERTEX_DATA]);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
-        // Normal data
-        glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[NORMAL_DATA]);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * normals.size(), normals.data(), GL_STATIC_DRAW);
-        // Texture coordinates
-        glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[TEXTURE_DATA]);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * textureCoordinates.size(), textureCoordinates.data(), GL_STATIC_DRAW);
+        if (generateVertexBuffers) {
+            // Vertex data
+            glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[VERTEX_DATA]);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+            // Normal data
+            glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[NORMAL_DATA]);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * normals.size(), normals.data(), GL_STATIC_DRAW);
+            // Texture coordinates
+            glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[TEXTURE_DATA]);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * textureCoordinates.size(), textureCoordinates.data(), GL_STATIC_DRAW);
+            // Colors
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferObjects[COLOR_DATA]);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * vertexColors.size(), vertexColors.data(), GL_STATIC_DRAW);
+        }
         // Indexes
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferObjects[INDEX_DATA]);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indices.size(), indices.data(), GL_STATIC_DRAW);
-        // Colors
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferObjects[COLOR_DATA]);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * vertexColors.size(), vertexColors.data(), GL_STATIC_DRAW);
+
     } // ::TODO:: Can we put directly into the buffer from the assimp structure without making arrays?
 };
 
 class j7Model { // ::TODO:: Make into a VAO
 public:
-  //  std::vector<GLuint> vao;
-
     void drawArray() { // Indexed Vertex Array
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -416,8 +413,29 @@ public:
         glEnableClientState(GL_NORMAL_ARRAY);
         glEnableClientState(GL_COLOR_ARRAY);
 
-        for (unsigned i=0; i<meshes.size(); i++) {
-           // std::cout << "Binding texture: " <<meshes[i].materialIndex << '\n';
+        if (vertices.size() != 0) {
+            glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[VERTEX_DATA]);
+            glVertexPointer(3, GL_FLOAT, 0, 0);
+            // Normal data
+            glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[NORMAL_DATA]);
+            glNormalPointer(GL_FLOAT, 0, 0);
+            // Texture coordinates
+            glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[TEXTURE_DATA]);
+            glTexCoordPointer(2, GL_FLOAT, 0, 0);
+            // Vertex colors
+            glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[COLOR_DATA]);
+            glColorPointer(4, GL_FLOAT, 0, 0);
+
+            for (unsigned i=0; i<meshes.size(); i++) {
+                bindtex(textures[meshes[i].materialIndex]);
+                // Indexes
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes[i].bufferObjects[INDEX_DATA]);
+                glDrawElements(GL_TRIANGLES, (GLsizei)meshes[i].indices.size(), GL_UNSIGNED_INT, 0); // Index 1 of trdis has no texture coords!
+
+            }
+        }
+
+        else for (unsigned i=0; i<meshes.size(); i++) {
             bindtex(textures[meshes[i].materialIndex]);
             glBindBuffer(GL_ARRAY_BUFFER, meshes[i].bufferObjects[VERTEX_DATA]);
             glVertexPointer(3, GL_FLOAT, 0, 0);
@@ -449,10 +467,7 @@ public:
 			std::cerr << "Failed to load mesh \"" << filename << "\"" << std::endl;
 			return; // Couldn't load mesh, abort
 		}
-	/*	std::cout << "There are this many meshes: " << scene->mNumMeshes;
-		std::cout << "Mesh 1 has this many faces: " << scene->mMeshes[0]->mNumFaces << " with a total of this many vertices: " << scene->mMeshes[0]->mNumVertices << '\n';
-		std::cout << "There are this many lights: " << scene->mNumLights << '\n';
-		std::cout << "There are this many cams: " << scene->mNumCameras << '\n';*/
+
         if (scene->HasMeshes()) for (unsigned i=0; i < scene->mNumMeshes; i++) {
             meshes.push_back(j7Mesh(scene->mMeshes[i]));
         }
@@ -466,16 +481,43 @@ public:
 		}
     } // Load from filesystem
 
-	j7Model(q3BSP bsp) { // Load from a BSP object
-		for (unsigned i = 0; i < bsp.facesByTexture.size(); ++i) meshes.push_back(j7Mesh(bsp,i));
+	j7Model(q3BSP *bsp) { // Load from a BSP object
+        vertices = bsp->getVertices();
+		normals = bsp->getNormals();
+        textureCoordinates = bsp->getTextureCoordinates();
+        vertexColors = bsp->getVertexColors();
+
+
+        glGenBuffers(5, bufferObjects);
+        // Vertex data
+        glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[VERTEX_DATA]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+        // Normal data
+        glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[NORMAL_DATA]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * normals.size(), normals.data(), GL_STATIC_DRAW);
+        // Texture coordinates
+        glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[TEXTURE_DATA]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * textureCoordinates.size(), textureCoordinates.data(), GL_STATIC_DRAW);
+        // Colors
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferObjects[COLOR_DATA]);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * vertexColors.size(), vertexColors.data(), GL_STATIC_DRAW);
+
+		for (unsigned i = 0; i < bsp->facesByTexture.size(); ++i) meshes.push_back(j7Mesh(bsp,i));
 		importTextures(bsp);
 	}
 
 private:
     std::vector<j7Mesh> meshes;
-    std::vector<GLuint> textures; // Vector of texture IDs. ::TODO:: Make texture 0 all-white to handle meshes with no texture? Also means we don't need the "-1" kludge for materialindex->textureid
+    std::vector<GLuint> textures; // Vector of texture IDs.
 	std::vector<j7Light> lights;
 	//std::vector<j7Bone> bones; //::TODO::
+
+    // For meshes where the vertex data is shared for everything (BSP)
+	std::vector<GLfloat> vertices;
+	std::vector<GLfloat> normals;
+	std::vector<GLfloat> textureCoordinates;
+    std::vector<GLfloat> vertexColors;
+    GLuint bufferObjects[5];
 
     void bindtex(GLuint id) {
         glActiveTexture(GL_TEXTURE0);
@@ -537,10 +579,10 @@ private:
 
     }
 
-    void importTextures(q3BSP bsp) {
+    void importTextures(q3BSP *bsp) {
         std::cout << "Loading textures...\n";
         std::vector<std::string> textureNames;
-        textureNames = bsp.getTextureNames();
+        textureNames = bsp->getTextureNames();
 		for (unsigned i=0; i < textureNames.size(); i++)
 		{
 			textures.push_back(loadTexture(textureNames[i]));
@@ -548,21 +590,16 @@ private:
     }
 
     void importTextures(const aiScene *scene) {
-		//std::cout << "Materials: " << scene->mNumMaterials << ", Textures: " << scene->mNumTextures << '\n';
 		std::vector<unsigned char> rawTexture;
 		for (unsigned i=0; i < scene->mNumMaterials; i++)
 		{
 			aiString path;	// filename
-		//	std::cout << "Trying to load material number " << i << '\n';
-			//for (unsigned j=0; j< scene->mMaterials[i]->GetTextureCount(aiTextureType_DIFFUSE);j++) { // should only be one?
-			if (scene->mMaterials[i]->GetTextureCount(aiTextureType_DIFFUSE)!=0) { 
+			if (scene->mMaterials[i]->GetTextureCount(aiTextureType_DIFFUSE) != 0) {
 				// Get path for diffuse texture
 				scene->mMaterials[i]->GetTexture(aiTextureType_DIFFUSE, 0, &path);
 			}
 			textures.push_back(loadTexture(path.data));
 		}
-			
-	//std::cout << "Total no of textures loaded: " << count << '\n';
     }
 };
 
