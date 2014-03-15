@@ -11,6 +11,7 @@
 
 #include <vector>
 #include <iostream>
+#include <fstream>
 //#include <functional> // For hash
 //#include <Windows.h>
 //#include "q3bsploader.h"
@@ -42,6 +43,11 @@ const sf::Keyboard::Key key_move_down = sf::Keyboard::LControl;
 const sf::Keyboard::Key key_move_CW = sf::Keyboard::E;
 const sf::Keyboard::Key key_move_CCW = sf::Keyboard::Q;
 const sf::Keyboard::Key key_move_run = sf::Keyboard::LShift;
+
+bool fileExists(std::string filename) {
+    std::ifstream infile(filename);
+    return infile.good();
+}
 
 void drawGround() {
 	static bool loaded=false;
@@ -288,7 +294,7 @@ public:
 	std::vector<GLfloat> vertices;
 	std::vector<GLfloat> normals;
 	std::vector<GLfloat> textureCoordinates;
-    std::vector<GLfloat> vertexColors; // ::TODO:: This probably should be GLfloats or something
+    std::vector<GLfloat> vertexColors;
     std::vector<GLuint> indices;
     unsigned materialIndex;
     GLuint bufferObjects[5];
@@ -345,12 +351,19 @@ public:
 
     }
 
-	j7Mesh(q3BSP bsp) { // Only supports 1 texture right now. Need to split into mesh by texture
+	j7Mesh(q3BSP bsp, unsigned faceSetIndex) { // ::TODO:: Move vertex info into j7Model. Mesh should just have indices and texture id
 		vertices = bsp.getVertices();
-		indices = bsp.getIndices();
+	//	indices = bsp.getIndices();
 		normals = bsp.getNormals();
         textureCoordinates = bsp.getTextureCoordinates();
         vertexColors = bsp.getVertexColors();
+        materialIndex = 0;
+        if (bsp.facesByTexture[faceSetIndex].size() != 0) materialIndex = bsp.facesByTexture[faceSetIndex][0].texture;
+        std::vector<std::vector<GLuint>> temp = bsp.getIndices();
+        for (int i = 0; i < temp[faceSetIndex].size(); ++i) { //For each index in this set
+            indices.push_back(temp[faceSetIndex][i]);
+        }
+
         makeVBO();
 	}
 
@@ -403,9 +416,9 @@ public:
         glEnableClientState(GL_NORMAL_ARRAY);
         glEnableClientState(GL_COLOR_ARRAY);
 
-
         for (unsigned i=0; i<meshes.size(); i++) {
-          //  bindtex(textures[meshes[i].materialIndex/*-1*/]);
+           // std::cout << "Binding texture: " <<meshes[i].materialIndex << '\n';
+            bindtex(textures[meshes[i].materialIndex]);
             glBindBuffer(GL_ARRAY_BUFFER, meshes[i].bufferObjects[VERTEX_DATA]);
             glVertexPointer(3, GL_FLOAT, 0, 0);
             // Normal data
@@ -454,7 +467,7 @@ public:
     } // Load from filesystem
 
 	j7Model(q3BSP bsp) { // Load from a BSP object
-		for (int i = 0; i < bsp.facesByTexture.size(); ++i) meshes.push_back(bsp.facesByTexture[i]);
+		for (unsigned i = 0; i < bsp.facesByTexture.size(); ++i) meshes.push_back(j7Mesh(bsp,i));
 		importTextures(bsp);
 	}
 
@@ -469,15 +482,23 @@ private:
         glBindTexture(GL_TEXTURE_2D, id);
     }
     GLuint loadTexture(std::string filename) {
+        if (filename == "") {
+            std::cerr << "Texture name is null\n";
+            return 0;
+        }
+        if (fileExists(filename + ".jpg")) filename+= ".jpg";
+        else if (fileExists(filename + ".tga")) filename += ".tga";
+        else {
+            std::cerr << "Unable to find texture file: " << filename << '\n';
+            return 0;
+        }
+
         sf::Image texture;
 
        // if (path.data[0] != '*') { // Texture is a file
         if (!texture.loadFromFile(filename)) {
-            unsigned long len = filename.size(); // Try TGA instead of JPG ::TODO:: cludge
-            filename[len-3]='t';
-            filename[len-2]='g';
-            filename[len-1]='a';
-            if (!texture.loadFromFile(filename)) std::cerr << "Unable to load texture file: " << filename << '\n';
+            std::cerr << "Error loading texture file: " << filename << '\n';
+            return 0;
         }
 
         //}
@@ -517,6 +538,7 @@ private:
     }
 
     void importTextures(q3BSP bsp) {
+        std::cout << "Loading textures...\n";
         std::vector<std::string> textureNames;
         textureNames = bsp.getTextureNames();
 		for (unsigned i=0; i < textureNames.size(); i++)

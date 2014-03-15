@@ -50,16 +50,17 @@ enum LUMPNAMES {
 
 q3BSP::q3BSP(std::string filename) {
     std::cout << "Loading " << filename.c_str() << '\n';
+
+    // Load file to memory
     std::ifstream file(filename, std::ios::in | std::ios::binary | std::ios::ate);
     if (!file.is_open()) { std::cerr << "Couldn't open file.\n"; return; } // Couldn't open file
-    
     unsigned size = (unsigned)file.tellg();
     file.seekg (0);
     char * memblock = new char[size];
     file.read(memblock, size);
     file.close();
     
-    // Read and check  header
+    // Read and check header
     memcpy(&header, memblock, sizeof(BSPHeader));
     if (std::string("IBSP").compare(0,4,header.magicNumber,4)) { std::cerr << "Invalid format.\n" << header.magicNumber[0] << header.magicNumber[1] << header.magicNumber[2] << header.magicNumber[3]; return; }
     if (header.version != 0x2e) { std::cerr << "Invalid BSP version.\n"; return; }
@@ -68,19 +69,22 @@ q3BSP::q3BSP(std::string filename) {
     // Read lumps
     // Lump 0: Entities
     entities.entities.insert(0, &memblock[header.direntries[Entities].offset], header.direntries[Entities].length);
-    std::cout << entities.entities;
+    std::cout << "Lump 0: " << entities.entities.size() << " characters of entities read.\n";
+    // ::TODO:: Parse entities data
     
     // Lump 1: Textures
     unsigned numEntries = header.direntries[Textures].length / sizeof(BSPTexture);
     std::cout << "Lump 1: " << numEntries << " texture(s) found.\n";
-    textures.resize(numEntries);
+    textures.reserve(numEntries);
     BSPTexture tempTex;
     for (unsigned i = 0; i<numEntries; ++i) {
         memcpy(&tempTex,
                &memblock[header.direntries[Textures].offset + i * sizeof(BSPTexture)],
                sizeof(BSPTexture));
         textures.push_back(tempTex);
-        std::cout << i << ':' << tempTex.name << '\n';
+    }
+    for (int i = 0; i < textures.size(); ++i) {
+        std::cout << "  " << i << ':' << textures[i].name << '\n';
     }
     
     // Lump 2: Planes
@@ -122,6 +126,7 @@ q3BSP::q3BSP(std::string filename) {
                sizeof(BSPMeshVert));
         meshVerts.push_back(tempMeshVert);
     }
+    
     // Lump 12: Effects
     
     // Lump 13: Faces
@@ -189,25 +194,23 @@ std::vector<GLfloat> q3BSP::getVertexColors() {
 //     std::cout << '\n';*/
 //    return temp;
 //}
-std::vector<GLuint> q3BSP::getIndices() {
-    std::vector<std::vector<GLuint>> meshIndices; // A vector of lists of indices
-    std::vector<GLuint> temp;
+std::vector<std::vector<GLuint>> q3BSP::getIndices() {
+    std::vector<std::vector<GLuint>> temp; // A vector of lists of indices
+    temp.resize(facesByTexture.size());
 
     for (unsigned i = 0; i < facesByTexture.size(); ++i) { // For each set
-        for (int j = 0; j < facesByTexture[i].size(); ++i) { // For each face in set
-            if (facesByTexture[i][j].type != 1) continue; // Not a polygon, skip
+        if (facesByTexture[i].size()!= 0 && facesByTexture[i][0].type != 1) {
+            std::cout << "Face group " << i << " is type " << facesByTexture[i][0].type << '\n';
+            continue; // Not a polygon, skip
+        }
+        for (int j = 0; j < facesByTexture[i].size(); ++j) { // For each face in set
             for (unsigned k = 0; k < facesByTexture[i][j].n_meshverts; ++k) { // For each meshvert in face
-                temp.push_back(facesByTexture[i][j].vertex + meshVerts[k + facesByTexture[i][j].meshvert].offset);
+                GLuint value = facesByTexture[i][j].vertex + meshVerts[k + facesByTexture[i][j].meshvert].offset;
+                temp[i].push_back(value);
             }
         }
-		//	std::cout << "Face #" << i;
-
     }
-    std::cout << "\nNumber of indices found: " << temp.size() << '\n';
-	/*	for (int i=0; i< temp.size(); ++i) {
-     std::cout << temp[i] << '.';
-     }
-     std::cout << '\n';*/
+
     return temp;
 }
 
@@ -224,20 +227,17 @@ std::vector<std::string> q3BSP::getTextureNames() {
     std::string name;
     for (int i = 0; i < textures.size(); ++i) {
         name = textures[i].name;
-        temp.push_back(name + ".jpg");
+        temp.push_back(name/* + ".jpg"*/);
     }
     
     return temp;
 }
 
-
 void q3BSP::groupMeshByTexture() {
     //The index for the face = the texture index
     facesByTexture.resize(textures.size()); // Reserve 1 entry per texture
     for (int i = 0; i < faces.size(); ++i) {
-       // if (faces[i].texture == 0) continue; //bad access???
-        std::cerr << "Tex id: " << faces[i].texture << '\n';
         facesByTexture[faces[i].texture].push_back(faces[i]);
     }
-    std::cout << "Faces sorted: " << faces.size() << "->" << facesByTexture.size() << "entries.\n";
+    std::cout << "Faces sorted: " << faces.size() << " -> " << facesByTexture.size() << " entries.\n";
 }
