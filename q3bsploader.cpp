@@ -64,26 +64,27 @@ q3BSP::q3BSP(std::string filename) {
     
     // Read and check header
     memcpy(&header, &memblock[0], sizeof(BSPHeader));
-    if (std::string("IBSP").compare(0,4,header.magicNumber,4)) { std::cerr << "Invalid format: \n" << header.magicNumber[0] << header.magicNumber[1] << header.magicNumber[2] << header.magicNumber[3] << '\n'; return; }
-    if (header.version != 0x2e) { std::cerr << "Invalid BSP version.\n"; return; }
+	if (std::string("IBSP").compare(0,4,header.magicNumber,4)) { std::cerr << "Invalid format: \n" << header.magicNumber[0] << header.magicNumber[1] << header.magicNumber[2] << header.magicNumber[3] << '\n'; return; }
+    if (header.version != 0x2e) { std::cerr << "Invalid BSP version.\n"; return; } // Version 46 = Quake III (47 = RTCW / QuakeLive)
     std::cout << "File format and version appear ok.\n";
     
     // Read lumps
     // Lump 0: Entities
     entities.entities.insert(0, &memblock[header.direntries[Entities].offset], header.direntries[Entities].length);
     std::cout << "Lump 0: " << entities.entities.size() << " characters of entities read.\n";
+	parseEntities(entities.entities);
     // ::TODO:: Parse entities data
     
     // Lump 1: Textures
     unsigned numEntries = header.direntries[Textures].length / sizeof(BSPTexture);
     std::cout << "Lump 1: " << numEntries << " texture(s) found.\n";
     textures.reserve(numEntries);
-    BSPTexture tempTex;
+    BSPTexture tempTexture;
     for (unsigned i = 0; i < numEntries; ++i) {
-        memcpy(&tempTex,
+        memcpy(&tempTexture,
                &memblock[header.direntries[Textures].offset + i * sizeof(BSPTexture)],
                sizeof(BSPTexture));
-        textures.push_back(tempTex);
+        textures.push_back(tempTexture);
     }
     for (unsigned i = 0; i < textures.size(); ++i) std::cout << "  " << i << ':' << textures[i].name << '\n';
     
@@ -114,7 +115,7 @@ q3BSP::q3BSP(std::string filename) {
                sizeof(BSPVertex));
         vertices.push_back(tempVertex);
     }
-    
+	
     // Lump 11: Meshverts
     numEntries = header.direntries[Meshverts].length / sizeof(BSPMeshVert);
     std::cout << "Lump 11: " << numEntries << " Meshvert(s) found.\n";
@@ -209,4 +210,28 @@ void q3BSP::groupMeshByTexture() {
     facesByTexture.resize(textures.size()); // Reserve 1 entry per texture
     for (unsigned i = 0; i < faces.size(); ++i) facesByTexture[faces[i].texture].push_back(faces[i]);
     std::cout << "Faces sorted: " << faces.size() << " faces -> " << facesByTexture.size() << " meshes.\n";
+}
+
+void q3BSP::parseEntities(std::string entities) {
+//	std::vector<std::string> inline StringSplit(const std::string &source, const char *delimiter = " ", bool keepEmpty = false)
+//{
+    std::vector<std::string> clauses;
+
+    size_t prev = 0;
+    size_t next = 0;
+	char delimiter = '{';
+
+    while ((next = entities.find_first_of(delimiter, prev)) != std::string::npos)
+    {
+        if (next - prev != 0) clauses.push_back(entities.substr(prev, next - prev));
+        prev = next + 1;
+    }
+    if (prev < entities.size()) clauses.push_back(entities.substr(prev));
+	clauses[1] = clauses[1].substr(1, clauses[1].size()-4); // Erase leading newline, closing } and 2x newline
+	//clauses[0].resize(clauses[0].size()-3); // Take off the closing } and newline(x2)
+	std::cout << "Parse test: " << clauses[1].c_str() << '\n';
+    //return results;
+//}
+
+
 }

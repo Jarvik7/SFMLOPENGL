@@ -94,6 +94,8 @@ int main(int argc, const char * argv[])
 
     bool fullscreen = false;
     bool vsync = true;
+	bool hasFocus = true;
+	bool mouseWasLocked = false;
 
     window.setVerticalSyncEnabled(vsync);
 
@@ -193,12 +195,22 @@ int main(int argc, const char * argv[])
         {
             switch (event.type)
             {
+				case sf::Event::LostFocus:
+					hasFocus=false;
+					camera.setMouseLock(false, &window);
+					camera.setFocus(false);
+					break;
+				case sf::Event::GainedFocus:
+					if (mouseWasLocked) camera.setMouseLock(true, &window);
+					camera.setFocus(true);
+					hasFocus=true;
+					break;
                 case sf::Event::Closed:
                     gameover=true;
                     break;
 
                 case sf::Event::KeyPressed:
-                    switch (event.key.code)
+                    if(hasFocus) switch (event.key.code)
                     {
                         case key_quit:
                             gameover=true;
@@ -207,10 +219,8 @@ int main(int argc, const char * argv[])
 
 						case key_lock_mouse:
 							{
-								mouseLock=!mouseLock;
-								
-
-								
+								mouseLock = !mouseLock;
+								mouseWasLocked = mouseLock;	
 								// Inform camera
 								camera.setMouseLock(mouseLock, &window);
 								break;
@@ -314,8 +324,10 @@ int main(int argc, const char * argv[])
                     break;
 
                 case sf::Event::MouseWheelMoved: // Zoom
-					fov -= event.mouseWheel.delta*1.5f;
-					adjustPerspective(windowsize, fov);
+					if(hasFocus) {
+						fov -= event.mouseWheel.delta*1.5f;
+						adjustPerspective(windowsize, fov);
+					}
                     break;
 
                 case sf::Event::Resized:

@@ -622,7 +622,8 @@ public:
 		mouseSensitivity=0.01f;
 		moveSpeed=0.05f;
 		runSpeedMultiplier=2.0f;
-		mouseLock=false;		
+		mouseLock=false;
+		hasFocus = true;
 
 		//Initialize our camera matrices
 		up = sf::Vector3f(0.0f, 1.0f, 0.0f);
@@ -645,12 +646,15 @@ public:
 			sf::Mouse::setPosition(sf::Vector2i(windowsize.x/2, windowsize.y/2), *window);
 		}
 		else sf::Mouse::setPosition(savedMousePosition); // Restore mouse position
-
+	}
+	void setFocus(bool focus) {
+		hasFocus = focus;
 	}
 private:
 	float mouseSensitivity;
 	float moveSpeed;
 	float runSpeedMultiplier;
+	bool hasFocus;
 
 	sf::Vector2i savedMousePosition;
 
@@ -676,6 +680,7 @@ private:
 	}
 
 	void updatePosition() {
+		if (!hasFocus) return;
 		//Get our current MODELVIEW matrix
 		GLfloat modelview[16];
 		glGetFloatv(GL_MODELVIEW_MATRIX, &modelview[0]);
@@ -700,7 +705,7 @@ private:
 
 	}
 	void updateAngle(sf::RenderWindow *window) {
-		if (mouseLock) {
+		if (mouseLock && hasFocus) {
 			sf::Vector2u windowsize = window->getSize();
 			sf::Vector2i mouseOffset=sf::Mouse::getPosition(*window);
 

@@ -71,4 +71,5 @@ private:
 	std::vector<BSPMeshVert> meshVerts;
 	std::vector<BSPFace> faces;
     void groupMeshByTexture();
+	void parseEntities(std::string entities);
 };
