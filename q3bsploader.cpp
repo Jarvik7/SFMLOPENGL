@@ -7,9 +7,9 @@ provide functions to output the data in a modular method usable to the j7Model c
 A Doom3 MD5 loader should follow, based on same code layout.
 
 Todos:
-1) Get vertices & textures going at a level similar to current ASSIMP implementation
-2) Break out prototypes into a proper header
-3) Add functions to feed j7Model (to be done with #1?)
+X) Get vertices & textures going at a level similar to current ASSIMP implementation
+X) Break out prototypes into a proper header
+X) Add functions to feed j7Model (to be done with #1?)
 4) Break down giant constructor into individual functions
 5) Our early exits are leaking the memblock array? Convert to a vector?
 6) Add shader support to j7Model to enable lighting
@@ -196,8 +196,10 @@ std::vector<GLfloat> q3BSP::getVertexColors() {
 //}
 std::vector<GLuint> q3BSP::getIndices(unsigned entry) {
     std::vector<GLuint> temp; // A vector of lists of indices
-   // temp.resize(facesByTexture.size());
-        if (facesByTexture[entry].size()!= 0 && facesByTexture[entry][0].type != 1) {
+        if (facesByTexture[entry].size()!= 0 // Empty faceset
+            && facesByTexture[entry][0].type != 1 // Non-polygons, probably unsafe assumption that all faces with same texture are same type
+            && facesByTexture[entry][0].type != 3 // Non-mesh, I still don't understand how they differ from polygons
+            ) {
             std::cout << "Face group " << entry << " is type " << facesByTexture[entry][0].type << '\n';
         }
         else for (int j = 0; j < facesByTexture[entry].size(); ++j) { // For each face in set
@@ -206,8 +208,6 @@ std::vector<GLuint> q3BSP::getIndices(unsigned entry) {
                 temp.push_back(value);
             }
         }
-
-
     return temp;
 }
 
@@ -236,5 +236,5 @@ void q3BSP::groupMeshByTexture() {
     for (int i = 0; i < faces.size(); ++i) {
         facesByTexture[faces[i].texture].push_back(faces[i]);
     }
-    std::cout << "Faces sorted: " << faces.size() << " -> " << facesByTexture.size() << " entries.\n";
+    std::cout << "Faces sorted: " << faces.size() << " faces -> " << facesByTexture.size() << " meshes.\n";
 }

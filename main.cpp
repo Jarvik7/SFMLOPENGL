@@ -154,10 +154,8 @@ int main(int argc, const char * argv[])
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 	glEnable(GL_FOG);
 
-	
-
 	//Load our mesh
-    q3BSP test("q3dm0.bsp");
+    q3BSP test("q3dm1.bsp");
 	j7Model quake3(&test);
 	j7Cam camera;
 
