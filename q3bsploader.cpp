@@ -83,7 +83,7 @@ q3BSP::q3BSP(std::string filename) {
                sizeof(BSPTexture));
         textures.push_back(tempTex);
     }
-    for (int i = 0; i < textures.size(); ++i) {
+    for (unsigned i = 0; i < textures.size(); ++i) {
         std::cout << "  " << i << ':' << textures[i].name << '\n';
     }
     
@@ -202,8 +202,8 @@ std::vector<GLuint> q3BSP::getIndices(unsigned entry) {
             ) {
             std::cout << "Face group " << entry << " is type " << facesByTexture[entry][0].type << '\n';
         }
-        else for (int j = 0; j < facesByTexture[entry].size(); ++j) { // For each face in set
-            for (unsigned k = 0; k < facesByTexture[entry][j].n_meshverts; ++k) { // For each meshvert in face
+        else for (unsigned j = 0; j < facesByTexture[entry].size(); ++j) { // For each face in set
+            for (int k = 0; k < facesByTexture[entry][j].n_meshverts; ++k) { // For each meshvert in face
                 GLuint value = facesByTexture[entry][j].vertex + meshVerts[k + facesByTexture[entry][j].meshvert].offset;
                 temp.push_back(value);
             }
@@ -213,7 +213,7 @@ std::vector<GLuint> q3BSP::getIndices(unsigned entry) {
 
 std::vector<GLfloat> q3BSP::getTextureCoordinates() {
     std::vector<GLfloat> temp;
-    for (int i = 0; i < vertices.size(); ++i) {
+    for (unsigned i = 0; i < vertices.size(); ++i) {
         temp.push_back(vertices[i].texcoord[0][0]); //[1][x] is lightmap coords
         temp.push_back(vertices[i].texcoord[0][1]);
     }
@@ -222,7 +222,7 @@ std::vector<GLfloat> q3BSP::getTextureCoordinates() {
 std::vector<std::string> q3BSP::getTextureNames() {
     std::vector<std::string> temp;
     std::string name;
-    for (int i = 0; i < textures.size(); ++i) {
+    for (unsigned i = 0; i < textures.size(); ++i) {
         name = textures[i].name;
         temp.push_back(name/* + ".jpg"*/);
     }
@@ -233,7 +233,7 @@ std::vector<std::string> q3BSP::getTextureNames() {
 void q3BSP::groupMeshByTexture() {
     //The index for the face = the texture index
     facesByTexture.resize(textures.size()); // Reserve 1 entry per texture
-    for (int i = 0; i < faces.size(); ++i) {
+    for (unsigned i = 0; i < faces.size(); ++i) {
         facesByTexture[faces[i].texture].push_back(faces[i]);
     }
     std::cout << "Faces sorted: " << faces.size() << " faces -> " << facesByTexture.size() << " meshes.\n";

@@ -356,7 +356,7 @@ public:
         materialIndex = 0;
         if (bsp->facesByTexture[faceSetIndex].size() != 0) materialIndex = bsp->facesByTexture[faceSetIndex][0].texture;
         std::vector<GLuint> temp = bsp->getIndices(faceSetIndex);
-        for (int i = 0; i < temp.size(); ++i) { //For each index in this set
+        for (unsigned i = 0; i < temp.size(); ++i) { //For each index in this set
             indices.push_back(temp[i]);
         }
 
@@ -625,10 +625,10 @@ public:
 
 		//Initialize our camera matrices
 		up = sf::Vector3f(0.0f, 1.0f, 0.0f);
-		eye = sf::Vector3f(0, 1.0f, 5.0f); // Start 5 units back
-		center = sf::Vector3f(0, 1.0f, 0);
+		eye = sf::Vector3f(0.0f, 1.0f, 5.0f); // Start 5 units back
+		center = sf::Vector3f(0.0f, 1.0f, 0.0f);
 
-		angle = sf::Vector2f(M_PI, 0); // ::TODO:: Face the other way
+		angle = sf::Vector2f(float(M_PI), 0.0f); // ::TODO:: Face the other way
 	}
 	void update(sf::RenderWindow *window) {
 		updatePosition(); // Movement
@@ -677,8 +677,8 @@ private:
 
 	void updatePosition() {
 		//Get our current MODELVIEW matrix
-		GLdouble modelview[16];
-		glGetDoublev(GL_MODELVIEW_MATRIX, &modelview[0]);
+		GLfloat modelview[16];
+		glGetFloatv(GL_MODELVIEW_MATRIX, &modelview[0]);
 		
 		// Straight ::TODO:: Add support for sprinting
 		sf::Vector3f back(modelview[2], modelview[6], modelview[10]); // Back vector
