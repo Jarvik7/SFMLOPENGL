@@ -141,11 +141,11 @@ void adjustPerspective(sf::Vector2u windowsize, GLdouble fovy = 75.0f, GLdouble 
     //::TODO:: Make into an object?
 
 #if defined(SFML_SYSTEM_WINDOWS) // Windows allows window height of 0
-    if (windowsize.y == 0) windowsize.y++;
+    if (windowsize.y == 0) ++windowsize.y;
 #endif
     if (DISPLAYDEBUGOUTPUT)
     {
-        std::cout << "Window resized to " << windowsize.x << "x" << windowsize.y << std::endl;
+        std::cout << "Window resized to " << windowsize.x << "x" << windowsize.y << '\n';
     }
 
     glViewport(0, 0, windowsize.x, windowsize.y);
@@ -303,7 +303,7 @@ public:
         materialIndex = mesh->mMaterialIndex;
 
         if (mesh->HasNormals()) {
-            for (unsigned i=0; i<mesh->mNumVertices; i++) {
+            for (unsigned i=0; i<mesh->mNumVertices; ++i) {
                 normals.push_back(mesh->mNormals[i].x);
                 normals.push_back(mesh->mNormals[i].y);
                 normals.push_back(mesh->mNormals[i].z);
@@ -311,7 +311,7 @@ public:
         }
 
         if (mesh->HasPositions()) {
-            for (unsigned i=0; i<mesh->mNumVertices; i++) {
+            for (unsigned i=0; i<mesh->mNumVertices; ++i) {
                 vertices.push_back(mesh->mVertices[i].x);
                 vertices.push_back(mesh->mVertices[i].y);
                 vertices.push_back(mesh->mVertices[i].z);
@@ -319,27 +319,27 @@ public:
         }
 
         if (mesh->HasFaces()) {
-            for (unsigned i=0; i<mesh->mNumFaces; i++) {
-                for (unsigned j=0; j<mesh->mFaces[i].mNumIndices; j++) {
+            for (unsigned i=0; i<mesh->mNumFaces; ++i) {
+                for (unsigned j=0; j<mesh->mFaces[i].mNumIndices; ++j) {
                     indices.push_back(mesh->mFaces[i].mIndices[j]);
                 }
             }
         }
 
         if (mesh->HasTextureCoords(0)) {
-            for (unsigned i=0; i<mesh->mNumVertices; i++) {
+            for (unsigned i=0; i<mesh->mNumVertices; ++i) {
                 textureCoordinates.push_back(mesh->mTextureCoords[0][i].x);
                 textureCoordinates.push_back(1 - mesh->mTextureCoords[0][i].y);
 
             }
         }
-       else for (unsigned i=0; i<mesh->mNumVertices; i++) { // ::TODO:: How to handle a mesh with no uv?
+       else for (unsigned i=0; i<mesh->mNumVertices; ++i) { // ::TODO:: How to handle a mesh with no uv?
             textureCoordinates.push_back(0);
             textureCoordinates.push_back(0);
         }
 
         if (mesh->HasVertexColors(0)) {
-            for (unsigned i=0; i<mesh->mNumVertices; i++) {
+            for (unsigned i=0; i<mesh->mNumVertices; ++i) {
                 vertexColors.push_back(mesh->mColors[0][i].r);
                 vertexColors.push_back(mesh->mColors[0][i].g);
                 vertexColors.push_back(mesh->mColors[0][i].b);
@@ -395,7 +395,7 @@ public:
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         glEnableClientState(GL_NORMAL_ARRAY);
-        for (unsigned i=0; i<meshes.size(); i++) {
+        for (unsigned i=0; i<meshes.size(); ++i) {
             bindtex(textures[meshes[i].materialIndex-1]);
             glVertexPointer(3, GL_FLOAT, 0, meshes[i].vertices.data());
             glTexCoordPointer(2, GL_FLOAT, 0, meshes[i].textureCoordinates.data());
@@ -426,7 +426,7 @@ public:
             glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[COLOR_DATA]);
             glColorPointer(4, GL_FLOAT, 0, 0);
 
-            for (unsigned i=0; i<meshes.size(); i++) {
+            for (unsigned i=0; i<meshes.size(); ++i) {
                 bindtex(textures[meshes[i].materialIndex]);
                 // Indexes
                 glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes[i].bufferObjects[INDEX_DATA]);
@@ -435,7 +435,7 @@ public:
             }
         }
 
-        else for (unsigned i=0; i<meshes.size(); i++) {
+        else for (unsigned i=0; i<meshes.size(); ++i) {
             bindtex(textures[meshes[i].materialIndex]);
             glBindBuffer(GL_ARRAY_BUFFER, meshes[i].bufferObjects[VERTEX_DATA]);
             glVertexPointer(3, GL_FLOAT, 0, 0);
@@ -464,11 +464,11 @@ public:
 		std::cout << "\nTrying to load mesh file: " << filename << '\n';
 		const aiScene *scene = importer.ReadFile(filename, aiProcessPreset_TargetRealtime_Quality);
 		if (!scene) {
-			std::cerr << "Failed to load mesh \"" << filename << "\"" << std::endl;
+			std::cerr << "Failed to load mesh \"" << filename << "\"\n";
 			return; // Couldn't load mesh, abort
 		}
 
-        if (scene->HasMeshes()) for (unsigned i=0; i < scene->mNumMeshes; i++) {
+        if (scene->HasMeshes()) for (unsigned i=0; i < scene->mNumMeshes; ++i) {
             meshes.push_back(j7Mesh(scene->mMeshes[i]));
         }
 		if (scene->HasMaterials()) importTextures(scene); // ::TODO:: Only supports external diffuse textures right now
@@ -583,7 +583,7 @@ private:
         std::cout << "Loading textures...\n";
         std::vector<std::string> textureNames;
         textureNames = bsp->getTextureNames();
-		for (unsigned i=0; i < textureNames.size(); i++)
+		for (unsigned i=0; i < textureNames.size(); ++i)
 		{
 			textures.push_back(loadTexture(textureNames[i]));
 		}
@@ -591,7 +591,7 @@ private:
 
     void importTextures(const aiScene *scene) {
 		std::vector<unsigned char> rawTexture;
-		for (unsigned i=0; i < scene->mNumMaterials; i++)
+		for (unsigned i=0; i < scene->mNumMaterials; ++i)
 		{
 			aiString path;	// filename
 			if (scene->mMaterials[i]->GetTextureCount(aiTextureType_DIFFUSE) != 0) {

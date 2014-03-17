@@ -68,13 +68,13 @@ bool initGL()
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 	glEnable(GL_TEXTURE_2D);
 	if (glewInit()) {
-		std::cerr << "Error: Couldn't initialize GLew." << std::endl;
+		std::cerr << "Error: Couldn't initialize GLew.\n";
 		return false;
 	}
 	if (DISPLAYDEBUGOUTPUT) {
-		if (GLEW_ARB_compatibility) std::cout << "Compatibility mode supported" << std::endl;
-		if (GLEW_VERSION_1_1) std::cout << "OpenGL ver >= 1.1: Vertex arrays supported!" << std::endl;
-		if (GLEW_ARB_vertex_buffer_object) std::cout << "VBO supported!" << std::endl;
+		if (GLEW_ARB_compatibility) std::cout << "Compatibility mode supported\n";
+		if (GLEW_VERSION_1_1) std::cout << "OpenGL ver >= 1.1: Vertex arrays supported!\n";
+		if (GLEW_ARB_vertex_buffer_object) std::cout << "VBO supported!\n";
 	}
 	return true;
 }
@@ -86,7 +86,7 @@ int main(int argc, const char * argv[])
     sf::RenderWindow window(sf::VideoMode(800,600,32), windowTitle, sf::Style::Default, windowsettings);
     if (!window.isOpen())
     {
-        std::cerr << "Error: Couldn't create RenderWindow" << std::endl;
+        std::cerr << "Error: Couldn't create RenderWindow\n";
         return EXIT_FAILURE;
     }
 
@@ -108,13 +108,13 @@ int main(int argc, const char * argv[])
         windowsettings = window.getSettings();
         sf::Vector2i windowpos = window.getPosition();
 
-        std::cout << windowsize.x << "x" << windowsize.y << " window created at " << windowpos.x << "x" << windowpos.y << std::endl;
-        std::cout << "OpenGL version:" << windowsettings.majorVersion << "." << windowsettings.minorVersion << std::endl;
-        if(sf::Shader::isAvailable()) std::cout << "Shaders are available" << std::endl;
-        else std::cout << "Shaders are not available" << std::endl;
-        std::cout << "Depth bits: " << windowsettings.depthBits << std::endl;
-        std::cout << "Stencil bits: " << windowsettings.stencilBits << std::endl;
-        std::cout << "Antialiasing level: " << windowsettings.antialiasingLevel << std::endl;
+        std::cout << windowsize.x << "x" << windowsize.y << " window created at " << windowpos.x << "x" << windowpos.y << '\n';
+        std::cout << "OpenGL version:" << windowsettings.majorVersion << "." << windowsettings.minorVersion << '\n';
+        if(sf::Shader::isAvailable()) std::cout << "Shaders are available\n";
+        else std::cout << "Shaders are not available\n";
+        std::cout << "Depth bits: " << windowsettings.depthBits << '\n';
+        std::cout << "Stencil bits: " << windowsettings.stencilBits << '\n';
+        std::cout << "Antialiasing level: " << windowsettings.antialiasingLevel << '\n';
     }
 
 	displayWindowsMenubar(&window); // Display the menu bars
