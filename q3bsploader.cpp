@@ -26,6 +26,7 @@ X) Add functions to feed j7Model (to be done with #1?)
 #include <vector> // std::vector
 #include <memory> // std::unique_ptr
 #include <SFML/OpenGL.hpp> // OpenGL datatypes
+#include <SFML/System/Vector3.hpp>
 #include "q3bsploader.h"
 
 enum LUMPNAMES {
@@ -71,7 +72,7 @@ q3BSP::q3BSP(std::string filename) {
     // Read lumps
     // Lump 0: Entities
     entities.entities.insert(0, &memblock[header.direntries[Entities].offset], header.direntries[Entities].length);
-    std::cout << "Lump 0: " << entities.entities.size() << " characters of entities read.\n";
+    std::cout << "Lump 0: " << entities.entities.size() << " characters of entities read. ";
 	parseEntities(entities.entities);
     // ::TODO:: Parse entities data
     
@@ -212,26 +213,31 @@ void q3BSP::groupMeshByTexture() {
     std::cout << "Faces sorted: " << faces.size() << " faces -> " << facesByTexture.size() << " meshes.\n";
 }
 
+typedef struct {
+	std::string classname;
+	std::string message;
+	std::string music;
+	std::string model;
+	sf::Vector3i origin;
+	int angle;
+	sf::Vector3f _color;
+	int ambient;
+	int light;
+	std::string targetname;
+	std::string target;
+	int spawnflags;
+	int radius;
+} BSPEntity;
 void q3BSP::parseEntities(std::string entities) {
-//	std::vector<std::string> inline StringSplit(const std::string &source, const char *delimiter = " ", bool keepEmpty = false)
-//{
     std::vector<std::string> clauses;
+	unsigned open=0;
+	unsigned close=0;
+	bool done=false;
 
-    size_t prev = 0;
-    size_t next = 0;
-	char delimiter = '{';
-
-    while ((next = entities.find_first_of(delimiter, prev)) != std::string::npos)
-    {
-        if (next - prev != 0) clauses.push_back(entities.substr(prev, next - prev));
-        prev = next + 1;
-    }
-    if (prev < entities.size()) clauses.push_back(entities.substr(prev));
-	clauses[1] = clauses[1].substr(1, clauses[1].size()-4); // Erase leading newline, closing } and 2x newline
-	//clauses[0].resize(clauses[0].size()-3); // Take off the closing } and newline(x2)
-	std::cout << "Parse test: " << clauses[1].c_str() << '\n';
-    //return results;
-//}
-
-
+	while((open = entities.find_first_of('{',open)) != std::string::npos) {
+			close = entities.find_first_of('}',open+1); // Find closing brace starting at last opening brace
+			clauses.push_back(entities.substr(open+2, close-open-3)); // Push, minus open & close braces & newlines
+			open=close+1; // Set next start location to after closing brace
+	}
+	std::cout << clauses.size() << " clauses found.\n";
 }
