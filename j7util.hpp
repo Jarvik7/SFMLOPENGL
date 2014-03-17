@@ -20,10 +20,12 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
+// Not all compilers provide a definition for pi
 #ifndef M_PI
 	#define M_PI 3.14159265358979323846
 #endif
 
+// Handles for VBO
 enum BUFFERTYPES {
 	VERTEX_DATA=0,
 	NORMAL_DATA,
@@ -34,6 +36,7 @@ enum BUFFERTYPES {
 
 const bool DISPLAYDEBUGOUTPUT = true;
 
+//Camera control/movement keys
 const sf::Keyboard::Key key_move_forward = sf::Keyboard::W;
 const sf::Keyboard::Key key_move_left = sf::Keyboard::A;
 const sf::Keyboard::Key key_move_backward = sf::Keyboard::S;
@@ -44,7 +47,7 @@ const sf::Keyboard::Key key_move_CW = sf::Keyboard::E;
 const sf::Keyboard::Key key_move_CCW = sf::Keyboard::Q;
 const sf::Keyboard::Key key_move_run = sf::Keyboard::LShift;
 
-bool fileExists(std::string filename) {
+inline bool fileExists(std::string filename) {
     std::ifstream infile(filename);
     return infile.good();
 }
@@ -78,7 +81,7 @@ void drawGround() {
 
 }
 
-float degtorad(float degrees) //Converts degrees to radians
+inline float degtorad(float degrees) //Converts degrees to radians
 {
 	return float(degrees*M_PI/180);
 }
@@ -603,8 +606,6 @@ private:
     }
 };
 
-
-
 class j7Material {
 public:
 	std::vector<GLuint> diffuse_tex;
@@ -650,7 +651,6 @@ private:
 	float mouseSensitivity;
 	float moveSpeed;
 	float runSpeedMultiplier;
-
 
 	sf::Vector2i savedMousePosition;
 

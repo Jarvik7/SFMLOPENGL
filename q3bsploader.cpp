@@ -24,6 +24,7 @@ X) Add functions to feed j7Model (to be done with #1?)
 #include <iostream> // std::cout, std::cerr
 #include <fstream> // std::ifstream
 #include <vector> // std::vector
+#include <memory> // std::unique_ptr
 #include <SFML/OpenGL.hpp> // OpenGL datatypes
 #include "q3bsploader.h"
 
@@ -56,13 +57,14 @@ q3BSP::q3BSP(std::string filename) {
     if (!file.is_open()) { std::cerr << "Couldn't open file.\n"; return; } // Couldn't open file
     unsigned size = (unsigned)file.tellg();
     file.seekg (0);
-    char * memblock = new char[size];
-    file.read(memblock, size);
+	std::vector<char> memblock;
+	memblock.reserve(size);
+    file.read(&memblock[0], size);
     file.close();
     
     // Read and check header
-    memcpy(&header, memblock, sizeof(BSPHeader));
-    if (std::string("IBSP").compare(0,4,header.magicNumber,4)) { std::cerr << "Invalid format.\n" << header.magicNumber[0] << header.magicNumber[1] << header.magicNumber[2] << header.magicNumber[3]; return; }
+    memcpy(&header, &memblock[0], sizeof(BSPHeader));
+    if (std::string("IBSP").compare(0,4,header.magicNumber,4)) { std::cerr << "Invalid format: \n" << header.magicNumber[0] << header.magicNumber[1] << header.magicNumber[2] << header.magicNumber[3] << '\n'; return; }
     if (header.version != 0x2e) { std::cerr << "Invalid BSP version.\n"; return; }
     std::cout << "File format and version appear ok.\n";
     
@@ -77,15 +79,13 @@ q3BSP::q3BSP(std::string filename) {
     std::cout << "Lump 1: " << numEntries << " texture(s) found.\n";
     textures.reserve(numEntries);
     BSPTexture tempTex;
-    for (unsigned i = 0; i<numEntries; ++i) {
+    for (unsigned i = 0; i < numEntries; ++i) {
         memcpy(&tempTex,
                &memblock[header.direntries[Textures].offset + i * sizeof(BSPTexture)],
                sizeof(BSPTexture));
         textures.push_back(tempTex);
     }
-    for (unsigned i = 0; i < textures.size(); ++i) {
-        std::cout << "  " << i << ':' << textures[i].name << '\n';
-    }
+    for (unsigned i = 0; i < textures.size(); ++i) std::cout << "  " << i << ':' << textures[i].name << '\n';
     
     // Lump 2: Planes
     
@@ -108,7 +108,7 @@ q3BSP::q3BSP(std::string filename) {
     std::cout << "Lump 10: " << numEntries << " vertex(es) found.\n";
     vertices.reserve(numEntries);
     BSPVertex tempVertex;
-    for (unsigned i = 0; i<numEntries; ++i) {
+    for (unsigned i = 0; i < numEntries; ++i) {
         memcpy(&tempVertex,
                &memblock[header.direntries[Vertexes].offset + i * sizeof(BSPVertex)],
                sizeof(BSPVertex));
@@ -120,7 +120,7 @@ q3BSP::q3BSP(std::string filename) {
     std::cout << "Lump 11: " << numEntries << " Meshvert(s) found.\n";
     meshVerts.reserve(numEntries);
     BSPMeshVert tempMeshVert;
-    for (unsigned i = 0; i<numEntries; ++i) {
+    for (unsigned i = 0; i < numEntries; ++i) {
         memcpy(&tempMeshVert,
                &memblock[header.direntries[Meshverts].offset + i * sizeof(BSPMeshVert)],
                sizeof(BSPMeshVert));
@@ -134,7 +134,7 @@ q3BSP::q3BSP(std::string filename) {
     std::cout << "Lump 13: " << numEntries << " face(s) found.\n";
     faces.reserve(numEntries);
     BSPFace tempFace;
-    for (unsigned i = 0; i<numEntries; ++i) {
+    for (unsigned i = 0; i < numEntries; ++i) {
         memcpy(&tempFace,
                &memblock[header.direntries[Faces].offset + i * sizeof(BSPFace)],
                sizeof(BSPFace));
@@ -149,59 +149,35 @@ q3BSP::q3BSP(std::string filename) {
     
     // Lump 16: Visdata
     
-    delete[] memblock; // Free the memory
 }
 
 //Data getters
 std::vector<GLfloat> q3BSP::getVertices() {
     std::vector<GLfloat> temp;
-    for (unsigned i = 0; i < vertices.size(); ++i) {
-        for (int j = 0; j < 3; ++j) temp.push_back(vertices[i].position[j]);
-    }
+	temp.reserve(vertices.size());
+    for (unsigned i = 0; i < vertices.size(); ++i) for (int j = 0; j < 3; ++j) temp.push_back(vertices[i].position[j]);
     return temp;
 }
 std::vector<GLfloat> q3BSP::getNormals() {
     std::vector<GLfloat> temp;
-    for (unsigned i = 0; i < vertices.size(); ++i) {
-        for (int j = 0; j < 3; ++j) temp.push_back(vertices[i].normal[j]);
-    }
+	temp.reserve(vertices.size());
+    for (unsigned i = 0; i < vertices.size(); ++i) for (int j = 0; j < 3; ++j) temp.push_back(vertices[i].normal[j]);
     return temp;
 }
 std::vector<GLfloat> q3BSP::getVertexColors() {
     std::vector<GLfloat> temp;
-    for (unsigned i = 0; i < vertices.size(); ++i) {
-        for (int j = 0; j < 4; ++j) temp.push_back(vertices[i].color[j]); // RGBA
-    }
+	temp.reserve(vertices.size());
+    for (unsigned i = 0; i < vertices.size(); ++i) for (int j = 0; j < 4; ++j) temp.push_back(vertices[i].color[j]); // RGBA
     return temp;
 }
 
-//std::vector<GLuint> q3BSP::getIndices() {
-//    std::vector<GLuint> temp;
-//    
-//    for (unsigned i = 0; i < faces.size(); ++i) {
-//        if (faces[i].type != 1) continue; // Not a polygon, skip
-//		//	std::cout << "Face #" << i;
-//        for (unsigned j = 0; j < faces[i].n_meshverts; ++j) {
-//            //		std::cout << '.';
-//            // Remaining vertices in meshvert offset from first vertex
-//            temp.push_back(faces[i].vertex + meshVerts[j + faces[i].meshvert].offset);
-//        }
-//    }
-//    std::cout << "\nNumber of indices found: " << temp.size() << '\n';
-//	/*	for (int i=0; i< temp.size(); ++i) {
-//     std::cout << temp[i] << '.';
-//     }
-//     std::cout << '\n';*/
-//    return temp;
-//}
 std::vector<GLuint> q3BSP::getIndices(unsigned entry) {
     std::vector<GLuint> temp; // A vector of lists of indices
-        if (facesByTexture[entry].size()!= 0 // Empty faceset
+        if (facesByTexture[entry].size() != 0 // Empty faceset
             && facesByTexture[entry][0].type != 1 // Non-polygons, probably unsafe assumption that all faces with same texture are same type
-            && facesByTexture[entry][0].type != 3 // Non-mesh, I still don't understand how they differ from polygons
-            ) {
+            && facesByTexture[entry][0].type != 3) { // Non-mesh, I still don't understand how they differ from polygons
             std::cout << "Face group " << entry << " is type " << facesByTexture[entry][0].type << '\n';
-        }
+		}
         else for (unsigned j = 0; j < facesByTexture[entry].size(); ++j) { // For each face in set
             for (int k = 0; k < facesByTexture[entry][j].n_meshverts; ++k) { // For each meshvert in face
                 GLuint value = facesByTexture[entry][j].vertex + meshVerts[k + facesByTexture[entry][j].meshvert].offset;
@@ -213,6 +189,7 @@ std::vector<GLuint> q3BSP::getIndices(unsigned entry) {
 
 std::vector<GLfloat> q3BSP::getTextureCoordinates() {
     std::vector<GLfloat> temp;
+	temp.reserve(vertices.size());
     for (unsigned i = 0; i < vertices.size(); ++i) {
         temp.push_back(vertices[i].texcoord[0][0]); //[1][x] is lightmap coords
         temp.push_back(vertices[i].texcoord[0][1]);
@@ -221,20 +198,15 @@ std::vector<GLfloat> q3BSP::getTextureCoordinates() {
 }
 std::vector<std::string> q3BSP::getTextureNames() {
     std::vector<std::string> temp;
-    std::string name;
-    for (unsigned i = 0; i < textures.size(); ++i) {
-        name = textures[i].name;
-        temp.push_back(name/* + ".jpg"*/);
-    }
-    
+	temp.reserve(textures.size());
+    for (unsigned i = 0; i < textures.size(); ++i) temp.push_back(textures[i].name);    
     return temp;
 }
 
 void q3BSP::groupMeshByTexture() {
     //The index for the face = the texture index
+	//There are other ways to render the right texture for the face, but sorting them enables the number of texture swaps to be limited.
     facesByTexture.resize(textures.size()); // Reserve 1 entry per texture
-    for (unsigned i = 0; i < faces.size(); ++i) {
-        facesByTexture[faces[i].texture].push_back(faces[i]);
-    }
+    for (unsigned i = 0; i < faces.size(); ++i) facesByTexture[faces[i].texture].push_back(faces[i]);
     std::cout << "Faces sorted: " << faces.size() << " faces -> " << facesByTexture.size() << " meshes.\n";
 }
