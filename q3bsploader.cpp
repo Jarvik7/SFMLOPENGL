@@ -110,6 +110,7 @@ q3BSP::q3BSP(std::string filename) {
     std::cout << "Lump 10: " << numEntries << " vertex(es) found.\n";
     vertices.reserve(numEntries);
     BSPVertex tempVertex;
+	std::cout << "SIZE IS: " << sizeof(BSPVertex) << '\n';
     for (unsigned i = 0; i < numEntries; ++i) {
         memcpy(&tempVertex,
                &memblock[header.direntries[Vertexes].offset + i * sizeof(BSPVertex)],
@@ -170,9 +171,12 @@ std::vector<GLuint> q3BSP::getIndices(unsigned entry) {
 		return temp;
 	}
 	case 2:		// Patches
-		std::cerr << "Face group " << entry << " is patch(es).\n";
+		std::cerr << "Face group " << entry << " is patch(es). ";
+		std::cerr << facesByTexture[entry].size() << " faces. ";
+		std::cerr << facesByTexture[entry][0].n_vertexes << " verts and ";
+		std::cerr << facesByTexture[entry][0].n_meshverts << " indices in face 0.\n";
 		for (unsigned i = 0; i < facesByTexture[entry].size(); ++i) {
-			patches.push_back(j7Bezier(facesByTexture[entry][i]));
+			patches.push_back(dopatch(facesByTexture[entry][i]));
 		}
 		break;
 
@@ -224,19 +228,33 @@ void q3BSP::parseEntities(std::string entities) {
 	std::cout << clauses.size() << " clauses found.\n";
 }
 
-typedef struct {
-	GLfloat x;
-	GLfloat y;
-	GLfloat z;
-} vertex;
+BSPPatch q3BSP::dopatch(BSPFace face) {
+	// This code apparently just generated the grid of control points. Another function is needed to actually tessellate
+	BSPPatch patch;
+	int patch_size_x = (face.size[0] - 1) / 2;
+	int patch_size_y = (face.size[1] - 1) / 2;
+	patch.bezier.resize(patch_size_x * patch_size_y);
 
-j7Bezier::j7Bezier(BSPFace face) {
 
-
+	int patchIndex =  0;
+	int ii, n, j, nn;
+	for (ii = 0, n = 0; n < patch_size_x; n++, ii = 2*n) {
+	    for (j=0, nn=0; nn < patch_size_y; nn++, j = 2*nn) {
+			int index = 0;
+			for (int ctr = 0; ctr < 3; ++ctr) {
+				int pos = ctr * face.size[0];
+	
+				patch.bezier[patchIndex].controls[index++] = vertices[face.vertex + ii + face.size[0] * j + pos];
+				patch.bezier[patchIndex].controls[index++] = vertices[face.vertex + ii + face.size[0] * j + pos + 1];
+				patch.bezier[patchIndex].controls[index++] = vertices[face.vertex + ii + face.size[0] * j + pos + 2];                                            
+			}      
+			patch.bezier[patchIndex++].tessellate(5);
+		}
+	}
+	return patch;
 }
+	
 
-
-/*
 void j7Bezier::tessellate(int L) { // Based on Paul Baker's Octagon, apparently
     level = L;
 
@@ -260,7 +278,7 @@ void j7Bezier::tessellate(int L) { // Based on Paul Baker's Octagon, apparently
         double a = (double)i / L;
         double b = 1.0 - a;
 
-        sf::Vector3f temp[3];
+        BSPVertex temp[3];
 
         for (int j = 0; j < 3; ++j) {
             int k = 3 * j;
@@ -281,7 +299,6 @@ void j7Bezier::tessellate(int L) { // Based on Paul Baker's Octagon, apparently
         }
     }
 
-
     // Compute the indices
     indices.resize(L * (L + 1) * 2);
 
@@ -296,10 +313,11 @@ void j7Bezier::tessellate(int L) { // Based on Paul Baker's Octagon, apparently
     rowIndices.resize(L);
     for (int row = 0; row < L; ++row) {
         trianglesPerRow[row] = 2 * L1;
-        rowIndices[row]      = &indices[row * 2 * L1];
+        rowIndices[row]      = row * 2 * L1;
     }
-    
+    //Normalize here ::TODO::
 }
+
 void j7Bezier::render() {
   //  glVertexPointer(3, GL_FLOAT, 0, &vertex[0]);
 
@@ -310,4 +328,4 @@ void j7Bezier::render() {
     glTexCoordPointer(2, GL_FLOAT, sizeof(BSPVertex), &vertex[0].lightmapCoord);
 	*/
    // glMultiDrawElements(GL_TRIANGLE_STRIP, &trianglesPerRow[0], GL_UNSIGNED_INT, reinterpret_cast<void*>(rowIndices), level);
-//}
+}

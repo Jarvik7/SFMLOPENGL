@@ -1,3 +1,5 @@
+#include <array>
+
 typedef struct {
 	int offset;
 	int length;
@@ -21,13 +23,38 @@ typedef struct
     int	contents;
 } BSPTexture; // Lump 1
 
-typedef struct
+//Lump 10
+class BSPVertex
 {
-    float position[3];	//vertex position.
-    float texcoord[2][2];	//vertex texture coordinates. 0=surface, 1=lightmap.
-    float normal[3];	//vertex normal.
-    unsigned char color[4];	//vertex color, in RGBA, as unsigned.
-} BSPVertex; // Lump 10
+public:
+    std::array<float, 3> position;	//vertex position.
+    std::array<std::array<float, 2>, 2> texcoord;	//vertex texture coordinates. 0=surface, 1=lightmap.
+    std::array<float, 3> normal;	//vertex normal.
+    std::array<unsigned char, 4> color;	//vertex color, in RGBA, as unsigned.
+
+	BSPVertex operator+(BSPVertex a) {
+		BSPVertex temp;
+
+		for (int i=0; i<3; i++) {
+			temp.position[i] = this->position[i] + a.position[i];
+			temp.normal[i] = this->normal[i] + a.normal[i];
+		}
+		for(int i = 0; i < 2; ++i) for(int j = 0; j < 2; ++j) temp.texcoord[i][j] = this->texcoord[i][j] + a.texcoord[i][j];
+		return temp;
+	}
+
+	BSPVertex operator*(float a) {
+		BSPVertex temp;
+		for (int i = 0; i < 3; i++) {
+			temp.position[i] = this->position[i] * a;
+			temp.normal[i] = this->normal[i] * a;
+		}
+		for (int i = 0; i < 2; ++i) for (int j = 0; j< 2; ++j)  temp.texcoord[i][j] = this->texcoord[i][j] * a;
+			return temp;
+	}
+
+
+};
 
 typedef struct
 {
@@ -52,19 +79,24 @@ typedef struct
     int	size[2];	//Patch dimensions. 0=width, 1=height.
 } BSPFace; // Lump 13
 
+
+
 class j7Bezier {
 public:
-	std::vector<sf::Vector3f> controls;
+	std::array<BSPVertex,9> controls;
 	void tessellate(int level);
 	void render();
-	j7Bezier(BSPFace face);
-private:
+	//j7Bezier();
+//private:
 	int level;
-	std::vector<sf::Vector3f> vertex;
+	std::vector<BSPVertex> vertex;
 	std::vector<GLuint> indices;
 	std::vector<int> trianglesPerRow;
-	std::vector<GLuint*> rowIndices;
+	std::vector<GLuint> rowIndices;
 };
+typedef struct {
+	std::vector<j7Bezier> bezier;
+} BSPPatch;
 
 class q3BSP {
 public:
@@ -75,13 +107,16 @@ public:
 	std::vector<BSPVertex> vertices;
 	std::vector<BSPTexture> textures;
 
+
+
 private:
 	BSPHeader header;
 	BSPEntities entities; // This needs a parser
 	
-	std::vector<j7Bezier> patches;
+	std::vector<BSPPatch> patches;
 	std::vector<BSPMeshVert> meshVerts;
 	std::vector<BSPFace> faces;
     void groupMeshByTexture();
 	void parseEntities(std::string entities);
+	BSPPatch dopatch(BSPFace face);
 };
