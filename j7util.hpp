@@ -416,18 +416,12 @@ public:
         glEnableClientState(GL_NORMAL_ARRAY);
         glEnableClientState(GL_COLOR_ARRAY);
 
-        if (vertices.size() != 0) {
-            glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[VERTEX_DATA]);
-            glVertexPointer(3, GL_FLOAT, 0, 0);
-            // Normal data
-            glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[NORMAL_DATA]);
-            glNormalPointer(GL_FLOAT, 0, 0);
-            // Texture coordinates
-            glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[TEXTURE_DATA]);
-            glTexCoordPointer(2, GL_FLOAT, 0, 0);
-            // Vertex colors
-            glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[COLOR_DATA]);
-            glColorPointer(4, GL_FLOAT, 0, 0);
+        if (bufferObject != 0) {
+            glBindBuffer(GL_ARRAY_BUFFER, bufferObject);
+            glVertexPointer(3, GL_FLOAT, sizeof(BSPVertex), 0);
+            glTexCoordPointer(2, GL_FLOAT, sizeof(BSPVertex), (GLvoid*)(sizeof(GLfloat)*3));
+            glNormalPointer(GL_FLOAT, sizeof(BSPVertex), (GLvoid*)(sizeof(GLfloat)*7));
+            glColorPointer(4, GL_FLOAT, sizeof(BSPVertex), (GLvoid*)(sizeof(GLfloat)*10));
 
             for (unsigned i=0; i<meshes.size(); ++i) {
                 bindtex(textures[meshes[i].materialIndex]);
@@ -463,6 +457,7 @@ public:
     }
 
     j7Model(std::string filename) {
+		bufferObject=0; // We won't use a buffer object for the whole model
 		Assimp::Importer importer;
 		std::cout << "\nTrying to load mesh file: " << filename << '\n';
 		const aiScene *scene = importer.ReadFile(filename, aiProcessPreset_TargetRealtime_Quality);
@@ -485,26 +480,12 @@ public:
     } // Load from filesystem
 
 	j7Model(q3BSP *bsp) { // Load from a BSP object
-        vertices = bsp->getVertices();
-		normals = bsp->getNormals();
-        textureCoordinates = bsp->getTextureCoordinates();
-        vertexColors = bsp->getVertexColors();
-
-
-        glGenBuffers(5, bufferObjects);
-        // Vertex data
-        glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[VERTEX_DATA]);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
-        // Normal data
-        glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[NORMAL_DATA]);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * normals.size(), normals.data(), GL_STATIC_DRAW);
-        // Texture coordinates
-        glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[TEXTURE_DATA]);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * textureCoordinates.size(), textureCoordinates.data(), GL_STATIC_DRAW);
-        // Colors
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferObjects[COLOR_DATA]);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * vertexColors.size(), vertexColors.data(), GL_STATIC_DRAW);
-
+        glGenBuffers(1, &bufferObject);
+        
+		// Buffer the vector of all BSP vertex data
+        glBindBuffer(GL_ARRAY_BUFFER, bufferObject);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(BSPVertex) * bsp->vertices.size(), bsp->vertices.data(), GL_STATIC_DRAW);
+		// Buffer the index data
 		for (unsigned i = 0; i < bsp->facesByTexture.size(); ++i) meshes.push_back(j7Mesh(bsp,i));
 		importTextures(bsp);
 	}
@@ -516,11 +497,7 @@ private:
 	//std::vector<j7Bone> bones; //::TODO::
 
     // For meshes where the vertex data is shared for everything (BSP)
-	std::vector<GLfloat> vertices;
-	std::vector<GLfloat> normals;
-	std::vector<GLfloat> textureCoordinates;
-    std::vector<GLfloat> vertexColors;
-    GLuint bufferObjects[5];
+    GLuint bufferObject;
 
     void bindtex(GLuint id) {
         glActiveTexture(GL_TEXTURE0);
@@ -584,12 +561,7 @@ private:
 
     void importTextures(q3BSP *bsp) {
         std::cout << "Loading textures...\n";
-        std::vector<std::string> textureNames;
-        textureNames = bsp->getTextureNames();
-		for (unsigned i=0; i < textureNames.size(); ++i)
-		{
-			textures.push_back(loadTexture(textureNames[i]));
-		}
+		for (unsigned i=0; i < bsp->textures.size(); ++i) textures.push_back(loadTexture(bsp->textures[i].name));
     }
 
     void importTextures(const aiScene *scene) {

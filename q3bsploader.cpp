@@ -24,7 +24,7 @@ X) Add functions to feed j7Model (to be done with #1?)
 #include <iostream> // std::cout, std::cerr
 #include <fstream> // std::ifstream
 #include <vector> // std::vector
-#include <memory> // std::unique_ptr
+#include <GLEW/glew.h>
 #include <SFML/OpenGL.hpp> // OpenGL datatypes
 #include <SFML/System/Vector3.hpp>
 #include "q3bsploader.h"
@@ -154,55 +154,36 @@ q3BSP::q3BSP(std::string filename) {
 }
 
 //Data getters
-std::vector<GLfloat> q3BSP::getVertices() {
-    std::vector<GLfloat> temp;
-	temp.reserve(vertices.size());
-    for (unsigned i = 0; i < vertices.size(); ++i) for (int j = 0; j < 3; ++j) temp.push_back(vertices[i].position[j]);
-    return temp;
-}
-std::vector<GLfloat> q3BSP::getNormals() {
-    std::vector<GLfloat> temp;
-	temp.reserve(vertices.size());
-    for (unsigned i = 0; i < vertices.size(); ++i) for (int j = 0; j < 3; ++j) temp.push_back(vertices[i].normal[j]);
-    return temp;
-}
-std::vector<GLfloat> q3BSP::getVertexColors() {
-    std::vector<GLfloat> temp;
-	temp.reserve(vertices.size());
-    for (unsigned i = 0; i < vertices.size(); ++i) for (int j = 0; j < 4; ++j) temp.push_back(vertices[i].color[j]); // RGBA
-    return temp;
-}
 
 std::vector<GLuint> q3BSP::getIndices(unsigned entry) {
-    std::vector<GLuint> temp; // A vector of lists of indices
-        if (facesByTexture[entry].size() != 0 // Empty faceset
-            && facesByTexture[entry][0].type != 1 // Non-polygons, probably unsafe assumption that all faces with same texture are same type
-            && facesByTexture[entry][0].type != 3) { // Non-mesh, I still don't understand how they differ from polygons
-            std::cout << "Face group " << entry << " is type " << facesByTexture[entry][0].type << '\n';
-		}
-        else for (unsigned j = 0; j < facesByTexture[entry].size(); ++j) { // For each face in set
+	if (facesByTexture[entry].size() == 0) return std::vector<GLuint>(); // No meshes for this texture, return empty vector
+	switch(facesByTexture[entry][0].type) {
+	case 1:		// Polygons
+	case 3:	{	// Meshes
+		std::vector<GLuint> temp; // A vector of lists of indices
+		for (unsigned j = 0; j < facesByTexture[entry].size(); ++j) { // For each face in set
             for (int k = 0; k < facesByTexture[entry][j].n_meshverts; ++k) { // For each meshvert in face
                 GLuint value = facesByTexture[entry][j].vertex + meshVerts[k + facesByTexture[entry][j].meshvert].offset;
                 temp.push_back(value);
             }
         }
-    return temp;
-}
+		return temp;
+	}
+	case 2:		// Patches
+		std::cerr << "Face group " << entry << " is patch(es).\n";
+		for (unsigned i = 0; i < facesByTexture[entry].size(); ++i) {
+			patches.push_back(j7Bezier(facesByTexture[entry][i]));
+		}
+		break;
 
-std::vector<GLfloat> q3BSP::getTextureCoordinates() {
-    std::vector<GLfloat> temp;
-	temp.reserve(vertices.size());
-    for (unsigned i = 0; i < vertices.size(); ++i) {
-        temp.push_back(vertices[i].texcoord[0][0]); //[1][x] is lightmap coords
-        temp.push_back(vertices[i].texcoord[0][1]);
-    }
-    return temp;
-}
-std::vector<std::string> q3BSP::getTextureNames() {
-    std::vector<std::string> temp;
-	temp.reserve(textures.size());
-    for (unsigned i = 0; i < textures.size(); ++i) temp.push_back(textures[i].name);    
-    return temp;
+	case 4:		// Billboards
+		std::cerr << "Face group " << entry << " is billboard(s).\n";
+		break;
+	default:
+		std::cerr << "Unknown face type: " << facesByTexture[entry][0].type << '\n';
+		break;
+	}
+	return std::vector<GLuint>(); // No supported face types, return empty vector
 }
 
 void q3BSP::groupMeshByTexture() {
@@ -228,6 +209,7 @@ typedef struct {
 	int spawnflags;
 	int radius;
 } BSPEntity;
+
 void q3BSP::parseEntities(std::string entities) {
     std::vector<std::string> clauses;
 	unsigned open=0;
@@ -241,3 +223,91 @@ void q3BSP::parseEntities(std::string entities) {
 	}
 	std::cout << clauses.size() << " clauses found.\n";
 }
+
+typedef struct {
+	GLfloat x;
+	GLfloat y;
+	GLfloat z;
+} vertex;
+
+j7Bezier::j7Bezier(BSPFace face) {
+
+
+}
+
+
+/*
+void j7Bezier::tessellate(int L) { // Based on Paul Baker's Octagon, apparently
+    level = L;
+
+    // The number of vertices along a side is 1 + num edges
+    const int L1 = L + 1;
+
+    vertex.resize(L1 * L1);
+
+    // Compute the vertices
+    for (int i = 0; i <= L; ++i) {
+        double a = (double)i / L;
+        double b = 1 - a;
+
+        vertex[i] =
+            controls[0] * (b * b) + 
+            controls[3] * (2 * b * a) +
+            controls[6] * (a * a);
+    }
+
+    for (int i = 1; i <= L; ++i) {
+        double a = (double)i / L;
+        double b = 1.0 - a;
+
+        sf::Vector3f temp[3];
+
+        for (int j = 0; j < 3; ++j) {
+            int k = 3 * j;
+            temp[j] =
+                controls[k + 0] * (b * b) + 
+                controls[k + 1] * (2 * b * a) +
+                controls[k + 2] * (a * a);
+        }
+
+        for(int j = 0; j <= L; ++j) {
+            double a = (double)j / L;
+            double b = 1.0 - a;
+
+            vertex[i * L1 + j]=
+                temp[0] * (b * b) + 
+                temp[1] * (2 * b * a) +
+                temp[2] * (a * a);
+        }
+    }
+
+
+    // Compute the indices
+    indices.resize(L * (L + 1) * 2);
+
+    for (int row = 0; row < L; ++row) {
+        for(int col = 0; col <= L; ++col)	{
+            indices[(row * (L + 1) + col) * 2 + 1] = row       * L1 + col;
+            indices[(row * (L + 1) + col) * 2]     = (row + 1) * L1 + col;
+        }
+    }
+
+    trianglesPerRow.resize(L);
+    rowIndices.resize(L);
+    for (int row = 0; row < L; ++row) {
+        trianglesPerRow[row] = 2 * L1;
+        rowIndices[row]      = &indices[row * 2 * L1];
+    }
+    
+}
+void j7Bezier::render() {
+  //  glVertexPointer(3, GL_FLOAT, 0, &vertex[0]);
+
+    //glClientActiveTextureARB(GL_TEXTURE0_ARB);
+   // glTexCoordPointer(2, GL_FLOAT,sizeof(BSPVertex), &vertex[0].textureCoord);
+	/*
+    glClientActiveTextureARB(GL_TEXTURE1_ARB);
+    glTexCoordPointer(2, GL_FLOAT, sizeof(BSPVertex), &vertex[0].lightmapCoord);
+	*/
+   // glMultiDrawElements(GL_TRIANGLE_STRIP, &trianglesPerRow[0], GL_UNSIGNED_INT, reinterpret_cast<void*>(rowIndices), level);
+//}

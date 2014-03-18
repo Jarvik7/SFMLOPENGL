@@ -52,22 +52,34 @@ typedef struct
     int	size[2];	//Patch dimensions. 0=width, 1=height.
 } BSPFace; // Lump 13
 
+class j7Bezier {
+public:
+	std::vector<sf::Vector3f> controls;
+	void tessellate(int level);
+	void render();
+	j7Bezier(BSPFace face);
+private:
+	int level;
+	std::vector<sf::Vector3f> vertex;
+	std::vector<GLuint> indices;
+	std::vector<int> trianglesPerRow;
+	std::vector<GLuint*> rowIndices;
+};
+
 class q3BSP {
 public:
 	q3BSP(std::string filename);
-	std::vector<GLfloat> getVertices();
-	std::vector<GLfloat> getNormals();
-    std::vector<GLfloat> getVertexColors();
 	std::vector<GLuint> getIndices(unsigned entry);
-	std::vector<GLfloat> getTextureCoordinates();
     std::vector<std::vector<BSPFace>> facesByTexture;
-	std::vector<std::string> getTextureNames(); // Actual loading to be done by j7Model
+
+	std::vector<BSPVertex> vertices;
+	std::vector<BSPTexture> textures;
 
 private:
 	BSPHeader header;
 	BSPEntities entities; // This needs a parser
-	std::vector<BSPTexture> textures;
-	std::vector<BSPVertex> vertices;
+	
+	std::vector<j7Bezier> patches;
 	std::vector<BSPMeshVert> meshVerts;
 	std::vector<BSPFace> faces;
     void groupMeshByTexture();
