@@ -88,10 +88,11 @@ public:
 	void render();
 	//j7Bezier();
 //private:
+	GLuint bufferID;
 	int level;
 	std::vector<BSPVertex> vertex;
 	std::vector<GLuint> indices;
-	std::vector<int> trianglesPerRow;
+	std::vector<GLsizei> trianglesPerRow;
 	std::vector<GLuint> rowIndices;
 };
 typedef struct {
@@ -106,14 +107,14 @@ public:
 
 	std::vector<BSPVertex> vertices;
 	std::vector<BSPTexture> textures;
-
+	std::vector<BSPPatch> patches;
 
 
 private:
 	BSPHeader header;
 	BSPEntities entities; // This needs a parser
 	
-	std::vector<BSPPatch> patches;
+
 	std::vector<BSPMeshVert> meshVerts;
 	std::vector<BSPFace> faces;
     void groupMeshByTexture();

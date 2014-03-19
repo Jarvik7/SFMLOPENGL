@@ -430,6 +430,7 @@ public:
                 glDrawElements(GL_TRIANGLES, (GLsizei)meshes[i].indices.size(), GL_UNSIGNED_INT, 0); // Index 1 of trdis has no texture coords!
 
             }
+			
         }
 
         else for (unsigned i=0; i<meshes.size(); ++i) {

@@ -110,7 +110,6 @@ q3BSP::q3BSP(std::string filename) {
     std::cout << "Lump 10: " << numEntries << " vertex(es) found.\n";
     vertices.reserve(numEntries);
     BSPVertex tempVertex;
-	std::cout << "SIZE IS: " << sizeof(BSPVertex) << '\n';
     for (unsigned i = 0; i < numEntries; ++i) {
         memcpy(&tempVertex,
                &memblock[header.direntries[Vertexes].offset + i * sizeof(BSPVertex)],
@@ -313,19 +312,34 @@ void j7Bezier::tessellate(int L) { // Based on Paul Baker's Octagon, apparently
     rowIndices.resize(L);
     for (int row = 0; row < L; ++row) {
         trianglesPerRow[row] = 2 * L1;
-        rowIndices[row]      = row * 2 * L1;
+        rowIndices[row]      = row * 2 * L1 * sizeof(GLuint);
     }
     //Normalize here ::TODO::
+
+	// Create index buffer for this bezier
+	glGenBuffers(1, &bufferID);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferID);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void j7Bezier::render() {
-  //  glVertexPointer(3, GL_FLOAT, 0, &vertex[0]);
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	glEnableClientState(GL_NORMAL_ARRAY);
+	glEnableClientState(GL_COLOR_ARRAY);
 
-    //glClientActiveTextureARB(GL_TEXTURE0_ARB);
-   // glTexCoordPointer(2, GL_FLOAT,sizeof(BSPVertex), &vertex[0].textureCoord);
-	/*
-    glClientActiveTextureARB(GL_TEXTURE1_ARB);
-    glTexCoordPointer(2, GL_FLOAT, sizeof(BSPVertex), &vertex[0].lightmapCoord);
-	*/
-   // glMultiDrawElements(GL_TRIANGLE_STRIP, &trianglesPerRow[0], GL_UNSIGNED_INT, reinterpret_cast<void*>(rowIndices), level);
+	glVertexPointer(3, GL_FLOAT, sizeof(BSPVertex), vertex.data());
+	glNormalPointer(GL_FLOAT, sizeof(BSPVertex), vertex[0].normal.data());
+	// Bind texture here, or call this render function in drawVBO like a normal mesh
+    glTexCoordPointer(2, GL_FLOAT, sizeof(BSPVertex), vertex[0].texcoord.data());
+	glColorPointer(4, GL_FLOAT, sizeof(BSPVertex), vertex[0].color.data());
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferID);
+    glMultiDrawElements(GL_TRIANGLE_STRIP, trianglesPerRow.data(), GL_UNSIGNED_INT, (const GLvoid**)rowIndices.data(), level);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+	glDisableClientState(GL_COLOR_ARRAY);
+	glDisableClientState(GL_NORMAL_ARRAY);
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+	glDisableClientState(GL_VERTEX_ARRAY);
 }
