@@ -21,6 +21,9 @@
     <ClCompile Include="q3bsploader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="unusedcode.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="j7util.hpp">

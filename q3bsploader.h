@@ -8,7 +8,6 @@
 //#include <gl/GL.h> // GLuint
 #include <glm/glm.hpp> // glm::fvec3, glm::mat2
 
-
 typedef struct {
 	int offset;
 	int length;
@@ -91,9 +90,9 @@ public:
 	std::array<BSPVertex,9> controls;
 	void tessellate(int level);
 	void render();
-	//j7Bezier();
-//private:
 	GLuint bufferID;
+
+private:
 	int level;
 	std::vector<BSPVertex> vertex;
 	std::vector<GLuint> indices;

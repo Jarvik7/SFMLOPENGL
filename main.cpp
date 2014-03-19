@@ -6,17 +6,17 @@
 //  Copyright (c) 2014 Jarvik7. All rights reserved.
 //
 
-#include <iostream> // For std::cout, std::endl
-#include <string> // For std::String
+#include <iostream> // std::cout
+#include <string> // std::string
 
 #include <GLEW/glew.h>	// For OpenGL Extensions
 
 #include <SFML/OpenGL.hpp> // For OpenGL functions
-#include <SFML/Graphics.hpp> // For SFML functions (window handling, ttf text drawing, vector2u)
-#include <SFML/Audio.hpp> // For SFML MP3 playback
-#include "q3bsploader.h"
-#include "j7util.hpp"
+#include <SFML/Graphics.hpp> // For SFML functions (window handling, ttf text drawing, vectors)
+#include <SFML/Audio.hpp> // For MP3 playback ::TODO:: switch to something that supports MP3
 
+#include "q3bsploader.h" // My BSP loader
+#include "j7util.hpp" // My helper utility
 
 // Enable to display debug output ::TODO:: change this to read project build settings?
 //const bool DISPLAYDEBUGOUTPUT = true;
@@ -51,7 +51,6 @@ void displayWindowsMenubar(sf::RenderWindow *window)
 //	generateMenu(window);
 	#endif
 
-
 	//For OSX
 }
 
@@ -83,7 +82,7 @@ int main(int argc, const char * argv[])
 {
     //Initialize the render window
     sf::ContextSettings windowsettings(24); // Give us a 24-bit depth buffer
-    sf::RenderWindow window(sf::VideoMode(800,600,32), windowTitle, sf::Style::Default, windowsettings);
+    sf::RenderWindow window(sf::VideoMode(800, 600, 32), windowTitle, sf::Style::Default, windowsettings);
     if (!window.isOpen())
     {
         std::cerr << "Error: Couldn't create RenderWindow\n";
@@ -112,7 +111,7 @@ int main(int argc, const char * argv[])
 
         std::cout << windowsize.x << "x" << windowsize.y << " window created at " << windowpos.x << "x" << windowpos.y << '\n';
         std::cout << "OpenGL version:" << windowsettings.majorVersion << "." << windowsettings.minorVersion << '\n';
-        if(sf::Shader::isAvailable()) std::cout << "Shaders are available\n";
+        if (sf::Shader::isAvailable()) std::cout << "Shaders are available\n";
         else std::cout << "Shaders are not available\n";
         std::cout << "Depth bits: " << windowsettings.depthBits << '\n';
         std::cout << "Stencil bits: " << windowsettings.stencilBits << '\n';
@@ -123,7 +122,7 @@ int main(int argc, const char * argv[])
 
 
     sf::Music music;
-    if(music.openFromFile("furious.ogg"))
+    if (music.openFromFile("furious.ogg"))
     {
         music.setLoop(true);
         music.setVolume(75);
@@ -139,14 +138,13 @@ int main(int argc, const char * argv[])
     float rquad = 0;
 	float fov=75.0f;
     bool showfps = true;
-	bool wireframe=false;
 	short modelno=0;
 	
 	bool mouseLock=false;
 
 	// Setup fog
-	glClearColor(0.5f,0.5f,0.5f,1.0f); 
-	GLfloat fogColor[4]= {0.5f,0.5f,0.5f,1.0f};      // Fog Color
+	glClearColor(0.5f, 0.5f, 0.5f, 1.0f); 
+	GLfloat fogColor[4] = {0.5f, 0.5f, 0.5f, 1.0f};      // Fog Color
 	glFogi(GL_FOG_MODE, GL_LINEAR);        // Fog Mode
 	glFogfv(GL_FOG_COLOR, fogColor);            // Set Fog Color
 	glFogf(GL_FOG_DENSITY, 0.8f);              // How Dense Will The Fog Be
@@ -198,24 +196,24 @@ int main(int argc, const char * argv[])
             switch (event.type)
             {
 				case sf::Event::LostFocus:
-					hasFocus=false;
+					hasFocus = false;
 					camera.setMouseLock(false, &window);
 					camera.setFocus(false);
 					break;
 				case sf::Event::GainedFocus:
 					if (mouseWasLocked) camera.setMouseLock(true, &window);
 					camera.setFocus(true);
-					hasFocus=true;
+					hasFocus = true;
 					break;
                 case sf::Event::Closed:
-                    gameover=true;
+                    gameover = true;
                     break;
 
                 case sf::Event::KeyPressed:
                     if(hasFocus) switch (event.key.code)
                     {
                         case key_quit:
-                            gameover=true;
+                            gameover = true;
                             break;
 						// Toggles
 
@@ -248,23 +246,20 @@ int main(int argc, const char * argv[])
 							break;
 
                         case key_toggle_rotate:
-                            rotation=!rotation;
+                            rotation = !rotation;
                             break;
 
 						case key_reset_rotate:
-							rquad=0;
+							rquad = 0;
 							break;
 
 						case key_toggle_wireframe:
-							wireframe=!wireframe;
-							if (wireframe) {
-								glPolygonMode(GL_FRONT,GL_LINE);
-								glPolygonMode(GL_BACK,GL_LINE);
-							}
-							else {
-								glPolygonMode(GL_FRONT,GL_FILL);
-								glPolygonMode(GL_BACK,GL_FILL);
-							}
+							GLint temp;
+							glGetIntegerv(GL_POLYGON_MODE, &temp);
+
+							if (temp == GL_FILL) glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+							else glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+
 							break;
 
 						case key_toggle_blending:
@@ -298,15 +293,15 @@ int main(int argc, const char * argv[])
 
                         case key_toggle_fullscreen:
                         {
-                            fullscreen=!fullscreen;
+                            fullscreen = !fullscreen;
                             static sf::Vector2u oldwindowsize;
 
                             if (fullscreen)
                             {
-                                oldwindowsize=windowsize;
-                                window.create(sf::VideoMode::getDesktopMode(),windowTitle,sf::Style::Fullscreen,windowsettings);
+                                oldwindowsize = windowsize;
+                                window.create(sf::VideoMode::getDesktopMode(), windowTitle, sf::Style::Fullscreen, windowsettings);
                             }
-                            else window.create(sf::VideoMode(oldwindowsize.x, oldwindowsize.y),windowTitle,sf::Style::Default,windowsettings);
+                            else window.create(sf::VideoMode(oldwindowsize.x, oldwindowsize.y), windowTitle, sf::Style::Default, windowsettings);
                             initGL();
 							displayWindowsMenubar(&window);
                             windowsize = window.getSize();
@@ -316,7 +311,7 @@ int main(int argc, const char * argv[])
                         }
                             
                         case key_toggle_vsync:
-                            vsync=!vsync;
+                            vsync = !vsync;
                             window.setVerticalSyncEnabled(vsync);
                             break;
 
@@ -327,7 +322,7 @@ int main(int argc, const char * argv[])
 
                 case sf::Event::MouseWheelMoved: // Zoom
 					if(hasFocus) {
-						fov -= event.mouseWheel.delta*1.5f;
+						fov -= event.mouseWheel.delta * 1.5f;
 						adjustPerspective(windowsize, fov);
 					}
                     break;

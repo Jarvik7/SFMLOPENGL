@@ -12,14 +12,18 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+
 #include <glm/glm.hpp>
-//#include <functional> // For hash
-//#include <Windows.h>
-#include "q3bsploader.h"
 
 #include <assimp/Importer.hpp>	//For 3D model loading
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+
+//#include <functional> // For hash
+//#include <Windows.h>
+#include "q3bsploader.h"
+
+
 
 // Not all compilers provide a definition for pi
 #ifndef M_PI
@@ -53,46 +57,19 @@ inline bool fileExists(std::string filename) {
     return infile.good();
 }
 
-void drawGround() {
-	static bool loaded=false;
-	static GLuint concretetex;
-	if(!loaded) {
-		sf::Image texture;
-		texture.loadFromFile("concrete.jpg");
-		glGenTextures(1, &concretetex);
-        glBindTexture(GL_TEXTURE_2D, concretetex);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texture.getSize().x, texture.getSize().y, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.getPixelsPtr());
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		loaded=true;
-	}
-	glBindTexture(GL_TEXTURE_2D, concretetex);
-	glBegin(GL_QUADS);
-		glTexCoord2f(1,1);
-		glVertex3f(-50,-0.01f, 50);
-		glTexCoord2f(1,0);
-		glVertex3f( 50,-0.01f, 50);
-		glTexCoord2f(0,1);
-		glVertex3f( 50,-0.01f,-50);
-		glTexCoord2f(0,0);
-		glVertex3f(-50,-0.01f,-50);
-	glEnd();
 
-}
 
 inline float degtorad(float degrees) //Converts degrees to radians
 {
-	return float(degrees*M_PI/180);
+	return float(degrees*M_PI/180.0f);
 }
 
 void showFPS(sf::RenderWindow *window)
 {
 	// This function displays the FPS in the upper left corner of the given RenderWindow.
-	// It must be called inside your render loop.
+	// It must be called inside the render loop.
 
-	// ::TODO:: Render using OpenGL? It would avoid needing a pointer argument and a Window
+	// ::TODO:: Render without SFML? It would avoid needing a pointer argument and a Window
 	// could be used instead of a RenderWindow.
 	// ::TODO:: Is there a way to eliminate the fontloaded bool?
 
@@ -100,7 +77,7 @@ void showFPS(sf::RenderWindow *window)
 	static bool fontloaded=false;
     static bool triedloadingfont=false;
 
-    if (!fontloaded && triedloadingfont) return; // Early exit. We've tried and failed to load a font.
+    if (!fontloaded && triedloadingfont) return; // Early exit. We've tried and failed to load a font already.
 	//Load the font
 	if (!fontloaded) {
         triedloadingfont=true;
@@ -243,55 +220,6 @@ void generateMenu(sf::RenderWindow *window)
 	rootmenu.addchild(rendermenu);
 	rootmenu.draw(window);
 }*/
-
-
-class j7Light {
-public:
-
-
-	j7Light(aiVector3D pos, aiVector3D dir, aiColor3D amb, aiColor3D diff, aiColor3D spec) {
-		position.push_back(pos.x);
-		position.push_back(pos.y);
-		position.push_back(pos.z);
-
-		direction.push_back(dir.x);
-		direction.push_back(dir.y);
-		direction.push_back(dir.z);
-
-		colorAmbient.push_back(amb.r);
-		colorAmbient.push_back(amb.g);
-		colorAmbient.push_back(amb.b);
-
-		colorDiffuse.push_back(diff.r);
-		colorDiffuse.push_back(diff.g);
-		colorDiffuse.push_back(diff.b);
-
-		colorSpecular.push_back(spec.r);
-		colorSpecular.push_back(spec.g);
-		colorSpecular.push_back(spec.b);
-
-		std::cout << "Added new light at (" << position[0] << ',' << position[1] << ',' << position[2] << "), pointing at (" << direction[0] << ',' << direction[1] << ',' << direction[2] << ")\n";
-	}
-
-	void draw() {
-
-
-	// Place it
-	//Fixed function OpenGL only supports 8 lights. We're going to need shaders
-	/*glLightfv(GL_LIGHT0, GL_AMBIENT, colorAmbient);
-	glLightfv(GL_LIGHT0, GL_DIFFUSE, colorDiffuse);
-	glLightfv(GL_LIGHT0, GL_SPECULAR, colorSpecular);
-	glLightfv(GL_LIGHT0, GL_POSITION, position);*/
-	}
-private:
-	// Coordinates
-	std::vector<GLfloat> position;
-	std::vector<GLfloat> direction;
-	// Colors
-	std::vector<GLfloat> colorAmbient;
-	std::vector<GLfloat> colorDiffuse;
-	std::vector<GLfloat> colorSpecular;
-};
 
 class j7Mesh {
 public:
@@ -477,13 +405,13 @@ public:
             meshes.push_back(j7Mesh(scene->mMeshes[i]));
         }
 		if (scene->HasMaterials()) importTextures(scene); // ::TODO:: Only supports external diffuse textures right now
-		if (scene->HasLights()) for (unsigned i=0; i< scene->mNumLights; ++i) {
+		/*if (scene->HasLights()) for (unsigned i=0; i< scene->mNumLights; ++i) {
 			lights.push_back(j7Light(scene->mLights[i]->mPosition,
 									scene->mLights[i]->mDirection,
 									scene->mLights[i]->mColorAmbient,
 									scene->mLights[i]->mColorDiffuse,
 									scene->mLights[i]->mColorSpecular));
-		}
+		}*/
     } // Load from filesystem
 
 	j7Model(q3BSP *bsp) { // Load from a BSP object
@@ -500,7 +428,7 @@ public:
 private:
     std::vector<j7Mesh> meshes;
     std::vector<GLuint> textures; // Vector of texture IDs.
-	std::vector<j7Light> lights;
+//	std::vector<j7Light> lights;
 	//std::vector<j7Bone> bones; //::TODO::
 
     // For meshes where the vertex data is shared for everything (BSP)
@@ -583,15 +511,6 @@ private:
 			textures.push_back(loadTexture(path.data));
 		}
     }
-};
-
-class j7Material {
-public:
-	std::vector<GLuint> diffuse_tex;
-
-
-private:
-
 };
 
 class j7Cam {
