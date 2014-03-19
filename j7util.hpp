@@ -13,6 +13,7 @@
 #include <iostream>
 #include <fstream>
 
+#include <SFML/OpenGL.hpp>
 #include <glm/glm.hpp>
 
 #include <assimp/Importer.hpp>	//For 3D model loading
@@ -56,8 +57,6 @@ inline bool fileExists(std::string filename) {
     std::ifstream infile(filename);
     return infile.good();
 }
-
-
 
 inline float degtorad(float degrees) //Converts degrees to radians
 {
@@ -121,7 +120,7 @@ void adjustPerspective(sf::Vector2u windowsize, GLdouble fovy = 75.0f, GLdouble 
     //::TODO:: This currently runs many times for one resize as the window border is dragged. Add throttling?
     //::TODO:: Make into an object?
 
-#if defined(SFML_SYSTEM_WINDOWS) // Windows allows window height of 0
+#if defined(SFML_SYSTEM_WINDOWS) // Windows allows window height of 0, prevent div/0
     if (windowsize.y == 0) ++windowsize.y;
 #endif
     if (DISPLAYDEBUGOUTPUT)
@@ -134,7 +133,7 @@ void adjustPerspective(sf::Vector2u windowsize, GLdouble fovy = 75.0f, GLdouble 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
 
-    gluPerspective(fovy, GLdouble(windowsize.x)/windowsize.y, zNear, zFar);
+    gluPerspective(fovy, GLdouble(windowsize.x)/windowsize.y, zNear, zFar); // ::Deprecated::
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
@@ -574,7 +573,7 @@ private:
 		glLoadIdentity();
 		gluLookAt(eye.x, eye.y, eye.z,
 				  center.x, center.y, center.z,
-				  up.x, up.y, up.z);
+				  up.x, up.y, up.z); // ::Deprecated::
 	}
 
 	void updatePosition() {
