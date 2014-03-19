@@ -432,7 +432,7 @@ public:
 			for (unsigned i = 0; i < bsp->patches.size(); ++i) { // For every patch
 
 				bindtex(textures[bsp->patches[i].textureID]);
-				for (int j = 0; j< bsp->patches[i].bezier.size(); ++j) { // For every bezier in every patch
+				for (unsigned j = 0; j< bsp->patches[i].bezier.size(); ++j) { // For every bezier in every patch
 					bsp->patches[i].bezier[j].render();
 				}
 			}

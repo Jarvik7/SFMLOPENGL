@@ -1,4 +1,8 @@
-#include <array>
+#include <string> // std::string
+#include <array> // std::array
+#include <vector> // std::vector
+#include <glm/glm.hpp> // glm::fvec3, glm::mat2
+//#include GL // GLuint
 
 typedef struct {
 	int offset;
@@ -27,33 +31,31 @@ typedef struct
 class BSPVertex
 {
 public:
-    std::array<float, 3> position;	//vertex position.
-    std::array<std::array<float, 2>, 2> texcoord;	//vertex texture coordinates. 0=surface, 1=lightmap.
-    std::array<float, 3> normal;	//vertex normal.
-    std::array<unsigned char, 4> color;	//vertex color, in RGBA, as unsigned.
+	// Members must be in this order as contents are memcpy'd into them from the binary
+	glm::fvec3 position;
+	glm::mat2 texcoord; //0=surface, 1=lightmap.
+	glm::fvec3 normal;
+    std::array<unsigned char, 4> color;	//vertex color, in RGBA, as unsigned. I'm passing these to gl as floats so getting screwy colors
 
+	// Basic vector math
 	BSPVertex operator+(BSPVertex a) {
 		BSPVertex temp;
 
-		for (int i=0; i<3; i++) {
-			temp.position[i] = this->position[i] + a.position[i];
-			temp.normal[i] = this->normal[i] + a.normal[i];
-		}
-		for(int i = 0; i < 2; ++i) for(int j = 0; j < 2; ++j) temp.texcoord[i][j] = this->texcoord[i][j] + a.texcoord[i][j];
+		temp.position = this->position + a.position;
+		temp.normal = this->normal + a.normal;
+		temp.texcoord = this->texcoord + a.texcoord;
+
 		return temp;
 	}
-
 	BSPVertex operator*(float a) {
 		BSPVertex temp;
-		for (int i = 0; i < 3; i++) {
-			temp.position[i] = this->position[i] * a;
-			temp.normal[i] = this->normal[i] * a;
-		}
-		for (int i = 0; i < 2; ++i) for (int j = 0; j< 2; ++j)  temp.texcoord[i][j] = this->texcoord[i][j] * a;
-			return temp;
+
+		temp.position = this->position * a;
+		temp.normal = this->normal * a;
+		temp.texcoord = this->texcoord * a;
+
+		return temp;
 	}
-
-
 };
 
 typedef struct
@@ -78,8 +80,6 @@ typedef struct
     float	normal[3];	//Surface normal.
     int	size[2];	//Patch dimensions. 0=width, 1=height.
 } BSPFace; // Lump 13
-
-
 
 class j7Bezier {
 public:

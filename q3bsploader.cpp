@@ -11,7 +11,7 @@ X) Get vertices & textures going at a level similar to current ASSIMP implementa
 X) Break out prototypes into a proper header
 X) Add functions to feed j7Model (to be done with #1?)
 4) Break down giant constructor into individual functions
-5) Our early exits are leaking the memblock array? Convert to a vector?
+X) Our early exits are leaking the memblock array? Convert to a vector?
 6) Add shader support to j7Model to enable lighting
 7) Figure out collision detection
 ?) Replace memcpy with a c++ equivalent?
@@ -26,8 +26,8 @@ X) Add functions to feed j7Model (to be done with #1?)
 #include <vector> // std::vector
 #include <GLEW/glew.h>
 #include <SFML/OpenGL.hpp> // OpenGL datatypes
-#include <SFML/System/Vector3.hpp>
 #include "q3bsploader.h"
+#include <glm/glm.hpp>
 
 enum LUMPNAMES {
 	Entities=0,
@@ -198,9 +198,9 @@ typedef struct {
 	std::string message;
 	std::string music;
 	std::string model;
-	sf::Vector3i origin;
+	glm::ivec3 origin;
 	int angle;
-	sf::Vector3f _color;
+	glm::fvec3 _color;
 	int ambient;
 	int light;
 	std::string targetname;
@@ -213,8 +213,7 @@ void q3BSP::parseEntities(std::string entities) {
     std::vector<std::string> clauses;
 	unsigned open=0;
 	unsigned close=0;
-	bool done=false;
-
+	//No real need to trim braces and whitespace, as clauses will be fed into another tokenizer ::TODO::
 	while((open = entities.find_first_of('{',open)) != std::string::npos) {
 			close = entities.find_first_of('}',open+1); // Find closing brace starting at last opening brace
 			clauses.push_back(entities.substr(open+2, close-open-3)); // Push, minus open & close braces & newlines
@@ -223,6 +222,7 @@ void q3BSP::parseEntities(std::string entities) {
 	std::cout << clauses.size() << " clauses found.\n";
 }
 
+#define TESSELLATION_LEVEL 10
 BSPPatch q3BSP::dopatch(BSPFace face) {
 	// This code just generates the control points. Actual tessellation is done by another function
 	BSPPatch patch;
@@ -230,7 +230,6 @@ BSPPatch q3BSP::dopatch(BSPFace face) {
 	int patch_size_x = (face.size[0] - 1) / 2;
 	int patch_size_y = (face.size[1] - 1) / 2;
 	patch.bezier.resize(patch_size_x * patch_size_y);
-
 
 	int patchIndex =  0;
 	int ii, n, j, nn;
@@ -244,13 +243,12 @@ BSPPatch q3BSP::dopatch(BSPFace face) {
 				patch.bezier[patchIndex].controls[index++] = vertices[face.vertex + ii + face.size[0] * j + pos + 1];
 				patch.bezier[patchIndex].controls[index++] = vertices[face.vertex + ii + face.size[0] * j + pos + 2];                                            
 			}      
-			patch.bezier[patchIndex++].tessellate(5);
+			patch.bezier[patchIndex++].tessellate(TESSELLATION_LEVEL);
 		}
 	}
 	return patch;
 }
 	
-
 void j7Bezier::tessellate(int L) {
 	// Based on info from http://graphics.cs.brown.edu/games/quake/quake3.html, with simplified code and better use of C++
     level = L;
@@ -262,8 +260,8 @@ void j7Bezier::tessellate(int L) {
 
     // Compute the vertices
     for (int i = 0; i <= L; ++i) {
-        double a = (double)i / L;
-        double b = 1 - a;
+        float a = (float)i / L;
+        float b = 1.0f - a;
 
         vertex[i] =
             controls[0] * (b * b) + 
@@ -272,8 +270,8 @@ void j7Bezier::tessellate(int L) {
     }
 
     for (int i = 1; i <= L; ++i) {
-        double a = (double)i / L;
-        double b = 1.0 - a;
+        float a = (float)i / L;
+        float b = 1.0f - a;
 
         BSPVertex temp[3];
 
@@ -286,8 +284,8 @@ void j7Bezier::tessellate(int L) {
         }
 
         for(int j = 0; j <= L; ++j) {
-            double a = (double)j / L;
-            double b = 1.0 - a;
+            float a = (float)j / L;
+            float b = 1.0f - a;
 
             vertex[i * L1 + j]=
                 temp[0] * (b * b) + 
@@ -297,7 +295,7 @@ void j7Bezier::tessellate(int L) {
     }
 
     // Compute the indices
-    indices.resize(L * (L + 1) * 2);
+    indices.resize(L * L1 * 2);
 
     for (int row = 0; row < L; ++row) {
         for(int col = 0; col <= L; ++col)	{
@@ -314,6 +312,13 @@ void j7Bezier::tessellate(int L) {
     }
     //Normalize here ::TODO::
 
+	/*for (unsigned i = 0; i < vertex.size(); ++i) {
+		vertex[1].position = glm::normalize(vertex[i].position);
+		vertex[i].normal = glm::normalize(vertex[i].normal);
+		vertex[1].texcoord[0] = glm::normalize(glm::fvec2(vertex[i].texcoord[0]));
+		vertex[1].texcoord[1] = glm::normalize(glm::fvec2(vertex[i].texcoord[1]));
+	}*/ // This warps some vertices to the origin. Probably it expects all vertices in the bsp to be normalized
+
 	// Create index buffer for this bezier
 	glGenBuffers(1, &bufferID);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferID);
@@ -327,11 +332,11 @@ void j7Bezier::render() {
 	glEnableClientState(GL_NORMAL_ARRAY);
 	glEnableClientState(GL_COLOR_ARRAY);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glVertexPointer(3, GL_FLOAT, sizeof(BSPVertex), vertex.data());
-	glNormalPointer(GL_FLOAT, sizeof(BSPVertex), vertex[0].normal.data());
+	glVertexPointer(3, GL_FLOAT, sizeof(BSPVertex), &vertex[0].position);
+	glNormalPointer(GL_FLOAT, sizeof(BSPVertex), &vertex[0].normal);
 	// Bind texture here, or call this render function in drawVBO like a normal mesh
-    glTexCoordPointer(2, GL_FLOAT, sizeof(BSPVertex), vertex[0].texcoord.data());
-	glColorPointer(4, GL_FLOAT, sizeof(BSPVertex), vertex[0].color.data());
+    glTexCoordPointer(2, GL_FLOAT, sizeof(BSPVertex), &vertex[0].texcoord);
+	glColorPointer(4, GL_FLOAT, sizeof(BSPVertex), &vertex[0].color);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferID);
     glMultiDrawElements(GL_TRIANGLE_STRIP, trianglesPerRow.data(), GL_UNSIGNED_INT, (const GLvoid**)rowIndices.data(), level);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);

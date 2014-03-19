@@ -34,12 +34,12 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Documents and Settings\XPMUser\Desktop\INCLUDE\Assimp\include;C:\Documents and Settings\XPMUser\Desktop\INCLUDE\glew-1.10.0\include;C:\Documents and Settings\XPMUser\Desktop\INCLUDE\SFML-2.1\include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Documents and Settings\XPMUser\Desktop\INCLUDE\glm;C:\Documents and Settings\XPMUser\Desktop\INCLUDE\Assimp\include;C:\Documents and Settings\XPMUser\Desktop\INCLUDE\glew-1.10.0\include;C:\Documents and Settings\XPMUser\Desktop\INCLUDE\SFML-2.1\include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Documents and Settings\XPMUser\Desktop\INCLUDE\Assimp\lib\x86;C:\Documents and Settings\XPMUser\Desktop\INCLUDE\glew-1.10.0\lib\Release\Win32;C:\Documents and Settings\XPMUser\Desktop\INCLUDE\SFML-2.1\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Documents and Settings\XPMUser\Desktop\INCLUDE\Assimp\include;C:\Documents and Settings\XPMUser\Desktop\INCLUDE\glew-1.10.0\include;C:\Documents and Settings\XPMUser\Desktop\INCLUDE\SFML-2.1\include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Documents and Settings\XPMUser\Desktop\INCLUDE\glm;C:\Documents and Settings\XPMUser\Desktop\INCLUDE\Assimp\include;C:\Documents and Settings\XPMUser\Desktop\INCLUDE\glew-1.10.0\include;C:\Documents and Settings\XPMUser\Desktop\INCLUDE\SFML-2.1\include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Documents and Settings\XPMUser\Desktop\INCLUDE\Assimp\lib\x86;C:\Documents and Settings\XPMUser\Desktop\INCLUDE\glew-1.10.0\lib\Release\Win32;C:\Documents and Settings\XPMUser\Desktop\INCLUDE\SFML-2.1\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
