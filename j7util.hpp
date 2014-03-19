@@ -12,9 +12,10 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <glm/glm.hpp>
 //#include <functional> // For hash
 //#include <Windows.h>
-//#include "q3bsploader.h"
+#include "q3bsploader.h"
 
 #include <assimp/Importer.hpp>	//For 3D model loading
 #include <assimp/scene.h>
@@ -604,11 +605,11 @@ public:
 		hasFocus = true;
 
 		//Initialize our camera matrices
-		up = sf::Vector3f(0.0f, 1.0f, 0.0f);
-		eye = sf::Vector3f(0.0f, 1.0f, 5.0f); // Start 5 units back
-		center = sf::Vector3f(0.0f, 1.0f, 0.0f);
+		up = glm::fvec3(0.0f, 1.0f, 0.0f);
+		eye = glm::fvec3(0.0f, 1.0f, 5.0f); // Start 5 units back
+		center = glm::fvec3(0.0f, 1.0f, 0.0f);
 
-		angle = sf::Vector2f(float(M_PI), 0.0f); // ::TODO:: Face the other way
+		angle = glm::fvec2(float(M_PI), 0.0f); // ::TODO:: Face the other way
 	}
 	void update(sf::RenderWindow *window) {
 		updatePosition(); // Movement
@@ -637,11 +638,11 @@ private:
 	sf::Vector2i savedMousePosition;
 
 	//View matrices
-	sf::Vector3f eye;
-	sf::Vector3f center;
-	sf::Vector3f up;
+	glm::fvec3 eye;
+	glm::fvec3 center;
+	glm::fvec3 up;
 	//Mouse angle
-	sf::Vector2f angle;
+	glm::fvec2 angle;
 	bool mouseLock;
 
 	void move() {
@@ -664,20 +665,20 @@ private:
 		glGetFloatv(GL_MODELVIEW_MATRIX, &modelview[0]);
 		
 		// Straight ::TODO:: Add support for sprinting
-		sf::Vector3f back(modelview[2], modelview[6], modelview[10]); // Back vector
+		glm::fvec3 back(modelview[2], modelview[6], modelview[10]); // Back vector
 		if (sf::Keyboard::isKeyPressed(key_move_run)) back*=runSpeedMultiplier;
 		if (sf::Keyboard::isKeyPressed(key_move_forward)) eye-=back*moveSpeed;
 		if (sf::Keyboard::isKeyPressed(key_move_backward)) eye+=back*moveSpeed;
 
 		//Strafing
-		sf::Vector3f right(modelview[0],modelview[4],modelview[8]); // Right vector
+		glm::fvec3 right(modelview[0],modelview[4],modelview[8]); // Right vector
 		if (sf::Keyboard::isKeyPressed(key_move_left)) eye-=right*moveSpeed;
 		if (sf::Keyboard::isKeyPressed(key_move_right)) eye+=right*moveSpeed;
 
 		//Vertical ::TODO:: Give this support to toggle between fly and jump/crouch
 		// ::TODO:: This doesn't work properly when looking up/down
 		// ::TODO:: Crouch/jump should use linear interpolation?
-		sf::Vector3f up(modelview[1], modelview[5], modelview[9]); // Up vector
+		glm::fvec3 up(modelview[1], modelview[5], modelview[9]); // Up vector
 		if (sf::Keyboard::isKeyPressed(key_move_up)) eye+=up*moveSpeed;
 		if (sf::Keyboard::isKeyPressed(key_move_down)) eye-=up*moveSpeed;
 

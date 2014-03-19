@@ -1,8 +1,13 @@
+#ifndef j7Q3BSPLoader_hpp
+#define j7Q3BSPLoader_hpp
+
 #include <string> // std::string
 #include <array> // std::array
 #include <vector> // std::vector
+
+//#include <gl/GL.h> // GLuint
 #include <glm/glm.hpp> // glm::fvec3, glm::mat2
-//#include GL // GLuint
+
 
 typedef struct {
 	int offset;
@@ -122,3 +127,5 @@ private:
 	void parseEntities(std::string entities);
 	BSPPatch dopatch(BSPFace face);
 };
+
+#endif
