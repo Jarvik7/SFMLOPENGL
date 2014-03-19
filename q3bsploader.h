@@ -5,7 +5,7 @@
 #include <array> // std::array
 #include <vector> // std::vector
 
-//#include <gl/GL.h> // GLuint
+#include <SFML/OpenGL.hpp> // OpenGL datatypes
 #include <glm/glm.hpp> // glm::fvec3, glm::mat2
 
 typedef struct {
@@ -99,27 +99,40 @@ private:
 	std::vector<GLsizei> trianglesPerRow;
 	std::vector<GLuint> rowIndices;
 };
+
 typedef struct {
 	std::vector<j7Bezier> bezier;
 	GLuint textureID;
 } BSPPatch;
+
+typedef struct {
+	std::string classname;
+	std::string message;
+	std::string music;
+	std::string model;
+	glm::ivec3 origin;
+	int angle;
+	glm::fvec3 _color;
+	int ambient;
+	int light;
+	std::string targetname;
+	std::string target;
+	int spawnflags;
+	int radius;
+} BSPEntity;
 
 class q3BSP {
 public:
 	q3BSP(std::string filename);
 	std::vector<GLuint> getIndices(unsigned entry);
     std::vector<std::vector<BSPFace>> facesByTexture;
-
 	std::vector<BSPVertex> vertices;
 	std::vector<BSPTexture> textures;
 	std::vector<BSPPatch> patches;
 
-
 private:
 	BSPHeader header;
 	BSPEntities entities; // This needs a parser
-	
-
 	std::vector<BSPMeshVert> meshVerts;
 	std::vector<BSPFace> faces;
     void groupMeshByTexture();

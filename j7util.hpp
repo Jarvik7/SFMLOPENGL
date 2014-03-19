@@ -350,7 +350,7 @@ public:
             glVertexPointer(3, GL_FLOAT, sizeof(BSPVertex), 0);
             glTexCoordPointer(2, GL_FLOAT, sizeof(BSPVertex), (GLvoid*)(sizeof(GLfloat)*3));
             glNormalPointer(GL_FLOAT, sizeof(BSPVertex), (GLvoid*)(sizeof(GLfloat)*7));
-            glColorPointer(4, GL_FLOAT, sizeof(BSPVertex), (GLvoid*)(sizeof(GLfloat)*10));
+            glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(BSPVertex), (GLvoid*)(sizeof(GLfloat)*10));
 
             for (unsigned i=0; i < meshes.size(); ++i) {
                 bindtex(textures[meshes[i].materialIndex]);

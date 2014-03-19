@@ -18,8 +18,8 @@ X) Our early exits are leaking the memblock array? Convert to a vector?
 ?) Add Doom3 BSP support
 ?) Add Quake1/2/etc BSP support
 ?) Open source and publish
+?) Install MSVC2013 Express on work computer, switch to range based forloops and other C++11 stuff
 */
-
 
 #include <iostream> // std::cout, std::cerr
 #include <fstream> // std::ifstream
@@ -28,6 +28,10 @@ X) Our early exits are leaking the memblock array? Convert to a vector?
 #include <SFML/OpenGL.hpp> // OpenGL datatypes
 #include "q3bsploader.h"
 #include <glm/glm.hpp>
+
+#define IDENT "IBSP"
+#define IBSP_VERSION 46
+#define TESSELLATION_LEVEL 10
 
 enum LUMPNAMES {
 	Entities=0,
@@ -49,7 +53,6 @@ enum LUMPNAMES {
 	Visdata
 };
 
-
 q3BSP::q3BSP(std::string filename) {
     std::cout << "Loading " << filename.c_str() << '\n';
 
@@ -57,7 +60,7 @@ q3BSP::q3BSP(std::string filename) {
     std::ifstream file(filename, std::ios::in | std::ios::binary | std::ios::ate);
     if (!file.is_open()) { std::cerr << "Couldn't open file.\n"; return; } // Couldn't open file
     unsigned size = (unsigned)file.tellg();
-    file.seekg (0);
+    file.seekg(0);
 	std::vector<char> memblock;
 	memblock.reserve(size);
     file.read(&memblock[0], size);
@@ -65,8 +68,8 @@ q3BSP::q3BSP(std::string filename) {
     
     // Read and check header
     memcpy(&header, &memblock[0], sizeof(BSPHeader));
-	if (std::string("IBSP").compare(0,4,header.magicNumber,4)) { std::cerr << "Invalid format: \n" << header.magicNumber[0] << header.magicNumber[1] << header.magicNumber[2] << header.magicNumber[3] << '\n'; return; }
-    if (header.version != 0x2e) { std::cerr << "Invalid BSP version.\n"; return; } // Version 46 = Quake III (47 = RTCW / QuakeLive)
+	if (std::string(IDENT).compare(0,4,header.magicNumber,4)) { std::cerr << "Invalid format: \n" << header.magicNumber[0] << header.magicNumber[1] << header.magicNumber[2] << header.magicNumber[3] << '\n'; return; }
+    if (header.version != IBSP_VERSION) { std::cerr << "Invalid BSP version: " << header.version << '\n'; return; } // Version 46 = Quake III (47 = RTCW / QuakeLive)
     std::cout << "File format and version appear ok.\n";
     
     // Read lumps
@@ -193,22 +196,6 @@ void q3BSP::groupMeshByTexture() {
     std::cout << "Faces sorted: " << faces.size() << " faces -> " << facesByTexture.size() << " meshes.\n";
 }
 
-typedef struct {
-	std::string classname;
-	std::string message;
-	std::string music;
-	std::string model;
-	glm::ivec3 origin;
-	int angle;
-	glm::fvec3 _color;
-	int ambient;
-	int light;
-	std::string targetname;
-	std::string target;
-	int spawnflags;
-	int radius;
-} BSPEntity;
-
 void q3BSP::parseEntities(std::string entities) {
     std::vector<std::string> clauses;
 	unsigned open=0;
@@ -222,7 +209,7 @@ void q3BSP::parseEntities(std::string entities) {
 	std::cout << clauses.size() << " clauses found.\n";
 }
 
-#define TESSELLATION_LEVEL 10
+
 BSPPatch q3BSP::dopatch(BSPFace face) {
 	// This code just generates the control points. Actual tessellation is done by another function
 	BSPPatch patch;
@@ -336,7 +323,7 @@ void j7Bezier::render() {
 	glNormalPointer(GL_FLOAT, sizeof(BSPVertex), &vertex[0].normal);
 	// Bind texture here, or call this render function in drawVBO like a normal mesh
     glTexCoordPointer(2, GL_FLOAT, sizeof(BSPVertex), &vertex[0].texcoord);
-	glColorPointer(4, GL_FLOAT, sizeof(BSPVertex), &vertex[0].color);
+	glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(BSPVertex), &vertex[0].color);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferID);
     glMultiDrawElements(GL_TRIANGLE_STRIP, trianglesPerRow.data(), GL_UNSIGNED_INT, (const GLvoid**)rowIndices.data(), level);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
