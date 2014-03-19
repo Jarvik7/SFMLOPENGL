@@ -97,6 +97,7 @@ public:
 };
 typedef struct {
 	std::vector<j7Bezier> bezier;
+	GLuint textureID;
 } BSPPatch;
 
 class q3BSP {

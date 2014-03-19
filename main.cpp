@@ -181,13 +181,13 @@ int main(int argc, const char * argv[])
         glRotatef(rquad * .3f, 0.0f, 1.0f, 0.0f);
         glRotatef(rquad * .9f, 0.0f, 0.0f, 1.0f);
         glFrontFace(GL_CW);
-		glScalef(0.02f, 0.02f, 0.02f); glRotatef(-90, 1.f, 0.f, 0.f); quake3.drawVBO();
-
+		glScalef(0.02f, 0.02f, 0.02f); glRotatef(-90, 1.f, 0.f, 0.f); quake3.drawVBO(&test);
+		/*
 		for (int i = 0; i < test.patches.size(); ++i) { // For every patch
 			for (int j = 0; j< test.patches[i].bezier.size(); ++j) { // For every bezier in every patch
 				test.patches[i].bezier[j].render();
 			}
-		}
+		}*/
 
         glFrontFace(GL_CCW);
 		glPopMatrix();

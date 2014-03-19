@@ -410,7 +410,7 @@ public:
         glDisableClientState(GL_VERTEX_ARRAY);
     }
 
-    void drawVBO() { // Indexed VBO
+    void drawVBO(q3BSP *bsp) { // Indexed VBO
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         glEnableClientState(GL_NORMAL_ARRAY);
@@ -423,14 +423,19 @@ public:
             glNormalPointer(GL_FLOAT, sizeof(BSPVertex), (GLvoid*)(sizeof(GLfloat)*7));
             glColorPointer(4, GL_FLOAT, sizeof(BSPVertex), (GLvoid*)(sizeof(GLfloat)*10));
 
-            for (unsigned i=0; i<meshes.size(); ++i) {
+            for (unsigned i=0; i < meshes.size(); ++i) {
                 bindtex(textures[meshes[i].materialIndex]);
                 // Indexes
                 glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes[i].bufferObjects[INDEX_DATA]);
                 glDrawElements(GL_TRIANGLES, (GLsizei)meshes[i].indices.size(), GL_UNSIGNED_INT, 0); // Index 1 of trdis has no texture coords!
-
             }
-			
+			for (unsigned i = 0; i < bsp->patches.size(); ++i) { // For every patch
+
+				bindtex(textures[bsp->patches[i].textureID]);
+				for (int j = 0; j< bsp->patches[i].bezier.size(); ++j) { // For every bezier in every patch
+					bsp->patches[i].bezier[j].render();
+				}
+			}
         }
 
         else for (unsigned i=0; i<meshes.size(); ++i) {

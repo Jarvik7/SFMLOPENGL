@@ -170,10 +170,6 @@ std::vector<GLuint> q3BSP::getIndices(unsigned entry) {
 		return temp;
 	}
 	case 2:		// Patches
-		std::cerr << "Face group " << entry << " is patch(es). ";
-		std::cerr << facesByTexture[entry].size() << " faces. ";
-		std::cerr << facesByTexture[entry][0].n_vertexes << " verts and ";
-		std::cerr << facesByTexture[entry][0].n_meshverts << " indices in face 0.\n";
 		for (unsigned i = 0; i < facesByTexture[entry].size(); ++i) {
 			patches.push_back(dopatch(facesByTexture[entry][i]));
 		}
@@ -228,8 +224,9 @@ void q3BSP::parseEntities(std::string entities) {
 }
 
 BSPPatch q3BSP::dopatch(BSPFace face) {
-	// This code apparently just generated the grid of control points. Another function is needed to actually tessellate
+	// This code just generates the control points. Actual tessellation is done by another function
 	BSPPatch patch;
+	patch.textureID = face.texture;
 	int patch_size_x = (face.size[0] - 1) / 2;
 	int patch_size_y = (face.size[1] - 1) / 2;
 	patch.bezier.resize(patch_size_x * patch_size_y);
@@ -254,7 +251,8 @@ BSPPatch q3BSP::dopatch(BSPFace face) {
 }
 	
 
-void j7Bezier::tessellate(int L) { // Based on Paul Baker's Octagon, apparently
+void j7Bezier::tessellate(int L) {
+	// Based on info from http://graphics.cs.brown.edu/games/quake/quake3.html, with simplified code and better use of C++
     level = L;
 
     // The number of vertices along a side is 1 + num edges
@@ -328,7 +326,7 @@ void j7Bezier::render() {
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 	glEnableClientState(GL_NORMAL_ARRAY);
 	glEnableClientState(GL_COLOR_ARRAY);
-
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glVertexPointer(3, GL_FLOAT, sizeof(BSPVertex), vertex.data());
 	glNormalPointer(GL_FLOAT, sizeof(BSPVertex), vertex[0].normal.data());
 	// Bind texture here, or call this render function in drawVBO like a normal mesh
