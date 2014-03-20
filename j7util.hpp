@@ -592,11 +592,13 @@ private:
 		if (sf::Keyboard::isKeyPressed(key_move_right)) eye += right * moveSpeed;
 
 		//Vertical ::TODO:: Give this support to toggle between fly and jump/crouch
-		// ::TODO:: This doesn't work properly when looking up/down
 		// ::TODO:: Crouch/jump should use linear interpolation?
-		glm::fvec3 up(modelview[1], modelview[5], modelview[9]); // Up vector
-		if (sf::Keyboard::isKeyPressed(key_move_up)) eye+=up*moveSpeed;
-		if (sf::Keyboard::isKeyPressed(key_move_down)) eye-=up*moveSpeed;
+		
+		glm::fvec3 up(0, 1.0f, 0); //Use absolute up as up vector so the movement direction isn't affected by where we are looking
+		//glm::fvec3 up(modelview[1], modelview[5], modelview[9]); // Note: This is the real Up vector
+
+		if (sf::Keyboard::isKeyPressed(key_move_up)) eye += up * moveSpeed;
+		if (sf::Keyboard::isKeyPressed(key_move_down)) eye -= up * moveSpeed;
 
 	}
 	void updateAngle(sf::RenderWindow *window) {
