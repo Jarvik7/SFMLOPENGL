@@ -24,34 +24,12 @@ X) Our early exits are leaking the memblock array? Convert to a vector?
 #include <iostream> // std::cout, std::cerr
 #include <fstream> // std::ifstream
 #include <vector> // std::vector
+
 #include <GLEW/glew.h>
 #include <SFML/OpenGL.hpp> // OpenGL datatypes
-#include "q3bsploader.h"
 #include <glm/glm.hpp>
 
-#define IDENT "IBSP"
-#define IBSP_VERSION 46
-#define TESSELLATION_LEVEL 10
-
-enum LUMPNAMES {
-	Entities=0,
-	Textures,
-	Planes,
-	Nodes,
-	Leafs,
-	Leaffaces,
-	Leafbrushes,
-	Models,
-	Brushes,
-	Brushsides,
-	Vertexes,
-	Meshverts,
-	Effects,
-	Faces,
-	Lightmaps,
-	Lightvols,
-	Visdata
-};
+#include "q3bsploader.h"
 
 q3BSP::q3BSP(std::string filename) {
     std::cout << "Loading " << filename.c_str() << '\n';
@@ -150,7 +128,6 @@ q3BSP::q3BSP(std::string filename) {
     }
     groupMeshByTexture(); // Sort faces into groups by texture id
 
-
     // Lump 14: Lightmaps
     
     // Lump 15: Lightvols
@@ -159,14 +136,15 @@ q3BSP::q3BSP(std::string filename) {
     
 }
 
-//Data getters
-
 std::vector<GLuint> q3BSP::getIndices(unsigned entry) {
-	if (facesByTexture[entry].size() == 0) return std::vector<GLuint>(); // No meshes for this texture, return empty vector
+	if (facesByTexture[entry].size() == 0) {
+		std::cerr << " No faces found for group " << entry << ".\n";
+		return std::vector<GLuint>(); // No meshes for this texture, return empty vector
+	}
 	std::vector<GLuint> temp; // A vector of lists of indices
 	for (unsigned i = 0; i < facesByTexture[entry].size(); ++i) { // for each face in set
 		switch(facesByTexture[entry][i].type) {
-		case 1:		// Polygons
+		case 1:	// Polygons
 		case 3:	// Meshes
 			for (int k = 0; k < facesByTexture[entry][i].n_meshverts; ++k) { // For each meshvert in face
 				GLuint value = facesByTexture[entry][i].vertex + meshVerts[k + facesByTexture[entry][i].meshvert].offset;
@@ -174,15 +152,15 @@ std::vector<GLuint> q3BSP::getIndices(unsigned entry) {
 			}
 			break;
 
-		case 2:		// Patches
+		case 2:	// Patches
 			patches.push_back(dopatch(facesByTexture[entry][i]));
 			break;
 	
-		case 4:		// Billboards, skip
+		case 4:	// Billboards, skip
 			std::cerr << "Face group " << entry << " is billboard(s).\n";
 			break;
 
-		default:	// Unknown type, skip
+		default: // Unknown type, skip
 			std::cerr << "Unknown face type: " << facesByTexture[entry][0].type << '\n';
 			break;
 		}

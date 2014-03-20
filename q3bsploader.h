@@ -9,6 +9,31 @@
 #include <SFML/OpenGL.hpp> // OpenGL datatypes
 #include <glm/glm.hpp> // glm::fvec3, glm::mat2
 
+#define IDENT "IBSP"
+#define IBSP_VERSION 46
+#define TESSELLATION_LEVEL 10
+#define HEADER_LUMPS 17
+
+enum LUMPNAMES {
+	Entities = 0,
+	Textures,		//LUMP_SHADERS
+	Planes,
+	Nodes,
+	Leafs,
+	Leaffaces,		//LUMP_LEAFSURFACES
+	Leafbrushes,
+	Models,
+	Brushes,
+	Brushsides,
+	Vertexes,		//LUMP_DRAWVERTS
+	Meshverts,		//LUMP_DRAWINDEXES
+	Effects,		//LUMP_FOGS
+	Faces,			//LUMP_SURFACES
+	Lightmaps,
+	Lightvols,		//LUMP_LIGHTGRID
+	Visdata			//LUMP_VISIBILITY
+};
+
 typedef struct {
 	int offset;
 	int length;
@@ -17,7 +42,7 @@ typedef struct {
 typedef struct {
 	char magicNumber[4];
 	int version;
-	dirEntry direntries[17];
+	dirEntry direntries[HEADER_LUMPS];
 } BSPHeader;
 
 // Lump 0
