@@ -97,8 +97,8 @@ void showFPS(sf::RenderWindow *window)
 	frame++;
 	if(timer.getElapsedTime().asSeconds() >= 1) // If 1 second has passed, tally frames and reset timer
 	{
-		fps=frame;
-		frame=0;
+		fps = frame;
+		frame = 0;
 		timer.restart();
 	}
 
@@ -115,7 +115,7 @@ void showFPS(sf::RenderWindow *window)
 	}
 }
 
-void adjustPerspective(sf::Vector2u windowsize, GLfloat fovy = 75.0f, GLfloat zNear=0.1f, GLfloat zFar = 100.0f)
+void adjustPerspective(sf::Vector2u windowsize, GLfloat fovy = 75.0f, GLfloat zNear = 0.1f, GLfloat zFar = 100.0f)
 {
     //Adjust drawing area & perspective on window resize
     //::TODO:: This currently runs many times for one resize as the window border is dragged. Add throttling?
@@ -132,7 +132,7 @@ void adjustPerspective(sf::Vector2u windowsize, GLfloat fovy = 75.0f, GLfloat zN
     glViewport(0, 0, windowsize.x, windowsize.y);
 
     glMatrixMode(GL_PROJECTION);
-	glLoadMatrixf(&glm::perspective<float>(degtorad(fovy), GLfloat(windowsize.x)/windowsize.y, zNear, zFar)[0][0]);
+	glLoadMatrixf(&glm::perspective<float>(degtorad(fovy), GLfloat(windowsize.x) / windowsize.y, zNear, zFar)[0][0]);
 
     glMatrixMode(GL_MODELVIEW);
 	glm::mat4 identity; glLoadMatrixf(&identity[0][0]);
@@ -234,7 +234,7 @@ public:
         materialIndex = mesh->mMaterialIndex;
 
         if (mesh->HasNormals()) {
-            for (unsigned i=0; i<mesh->mNumVertices; ++i) {
+            for (unsigned i = 0; i < mesh->mNumVertices; ++i) {
                 normals.push_back(mesh->mNormals[i].x);
                 normals.push_back(mesh->mNormals[i].y);
                 normals.push_back(mesh->mNormals[i].z);
@@ -242,7 +242,7 @@ public:
         }
 
         if (mesh->HasPositions()) {
-            for (unsigned i=0; i<mesh->mNumVertices; ++i) {
+            for (unsigned i = 0; i < mesh->mNumVertices; ++i) {
                 vertices.push_back(mesh->mVertices[i].x);
                 vertices.push_back(mesh->mVertices[i].y);
                 vertices.push_back(mesh->mVertices[i].z);
@@ -250,27 +250,27 @@ public:
         }
 
         if (mesh->HasFaces()) {
-            for (unsigned i=0; i<mesh->mNumFaces; ++i) {
-                for (unsigned j=0; j<mesh->mFaces[i].mNumIndices; ++j) {
+            for (unsigned i = 0; i < mesh->mNumFaces; ++i) {
+                for (unsigned j = 0; j < mesh->mFaces[i].mNumIndices; ++j) {
                     indices.push_back(mesh->mFaces[i].mIndices[j]);
                 }
             }
         }
 
         if (mesh->HasTextureCoords(0)) {
-            for (unsigned i=0; i<mesh->mNumVertices; ++i) {
+            for (unsigned i = 0; i < mesh->mNumVertices; ++i) {
                 textureCoordinates.push_back(mesh->mTextureCoords[0][i].x);
                 textureCoordinates.push_back(1 - mesh->mTextureCoords[0][i].y);
 
             }
         }
-       else for (unsigned i=0; i<mesh->mNumVertices; ++i) { // ::TODO:: How to handle a mesh with no uv?
+       else for (unsigned i = 0; i < mesh->mNumVertices; ++i) { // ::TODO:: How to handle a mesh with no uv?
             textureCoordinates.push_back(0);
             textureCoordinates.push_back(0);
         }
 
         if (mesh->HasVertexColors(0)) {
-            for (unsigned i=0; i<mesh->mNumVertices; ++i) {
+            for (unsigned i=0; i < mesh->mNumVertices; ++i) {
                 vertexColors.push_back(mesh->mColors[0][i].r);
                 vertexColors.push_back(mesh->mColors[0][i].g);
                 vertexColors.push_back(mesh->mColors[0][i].b);
@@ -443,7 +443,7 @@ private:
             std::cerr << "Texture name is null\n";
             return 0;
         }
-        if (fileExists(filename + ".jpg")) filename+= ".jpg";
+        if (fileExists(filename + ".jpg")) filename += ".jpg";
         else if (fileExists(filename + ".tga")) filename += ".tga";
         else {
             std::cerr << "Unable to find texture file: " << filename << '\n';
@@ -484,7 +484,7 @@ private:
             }
         }
          */
-        GLuint id=0;
+        GLuint id = 0;
         glGenTextures(1, &id);
         glBindTexture(GL_TEXTURE_2D, id);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texture.getSize().x, texture.getSize().y, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.getPixelsPtr());
@@ -496,7 +496,7 @@ private:
 
     void importTextures(q3BSP *bsp) {
         std::cout << "Loading textures...\n";
-		for (unsigned i=0; i < bsp->textures.size(); ++i) textures.push_back(loadTexture(bsp->textures[i].name));
+		for (unsigned i = 0; i < bsp->textures.size(); ++i) textures.push_back(loadTexture(bsp->textures[i].name));
     }
 
     void importTextures(const aiScene *scene) {
@@ -517,10 +517,10 @@ class j7Cam {
 public:
 	j7Cam() {
 		//Initialize control settings
-		mouseSensitivity=0.01f;
-		moveSpeed=0.05f;
-		runSpeedMultiplier=2.0f;
-		mouseLock=false;
+		mouseSensitivity = 0.01f;
+		moveSpeed = 0.05f;
+		runSpeedMultiplier = 2.0f;
+		mouseLock = false;
 		hasFocus = true;
 
 		//Initialize our camera matrices
@@ -541,7 +541,7 @@ public:
 		if (mouseLock) {
 			savedMousePosition = sf::Mouse::getPosition(); // Save mouse position
 			sf::Vector2u windowsize = window->getSize();
-			sf::Mouse::setPosition(sf::Vector2i(windowsize.x/2, windowsize.y/2), *window);
+			sf::Mouse::setPosition(sf::Vector2i(windowsize.x / 2, windowsize.y /2 ), *window);
 		}
 		else sf::Mouse::setPosition(savedMousePosition); // Restore mouse position
 	}
@@ -566,9 +566,9 @@ private:
 
 	void move() {
 		//Calculate mouselook
-		center.x = eye.x + sin(angle.x)*cos(angle.y);
+		center.x = eye.x + sin(angle.x) * cos(angle.y);
 		center.y = eye.y + sin(angle.y);
-		center.z = eye.z + cos(angle.x)*cos(angle.y);
+		center.z = eye.z + cos(angle.x) * cos(angle.y);
 
 		//Push camera matrix to GL
 		glLoadMatrixf(&glm::lookAt(eye, center, up)[0][0]);
@@ -582,14 +582,14 @@ private:
 		
 		// Straight ::TODO:: Add support for sprinting
 		glm::fvec3 back(modelview[2], modelview[6], modelview[10]); // Back vector
-		if (sf::Keyboard::isKeyPressed(key_move_run)) back*=runSpeedMultiplier;
-		if (sf::Keyboard::isKeyPressed(key_move_forward)) eye-=back*moveSpeed;
-		if (sf::Keyboard::isKeyPressed(key_move_backward)) eye+=back*moveSpeed;
+		if (sf::Keyboard::isKeyPressed(key_move_run)) back *= runSpeedMultiplier;
+		if (sf::Keyboard::isKeyPressed(key_move_forward)) eye -= back * moveSpeed;
+		if (sf::Keyboard::isKeyPressed(key_move_backward)) eye += back * moveSpeed;
 
 		//Strafing
 		glm::fvec3 right(modelview[0],modelview[4],modelview[8]); // Right vector
-		if (sf::Keyboard::isKeyPressed(key_move_left)) eye-=right*moveSpeed;
-		if (sf::Keyboard::isKeyPressed(key_move_right)) eye+=right*moveSpeed;
+		if (sf::Keyboard::isKeyPressed(key_move_left)) eye -= right * moveSpeed;
+		if (sf::Keyboard::isKeyPressed(key_move_right)) eye += right * moveSpeed;
 
 		//Vertical ::TODO:: Give this support to toggle between fly and jump/crouch
 		// ::TODO:: This doesn't work properly when looking up/down
