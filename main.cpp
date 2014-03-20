@@ -155,7 +155,7 @@ int main(int argc, const char * argv[])
 	glEnable(GL_FOG);
 
 	//Load our mesh
-    q3BSP test("maps\\q3dm8.bsp");
+    q3BSP test("maps\\q3dm1.bsp");
 	j7Model quake3(&test);
 	j7Cam camera;
 

@@ -1,0 +1,63 @@
+Renderlist:
+
+Data:
+
+Base geometry:
+Re-arrange to use fewer buffer objects and glMultiDrawElements/glPrimitiveRestartindex. At present we have 1 vert object and <numTextures> index objects + 1 for each tessellated mesh
+The data should also include the tesselated meshes.
+Two calls to glMultiDrawElements will be needed. (GL_TRIANGLES for normal geometry and GL_TRIANGLE_STRIP for tessellated)
+? What to do about moving world geometry? models[0] lists the static geometry
+? What to do about faces with shaders?
+? How to manage all the different settings a face can have? Can this be done nicely in GLSL on a per-vertex/frag basis?
+
+- Buffer 1: All vertices
+- Buffer 2: All indices, sorted by texture
+- Array 1: Number of indices to use for each texture group
+- Array 2: Offsets into Buffer 2 for start of each texture group
+
+The arrays can likely be tweaked to switch on/off groups of faces for culling.
+
+
+Render function:
+
+
+
+Q3 Dev Notes:
+
+Currently working:
+-Fixed world geometry
+-Tesselated surfaces
+-Plain diffuse textures /w coords
+-Vertex colors
+
+Not working:
+- Shaders
+- Lighting
+- Physics/collision detection
+- Entities (spawn location, models, etc)
+- Culling
+- No model loader/animation
+- Sound
+
+To do:
+-Convert renderer to shader pipeline & eliminate deprecated functionality
+--Step 1: Handle matrices myself w/ GLM
+--Step 2: Process verts & fragments in GLSL
+
+-Add lighting
+-Do this with actual dynamic lights as specified in the entities list. Can skip lightmap support
+-Long-goal: deferred lighting /w volumetric shadows, self-shadowing, etc
+
+-Physics
+-Short-goal: simple collision detection
+-Long-goal: proper physics using Havok etc
+
+-Culling
+-Ignore BSP datastructures and do something more modern?
+
+-Load models
+-Q3 uses keyframes. Add Doom3 skeletal support
+
+-Sound
+-Use OpenAl instead of crappo SFML sound
+-Support mp3 for music instead of wav

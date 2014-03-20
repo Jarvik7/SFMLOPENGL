@@ -163,32 +163,31 @@ q3BSP::q3BSP(std::string filename) {
 
 std::vector<GLuint> q3BSP::getIndices(unsigned entry) {
 	if (facesByTexture[entry].size() == 0) return std::vector<GLuint>(); // No meshes for this texture, return empty vector
-	switch(facesByTexture[entry][0].type) {
-	case 1:		// Polygons
-	case 3:	{	// Meshes
-		std::vector<GLuint> temp; // A vector of lists of indices
-		for (unsigned j = 0; j < facesByTexture[entry].size(); ++j) { // For each face in set
-            for (int k = 0; k < facesByTexture[entry][j].n_meshverts; ++k) { // For each meshvert in face
-                GLuint value = facesByTexture[entry][j].vertex + meshVerts[k + facesByTexture[entry][j].meshvert].offset;
-                temp.push_back(value);
-            }
-        }
-		return temp;
-	}
-	case 2:		// Patches
-		for (unsigned i = 0; i < facesByTexture[entry].size(); ++i) {
-			patches.push_back(dopatch(facesByTexture[entry][i]));
-		}
-		break;
+	std::vector<GLuint> temp; // A vector of lists of indices
+	for (unsigned i = 0; i < facesByTexture[entry].size(); ++i) { // for each face in set
+		switch(facesByTexture[entry][i].type) {
+		case 1:		// Polygons
+		case 3:	// Meshes
+			for (int k = 0; k < facesByTexture[entry][i].n_meshverts; ++k) { // For each meshvert in face
+				GLuint value = facesByTexture[entry][i].vertex + meshVerts[k + facesByTexture[entry][i].meshvert].offset;
+				temp.push_back(value);
+			}
+			break;
 
-	case 4:		// Billboards
-		std::cerr << "Face group " << entry << " is billboard(s).\n";
-		break;
-	default:
-		std::cerr << "Unknown face type: " << facesByTexture[entry][0].type << '\n';
-		break;
+		case 2:		// Patches
+			patches.push_back(dopatch(facesByTexture[entry][i]));
+			break;
+	
+		case 4:		// Billboards, skip
+			std::cerr << "Face group " << entry << " is billboard(s).\n";
+			break;
+
+		default:	// Unknown type, skip
+			std::cerr << "Unknown face type: " << facesByTexture[entry][0].type << '\n';
+			break;
+		}
 	}
-	return std::vector<GLuint>(); // No supported face types, return empty vector
+	return temp;
 }
 
 void q3BSP::groupMeshByTexture() {
@@ -222,6 +221,10 @@ void q3BSP::parseEntities(std::string entitystring) {
 BSPPatch q3BSP::dopatch(BSPFace face) {
 	// This code just generates the control points. Actual tessellation is done by another function
 	BSPPatch patch;
+	if (face.type != 2) {
+		std::cerr << "###################\n\nNOT A PATCH!!!\n\n###################\n";
+	}
+
 	patch.textureID = face.texture;
 	int patch_size_x = (face.size[0] - 1) / 2;
 	int patch_size_y = (face.size[1] - 1) / 2;
