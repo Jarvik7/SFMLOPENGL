@@ -172,17 +172,25 @@ int main(int argc, const char * argv[])
 
 		//Draw our spinny object
 		glPushMatrix();
+		glm::mat4 view;
+		glGetFloatv(GL_MODELVIEW_MATRIX, &view[0][0]); // ::TODO:: Replace with a global view matrix
+		view *= glm::translate(glm::fvec3(0.0f, 1.0f, -5.0f)); // Move into the screen
 
-		glTranslatef(0.0f, 1.0f, -5.0f); // Move into the screen
         if(rotation) rquad+=02.0f;
-        glRotatef(rquad * .5f, 1.0f, 0.0f, 0.0f);
-        glRotatef(rquad * .3f, 0.0f, 1.0f, 0.0f);
-        glRotatef(rquad * .9f, 0.0f, 0.0f, 1.0f);
-        glFrontFace(GL_CW);
-		glScalef(0.02f, 0.02f, 0.02f); glRotatef(-90, 1.f, 0.f, 0.f); quake3.drawVBO(&test);
+		view *= glm::rotate(degtorad(rquad * 0.5f), glm::fvec3(1.0f, 0.0f, 0.0f));
+		view *= glm::rotate(degtorad(rquad * 0.3f), glm::fvec3(0.0f, 1.0f, 0.0f));
+		view *= glm::rotate(degtorad(rquad * 0.9f), glm::fvec3(0.0f, 0.0f, 1.0f));
 
+        glFrontFace(GL_CW);
+
+		view *=	glm::scale(glm::fvec3(0.02f, 0.02f, 0.02f));
+		view *= glm::rotate(degtorad(-90.0f), glm::fvec3(1.0f, 0, 0));
+		glLoadMatrixf(&view[0][0]);
+
+		quake3.drawVBO(&test);
 
         glFrontFace(GL_CCW);
+
 		glPopMatrix();
 
 

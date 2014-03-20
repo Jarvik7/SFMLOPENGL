@@ -14,7 +14,10 @@
 #include <fstream>
 
 #include <SFML/OpenGL.hpp>
+#define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
 
 #include <assimp/Importer.hpp>	//For 3D model loading
 #include <assimp/scene.h>
@@ -23,8 +26,6 @@
 //#include <functional> // For hash
 //#include <Windows.h>
 #include "q3bsploader.h"
-
-
 
 // Not all compilers provide a definition for pi
 #ifndef M_PI
@@ -114,7 +115,7 @@ void showFPS(sf::RenderWindow *window)
 	}
 }
 
-void adjustPerspective(sf::Vector2u windowsize, GLdouble fovy = 75.0f, GLdouble zNear=0.1f, GLdouble zFar = 100.0f)
+void adjustPerspective(sf::Vector2u windowsize, GLfloat fovy = 75.0f, GLfloat zNear=0.1f, GLfloat zFar = 100.0f)
 {
     //Adjust drawing area & perspective on window resize
     //::TODO:: This currently runs many times for one resize as the window border is dragged. Add throttling?
@@ -131,12 +132,11 @@ void adjustPerspective(sf::Vector2u windowsize, GLdouble fovy = 75.0f, GLdouble 
     glViewport(0, 0, windowsize.x, windowsize.y);
 
     glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-
-    gluPerspective(fovy, GLdouble(windowsize.x)/windowsize.y, zNear, zFar); // ::Deprecated::
+	glLoadMatrixf(&glm::perspective<float>(degtorad(fovy), GLfloat(windowsize.x)/windowsize.y, zNear, zFar)[0][0]);
 
     glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
+	glm::mat4 identity; glLoadMatrixf(&identity[0][0]);
+
 }
 /*unsigned j7MenuIdentifier(std::string name)
 {
@@ -571,10 +571,7 @@ private:
 		center.z = eye.z + cos(angle.x)*cos(angle.y);
 
 		//Push camera matrix to GL
-		glLoadIdentity();
-		gluLookAt(eye.x, eye.y, eye.z,
-				  center.x, center.y, center.z,
-				  up.x, up.y, up.z); // ::Deprecated::
+		glLoadMatrixf(&glm::lookAt(eye, center, up)[0][0]);
 	}
 
 	void updatePosition() {
@@ -605,20 +602,20 @@ private:
 	void updateAngle(sf::RenderWindow *window) {
 		if (mouseLock && hasFocus) {
 			sf::Vector2u windowsize = window->getSize();
-			sf::Vector2i mouseOffset=sf::Mouse::getPosition(*window);
+			sf::Vector2i mouseOffset = sf::Mouse::getPosition(*window);
 
-			mouseOffset.x-=(windowsize.x/2);
-			mouseOffset.y-=(windowsize.y/2);
-			angle.x-=mouseOffset.x*mouseSensitivity;
-			angle.y-=mouseOffset.y*mouseSensitivity;
+			mouseOffset.x -= (windowsize.x / 2);
+			mouseOffset.y -= (windowsize.y / 2);
+			angle.x -= mouseOffset.x * mouseSensitivity;
+			angle.y -= mouseOffset.y*mouseSensitivity;
 			
 			// Cap vertical angle to roughly +/- 90 degrees (roughly 1.57 rads) - FPS cam
 			// ::TODO:: Enable this to be toggled to flightsim-style camera control
-			if (angle.y>=1.57) angle.y=1.57f;
-			else if (angle.y<=-1.57) angle.y=-1.57f;
+			if (angle.y >= 1.57) angle.y = 1.57f;
+			else if (angle.y <= -1.57) angle.y = -1.57f;
 			
 			// Reset cursor to center of screen
-			sf::Mouse::setPosition(sf::Vector2i(windowsize.x/2, windowsize.y/2), *window);
+			sf::Mouse::setPosition(sf::Vector2i(windowsize.x / 2, windowsize.y / 2), *window);
 		}
 	}
 };
