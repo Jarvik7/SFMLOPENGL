@@ -9,6 +9,7 @@ Two calls to glMultiDrawElements will be needed. (GL_TRIANGLES for normal geomet
 ? What to do about moving world geometry? models[0] lists the static geometry
 ? What to do about faces with shaders?
 ? How to manage all the different settings a face can have? Can this be done nicely in GLSL on a per-vertex/frag basis?
+? There are still a few VERY small holes in Q3DM1
 
 - Buffer 1: All vertices
 - Buffer 2: All indices, sorted by texture

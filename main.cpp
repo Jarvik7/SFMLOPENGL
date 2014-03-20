@@ -177,14 +177,14 @@ int main(int argc, const char * argv[])
 		view *= glm::translate(glm::fvec3(0.0f, 1.0f, -5.0f)); // Move into the screen
 
         if(rotation) rquad+=02.0f;
-		view *= glm::rotate(degtorad(rquad * 0.5f), glm::fvec3(1.0f, 0.0f, 0.0f));
-		view *= glm::rotate(degtorad(rquad * 0.3f), glm::fvec3(0.0f, 1.0f, 0.0f));
-		view *= glm::rotate(degtorad(rquad * 0.9f), glm::fvec3(0.0f, 0.0f, 1.0f));
+		view *= glm::rotate(glm::radians(rquad * 0.5f), glm::fvec3(1.0f, 0.0f, 0.0f));
+		view *= glm::rotate(glm::radians(rquad * 0.3f), glm::fvec3(0.0f, 1.0f, 0.0f));
+		view *= glm::rotate(glm::radians(rquad * 0.9f), glm::fvec3(0.0f, 0.0f, 1.0f));
 
         glFrontFace(GL_CW);
 
 		view *=	glm::scale(glm::fvec3(0.02f, 0.02f, 0.02f));
-		view *= glm::rotate(degtorad(-90.0f), glm::fvec3(1.0f, 0, 0));
+		view *= glm::rotate(glm::radians(-90.0f), glm::fvec3(1.0f, 0, 0));
 		glLoadMatrixf(&view[0][0]);
 
 		quake3.drawVBO(&test);
