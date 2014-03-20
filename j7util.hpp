@@ -339,6 +339,7 @@ public:
     }
 
     void drawVBO(q3BSP *bsp) { // Indexed VBO
+		//::TODO:: The lighting looks as if it is using a face normal instead of a vertex normal - is screwed up
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         glEnableClientState(GL_NORMAL_ARRAY);

@@ -134,7 +134,7 @@ int main(int argc, const char * argv[])
     sf::Event event;
 
     // Animation control vars
-    bool rotation = true;
+    bool rotation = false;
     float rquad = 0;
 	float fov=75.0f;
     bool showfps = true;
@@ -155,7 +155,7 @@ int main(int argc, const char * argv[])
 	glEnable(GL_FOG);
 
 	//Load our mesh
-    q3BSP test("maps\\q3dm1.bsp");
+    q3BSP test("maps\\q3dm8.bsp");
 	j7Model quake3(&test);
 	j7Cam camera;
 
@@ -174,7 +174,7 @@ int main(int argc, const char * argv[])
 		glPushMatrix();
 
 		glTranslatef(0.0f, 1.0f, -5.0f); // Move into the screen
-       // if(rotation) rquad+=02.0f;
+        if(rotation) rquad+=02.0f;
         glRotatef(rquad * .5f, 1.0f, 0.0f, 0.0f);
         glRotatef(rquad * .3f, 0.0f, 1.0f, 0.0f);
         glRotatef(rquad * .9f, 0.0f, 0.0f, 1.0f);

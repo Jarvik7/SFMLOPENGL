@@ -4,6 +4,7 @@
 #include <string> // std::string
 #include <array> // std::array
 #include <vector> // std::vector
+#include <map>
 
 #include <SFML/OpenGL.hpp> // OpenGL datatypes
 #include <glm/glm.hpp> // glm::fvec3, glm::mat2
@@ -19,10 +20,59 @@ typedef struct {
 	dirEntry direntries[17];
 } BSPHeader;
 
-typedef struct
-{
-    std::string entities;
-} BSPEntities; // Lump 0
+// Lump 0
+typedef struct {
+	std::string type;
+	std::string value;
+} BSPEntityClausePair;
+class BSPEntity {
+public:
+	std::map<std::string, std::string> pair;
+
+	BSPEntity(std::string clause) { // Takes a single clause (within {} braces) and populates a vector of type/value pairs
+		unsigned open = clause.find_first_of('"', 0);
+		unsigned close = 0;
+		std::string type, value;
+
+		while (open != std::string::npos) {
+			close = clause.find_first_of('"', open + 1); // First match is type
+			type = clause.substr(open+1, close - open - 1);
+
+			open = clause.find_first_of('"', close + 1);;
+			close = clause.find_first_of('"', open + 1); // Second match is value
+			value = clause.substr(open + 1, close - open - 1);
+
+			pair[type] = value;
+			
+			open=clause.find_first_of('"', close + 1); // Go around for next line
+		}
+	}
+
+	glm::fvec3 getVector(std::string type) {
+		glm::fvec3 temp; // The entity coordinates are not floats???
+		if (type != "origin"
+			|| type != "_color") return temp; // This index is not a vector
+		int open = 0;
+		int close = 0;
+		int counter = 0;
+
+		close = pair[type].find_first_of(' ', open);
+		std::string token = pair[type].substr(open, close - 1);
+		temp[0] = (float)atof(token.c_str());
+
+		open = close+1;
+		close = pair[type].find_first_of(' ', open);
+		token = pair[type].substr(open, close - 1);
+		temp[1] = (float)atof(token.c_str());
+
+		open = close+1;
+		close = pair[type].find_first_of(' ', open);
+		token = pair[type].substr(open, close - 1);
+		temp[2] = (float)atof(token.c_str());
+
+		return temp;
+	}
+};
 
 typedef struct
 {
@@ -39,7 +89,7 @@ public:
 	glm::fvec3 position;
 	glm::mat2 texcoord; //0=surface, 1=lightmap.
 	glm::fvec3 normal;
-    std::array<unsigned char, 4> color;	//vertex color, in RGBA, as unsigned. I'm passing these to gl as floats so getting screwy colors
+    std::array<unsigned char, 4> color;	//vertex color, in RGBA, as unsigned.
 
 	// Basic vector math
 	BSPVertex operator+(BSPVertex a) {
@@ -66,6 +116,12 @@ typedef struct
 {
     int	offset;	//Vertex index offset, relative to first vertex of corresponding face.
 } BSPMeshVert; // Lump 11
+
+typedef struct {
+	char name[64];
+	int brush;
+	int unknown; // Always 5, except in q3dm8, which has one effect with -1.
+} BSPEffect; // Lump 12
 
 typedef struct
 {
@@ -105,22 +161,6 @@ typedef struct {
 	GLuint textureID;
 } BSPPatch;
 
-typedef struct {
-	std::string classname;
-	std::string message;
-	std::string music;
-	std::string model;
-	glm::ivec3 origin;
-	int angle;
-	glm::fvec3 _color;
-	int ambient;
-	int light;
-	std::string targetname;
-	std::string target;
-	int spawnflags;
-	int radius;
-} BSPEntity;
-
 class q3BSP {
 public:
 	q3BSP(std::string filename);
@@ -129,10 +169,11 @@ public:
 	std::vector<BSPVertex> vertices;
 	std::vector<BSPTexture> textures;
 	std::vector<BSPPatch> patches;
+	std::vector<BSPEntity> entities;
+	std::vector<BSPEffect> effects;
 
 private:
 	BSPHeader header;
-	BSPEntities entities; // This needs a parser
 	std::vector<BSPMeshVert> meshVerts;
 	std::vector<BSPFace> faces;
     void groupMeshByTexture();

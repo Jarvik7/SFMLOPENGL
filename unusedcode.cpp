@@ -1,5 +1,22 @@
 #if 0
 
+typedef struct {
+	std::string classname;
+	std::string message;
+	std::string music;
+	std::string model;
+	glm::ivec3 origin;
+	int angle;
+	glm::fvec3 _color;
+	int ambient;
+	int light;
+	std::string targetname;
+	std::string target;
+	int spawnflags;
+	int radius;
+} BSPEntity;
+
+
 class j7Light {
 public:
 

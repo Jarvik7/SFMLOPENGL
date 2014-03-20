@@ -74,10 +74,10 @@ q3BSP::q3BSP(std::string filename) {
     
     // Read lumps
     // Lump 0: Entities
-    entities.entities.insert(0, &memblock[header.direntries[Entities].offset], header.direntries[Entities].length);
-    std::cout << "Lump 0: " << entities.entities.size() << " characters of entities read. ";
-	parseEntities(entities.entities);
-    // ::TODO:: Parse entities data
+	std::string tempEntityString;
+    tempEntityString.insert(0, &memblock[header.direntries[Entities].offset], header.direntries[Entities].length);
+    std::cout << "Lump 0: " << tempEntityString.size() << " characters of entities read. ";
+	parseEntities(tempEntityString); // Parse entity string and populate vector of entities ::TODO:: Nothing is actually done with this data yet
     
     // Lump 1: Textures
     unsigned numEntries = header.direntries[Textures].length / sizeof(BSPTexture);
@@ -124,20 +124,23 @@ q3BSP::q3BSP(std::string filename) {
     numEntries = header.direntries[Meshverts].length / sizeof(BSPMeshVert);
     std::cout << "Lump 11: " << numEntries << " Meshvert(s) found.\n";
     meshVerts.reserve(numEntries);
-    BSPMeshVert tempMeshVert;
-    for (unsigned i = 0; i < numEntries; ++i) {
-        memcpy(&tempMeshVert,
-               &memblock[header.direntries[Meshverts].offset + i * sizeof(BSPMeshVert)],
-               sizeof(BSPMeshVert));
-        meshVerts.push_back(tempMeshVert);
-    }
+	memcpy(meshVerts.data(),
+               &memblock[header.direntries[Meshverts].offset],
+               header.direntries[Meshverts].length);
     
     // Lump 12: Effects
+	numEntries = header.direntries[Effects].length / sizeof(BSPEffect);
+	std::cout << "Lump 12: " << numEntries << " effects(s) found.\n";
+	effects.reserve(numEntries);
+	memcpy(effects.data(),
+               &memblock[header.direntries[Effects].offset],
+               header.direntries[Effects].length);
     
     // Lump 13: Faces
     numEntries = header.direntries[Faces].length / sizeof(BSPFace);
     std::cout << "Lump 13: " << numEntries << " face(s) found.\n";
     faces.reserve(numEntries);
+
     BSPFace tempFace;
     for (unsigned i = 0; i < numEntries; ++i) {
         memcpy(&tempFace,
@@ -196,19 +199,25 @@ void q3BSP::groupMeshByTexture() {
     std::cout << "Faces sorted: " << faces.size() << " faces -> " << facesByTexture.size() << " meshes.\n";
 }
 
-void q3BSP::parseEntities(std::string entities) {
-    std::vector<std::string> clauses;
-	unsigned open=0;
-	unsigned close=0;
-	//No real need to trim braces and whitespace, as clauses will be fed into another tokenizer ::TODO::
-	while((open = entities.find_first_of('{',open)) != std::string::npos) {
-			close = entities.find_first_of('}',open+1); // Find closing brace starting at last opening brace
-			clauses.push_back(entities.substr(open+2, close-open-3)); // Push, minus open & close braces & newlines
-			open=close+1; // Set next start location to after closing brace
+void q3BSP::parseEntities(std::string entitystring) {
+	unsigned open = entitystring.find_first_of('{', 0);
+	unsigned close = 0;
+
+	// Split into vector of each clause
+	std::vector<std::string> clauses;
+	while(open != std::string::npos) {
+			close = entitystring.find_first_of('}', open + 1); // Find closing brace starting at last opening brace
+			clauses.push_back(entitystring.substr(open, close - open)); // Push, minus open & close braces & newlines
+			open=entitystring.find_first_of('{', close + 1); // Set next start location to after closing brace
 	}
 	std::cout << clauses.size() << " clauses found.\n";
-}
+	
+	// Convert each clause into a BSPEntity object
 
+	for (unsigned i = 0; i < clauses.size(); ++i) {
+		entities.push_back(BSPEntity(clauses[i]));
+	}
+}
 
 BSPPatch q3BSP::dopatch(BSPFace face) {
 	// This code just generates the control points. Actual tessellation is done by another function
