@@ -16,7 +16,6 @@ typedef struct {
 	int radius;
 } BSPEntity;
 
-a
 class j7Light {
 public:
 
