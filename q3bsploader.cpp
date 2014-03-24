@@ -100,7 +100,7 @@ q3BSP::q3BSP(std::string filename) {
 	std::string tempEntityString;
     tempEntityString.insert(0, &memblock[header.direntries[Entities].offset], header.direntries[Entities].length);
     std::cout << "Lump 0: " << tempEntityString.size() << " characters of entities read. ";
-	//parseEntities(tempEntityString); // Parse entity string and populate vector of entities ::TODO:: Nothing is actually done with this data yet
+	parseEntities(tempEntityString); // Parse entity string and populate vector of entities ::TODO:: Nothing is actually done with this data yet
     
     // Lump 1: Textures
     unsigned numEntries = header.direntries[Textures].length / sizeof(BSPTexture);
