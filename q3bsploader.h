@@ -173,15 +173,13 @@ public:
 	std::array<BSPVertex,9> controls;
 	void tessellate(int level);
 	void render();
-	GLuint bufferID;
-	GLuint vao;
 
-//private:
-	//int level;
+private:
 	std::vector<BSPVertex> vertex;
 	std::vector<GLuint> indices;
 	std::vector<GLsizei> trianglesPerRow;
 	std::vector<size_t> rowIndices;
+	GLuint vao;
 };
 
 typedef struct {
@@ -217,5 +215,7 @@ private:
 	void bindLightmaps();
 	BSPPatch dopatch(BSPFace face);
 };
+
+GLuint makeVAO(std::vector<BSPVertex> *vertices, std::vector<GLuint> *indices);
 
 #endif

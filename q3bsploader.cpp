@@ -31,6 +31,48 @@ X) Our early exits are leaking the memblock array? Convert to a vector?
 
 #include "q3bsploader.h"
 
+GLuint makeVAO(std::vector<BSPVertex> *vertices, std::vector<GLuint> *indices) {
+	GLuint vao;
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+	GLuint bufferID;
+
+	//Indices
+	if (indices != 0) {
+		glGenBuffers(1, &bufferID);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferID);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices->size() * sizeof(GLuint), indices->data(), GL_STATIC_DRAW);
+	}
+
+	//Vertex data
+	glGenBuffers(1, &bufferID);
+    glBindBuffer(GL_ARRAY_BUFFER, bufferID);
+    glBufferData(GL_ARRAY_BUFFER, vertices->size() * sizeof(BSPVertex), vertices->data(), GL_STATIC_DRAW);
+
+    //Position
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, position));
+
+	//Texture coordinates
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, texcoord));    
+
+	//Normals
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, normal));
+
+	//Colors
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 4, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, color));
+
+	//Unbind
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+	return vao;
+}
+
 q3BSP::q3BSP(std::string filename) {
     std::cout << "Loading " << filename.c_str() << '\n';
 
@@ -222,9 +264,6 @@ void q3BSP::parseEntities(std::string entitystring) {
 BSPPatch q3BSP::dopatch(BSPFace face) {
 	// This code just generates the control points. Actual tessellation is done by another function
 	BSPPatch patch;
-	if (face.type != 2) {
-		std::cerr << "###################\n\nNOT A PATCH!!!\n\n###################\n";
-	}
 
 	patch.textureID = face.texture;
 	int patch_size_x = (face.size[0] - 1) / 2;
@@ -308,71 +347,17 @@ void j7Bezier::tessellate(int L) {
     rowIndices.resize(L);
     for (int row = 0; row < L; ++row) {
         trianglesPerRow[row] = 2 * L1;
-        rowIndices[row]      = row * 2 * L1 * sizeof(GLuint);
+        rowIndices[row] = row * 2 * L1 * sizeof(GLuint);
     }
     //Normalize the normals
 	for (unsigned i = 0; i < vertex.size(); ++i) {
 		vertex[i].normal = glm::normalize(vertex[i].normal);
 	}
-
-	// Create a VAO for this bezier
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
-
-	//Indices
-	GLuint bufferID;
-	glGenBuffers(1, &bufferID);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferID);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
-
-	//Vertex data
-	glGenBuffers(1, &bufferID);
-    glBindBuffer(GL_ARRAY_BUFFER, bufferID);
-    glBufferData(GL_ARRAY_BUFFER, vertex.size() * sizeof(BSPVertex), vertex.data(), GL_STATIC_DRAW);
-
-    //Position
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, position));
-
-	//Texture coordinates
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, texcoord));    
-
-	//Normals
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, normal));
-
-	//Colors
-    glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 4, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, color));
-
-	//Unbind
-	glBindVertexArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	vao = makeVAO(&vertex, &indices);
 }
 
 void j7Bezier::render() {
-//	glEnableClientState(GL_VERTEX_ARRAY);
-//	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-//	glEnableClientState(GL_NORMAL_ARRAY);
-//	glEnableClientState(GL_COLOR_ARRAY);
 	glBindVertexArray(vao);
-	/*glBindBuffer(GL_ARRAY_BUFFER, bufferID[1]);
-    glVertexPointer(3, GL_FLOAT, sizeof(BSPVertex), 0);
-    glTexCoordPointer(2, GL_FLOAT, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, texcoord));
-    glNormalPointer(GL_FLOAT, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, normal));
-    glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, color));
-
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferID[0]);*/
-  //  for (int i = 0; i < rowIndices.size(); ++i) {
-  //      glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (const GLvoid*)(5*sizeof(GLuint)*i));
-  //  }
     glMultiDrawElements(GL_TRIANGLE_STRIP, trianglesPerRow.data(), GL_UNSIGNED_INT, (const GLvoid**)rowIndices.data(), (GLsizei)trianglesPerRow.size());
-//	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
-//	glDisableClientState(GL_COLOR_ARRAY);
-//	glDisableClientState(GL_NORMAL_ARRAY);
-//	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-//	glDisableClientState(GL_VERTEX_ARRAY);
 }

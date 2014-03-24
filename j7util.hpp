@@ -368,6 +368,7 @@ public:
                 glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes[i].bufferObjects[INDEX_DATA]);
                 glDrawElements(GL_TRIANGLES, (GLsizei)meshes[i].indices.size(), GL_UNSIGNED_INT, 0); // Index 1 of trdis has no texture coords!
             }
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 			for (unsigned i = 0; i < bsp->patches.size(); ++i) { // For every patch
 
 				bindtex(textures[bsp->patches[i].textureID]);
@@ -424,37 +425,12 @@ public:
 	j7Model(q3BSP *bsp) { // Load from a BSP object
 		GLuint bufferID;
         glGenBuffers(1, &bufferID);
-        
-		// Buffer the vector of all BSP vertex data
-		glGenVertexArrays(1, &vao);
-		glBindVertexArray(vao);
-        
-		glBindBuffer(GL_ARRAY_BUFFER, bufferID);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(BSPVertex) * bsp->vertices.size(), bsp->vertices.data(), GL_STATIC_DRAW);
-		
-		//Positions
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, position));
-
-		//Texture coordinates
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, texcoord));    
-
-		//Normals
-		glEnableVertexAttribArray(2);
-		glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, normal));
-		
-		//Colors
-		glEnableVertexAttribArray(3);
-		glVertexAttribPointer(3, 4, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, color));
-
-		//Unbind
-		glBindVertexArray(0);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        vao = makeVAO(&bsp->vertices, 0);
 
 		// Buffer the index data
 		for (unsigned i = 0; i < bsp->facesByTexture.size(); ++i) meshes.push_back(j7Mesh(bsp,i));
+
+		// Load the textures
 		importTextures(bsp);
 	}
 
