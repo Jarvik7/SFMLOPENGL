@@ -33,6 +33,8 @@
 #endif
 
 extern std::stack<glm::fmat4> modelviewMatrix;
+extern std::stack<glm::fmat4> projectionMatrix;
+extern GLuint shaderID;
 
 // Handles for VBO
 enum BUFFERTYPES {
@@ -149,11 +151,11 @@ void adjustPerspective(sf::Vector2u windowsize, GLfloat fovy = 75.0f, GLfloat zN
     glViewport(0, 0, windowsize.x, windowsize.y);
 
     glMatrixMode(GL_PROJECTION);
-	glLoadMatrixf(&glm::perspective<float>(glm::radians(fovy), GLfloat(windowsize.x) / windowsize.y, zNear, zFar)[0][0]);
+	projectionMatrix.pop();
+	projectionMatrix.push(glm::perspective<float>(glm::radians(fovy), GLfloat(windowsize.x) / windowsize.y, zNear, zFar));
 
     glMatrixMode(GL_MODELVIEW);
-	//glm::mat4 identity; glLoadMatrixf(&identity[0][0]);
-
+	// Don't need to change anything?
 }
 /*unsigned j7MenuIdentifier(std::string name)
 {
@@ -330,6 +332,7 @@ public:
             glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * vertexColors.size(), vertexColors.data(), GL_STATIC_DRAW);
         }
         // Indexes
+
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferObjects[INDEX_DATA]);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indices.size(), indices.data(), GL_STATIC_DRAW);
 
@@ -356,18 +359,9 @@ public:
 
     void drawVBO(q3BSP *bsp) { // Indexed VBO
 		//::TODO:: The lighting looks as if it is using a face normal instead of a vertex normal - is screwed up
-//        glEnableClientState(GL_VERTEX_ARRAY);
-//        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-//        glEnableClientState(GL_NORMAL_ARRAY);
-//        glEnableClientState(GL_COLOR_ARRAY);
 
-        if (bufferObject != 0) {
-            glBindBuffer(GL_ARRAY_BUFFER, bufferObject);
-            glVertexPointer(3, GL_FLOAT, sizeof(BSPVertex), 0);
-            glTexCoordPointer(2, GL_FLOAT, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, texcoord));
-            glNormalPointer(GL_FLOAT, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, normal));
-            glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, color));
-
+        if (vao != 0) {
+			glBindVertexArray(vao);
             for (unsigned i=0; i < meshes.size(); ++i) {
                 bindtex(textures[meshes[i].materialIndex]);
                 // Indexes
@@ -381,6 +375,7 @@ public:
 					bsp->patches[i].bezier[j].render();
 				}
 			}
+			glBindVertexArray(0);
         }
 
         else for (unsigned i=0; i<meshes.size(); ++i) {
@@ -401,14 +396,10 @@ public:
             glColorPointer(4, GL_FLOAT, 0, 0);
         }
 		glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind, fixes SFML Text display
-//        glDisableClientState(GL_COLOR_ARRAY);
-//        glDisableClientState(GL_NORMAL_ARRAY);
-//        glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-//        glDisableClientState(GL_VERTEX_ARRAY);
     }
 
     j7Model(std::string filename) {
-		bufferObject=0; // We won't use a buffer object for the whole model
+		vao=0; // We won't use a buffer object for the whole model
 		Assimp::Importer importer;
 		std::cout << "\nTrying to load mesh file: " << filename << '\n';
 		const aiScene *scene = importer.ReadFile(filename, aiProcessPreset_TargetRealtime_Quality);
@@ -431,11 +422,37 @@ public:
     } // Load from filesystem
 
 	j7Model(q3BSP *bsp) { // Load from a BSP object
-        glGenBuffers(1, &bufferObject);
+		GLuint bufferID;
+        glGenBuffers(1, &bufferID);
         
 		// Buffer the vector of all BSP vertex data
-        glBindBuffer(GL_ARRAY_BUFFER, bufferObject);
+		glGenVertexArrays(1, &vao);
+		glBindVertexArray(vao);
+        
+		glBindBuffer(GL_ARRAY_BUFFER, bufferID);
         glBufferData(GL_ARRAY_BUFFER, sizeof(BSPVertex) * bsp->vertices.size(), bsp->vertices.data(), GL_STATIC_DRAW);
+		
+		//Positions
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, position));
+
+		//Texture coordinates
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, texcoord));    
+
+		//Normals
+		glEnableVertexAttribArray(2);
+		glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, normal));
+		
+		//Colors
+		glEnableVertexAttribArray(3);
+		glVertexAttribPointer(3, 4, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, color));
+
+		//Unbind
+		glBindVertexArray(0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
 		// Buffer the index data
 		for (unsigned i = 0; i < bsp->facesByTexture.size(); ++i) meshes.push_back(j7Mesh(bsp,i));
 		importTextures(bsp);
@@ -448,7 +465,7 @@ private:
 	//std::vector<j7Bone> bones; //::TODO::
 
     // For meshes where the vertex data is shared for everything (BSP)
-    GLuint bufferObject;
+	GLuint vao;
 
     void bindtex(GLuint id) {
       //  glActiveTexture(GL_TEXTURE0);
@@ -662,6 +679,7 @@ GLenum loadShader(std::string filename, GLenum type) {
     if(shaderCompiled == false)
     {
         fprintf(stderr, "ERROR: Vertex shader not compiled properly.\n");
+		std::cerr << "Shader type: " << type << ".\n";
 
         GLint blen = 0;
         GLsizei slen = 0;

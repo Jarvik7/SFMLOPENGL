@@ -14,6 +14,8 @@
 #define TESSELLATION_LEVEL 12
 #define HEADER_LUMPS 17
 
+
+
 enum LUMPNAMES {
 	Entities = 0,
 	Textures,		//LUMP_SHADERS
@@ -171,7 +173,8 @@ public:
 	std::array<BSPVertex,9> controls;
 	void tessellate(int level);
 	void render();
-	GLuint bufferID[2];
+	GLuint bufferID;
+	GLuint vao;
 
 //private:
 	//int level;

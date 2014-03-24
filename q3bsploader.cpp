@@ -315,15 +315,41 @@ void j7Bezier::tessellate(int L) {
 		vertex[i].normal = glm::normalize(vertex[i].normal);
 	}
 
-	// Create index buffer for this bezier
-	glGenBuffers(2, &bufferID[0]);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferID[0]);
+	// Create a VAO for this bezier
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+
+	//Indices
+	GLuint bufferID;
+	glGenBuffers(1, &bufferID);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferID);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ARRAY_BUFFER, bufferID[1]);
+	//Vertex data
+	glGenBuffers(1, &bufferID);
+    glBindBuffer(GL_ARRAY_BUFFER, bufferID);
     glBufferData(GL_ARRAY_BUFFER, vertex.size() * sizeof(BSPVertex), vertex.data(), GL_STATIC_DRAW);
 
+    //Position
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, position));
+
+	//Texture coordinates
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, texcoord));    
+
+	//Normals
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, normal));
+
+	//Colors
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 4, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, color));
+
+	//Unbind
+	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 void j7Bezier::render() {
@@ -331,19 +357,20 @@ void j7Bezier::render() {
 //	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 //	glEnableClientState(GL_NORMAL_ARRAY);
 //	glEnableClientState(GL_COLOR_ARRAY);
-	glBindBuffer(GL_ARRAY_BUFFER, bufferID[1]);
+	glBindVertexArray(vao);
+	/*glBindBuffer(GL_ARRAY_BUFFER, bufferID[1]);
     glVertexPointer(3, GL_FLOAT, sizeof(BSPVertex), 0);
     glTexCoordPointer(2, GL_FLOAT, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, texcoord));
     glNormalPointer(GL_FLOAT, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, normal));
     glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, color));
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferID[0]);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferID[0]);*/
   //  for (int i = 0; i < rowIndices.size(); ++i) {
   //      glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (const GLvoid*)(5*sizeof(GLuint)*i));
   //  }
     glMultiDrawElements(GL_TRIANGLE_STRIP, trianglesPerRow.data(), GL_UNSIGNED_INT, (const GLvoid**)rowIndices.data(), (GLsizei)trianglesPerRow.size());
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
+//	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
 //	glDisableClientState(GL_COLOR_ARRAY);
 //	glDisableClientState(GL_NORMAL_ARRAY);
 //	glDisableClientState(GL_TEXTURE_COORD_ARRAY);

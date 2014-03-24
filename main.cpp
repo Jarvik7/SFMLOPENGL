@@ -43,7 +43,7 @@ const std::string windowTitle = "SFML OpenGL";
 
 std::stack<glm::fmat4> projectionMatrix;
 std::stack<glm::fmat4> modelviewMatrix;
-
+GLuint shaderID;
 
 
 void displayWindowsMenubar(sf::RenderWindow *window)
@@ -170,29 +170,31 @@ int main(int argc, const char * argv[])
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 	glEnable(GL_FOG);
 
+
+
+    shaderID = glCreateProgram();
+    GLenum vertshader = loadShader("texture.vert", GL_VERTEX_SHADER);
+    GLenum fragshader = loadShader("texture.frag", GL_FRAGMENT_SHADER);
+    if (vertshader != 0 && fragshader != 0) {
+        glAttachShader( shaderID, vertshader );
+        glAttachShader( shaderID, fragshader );
+        glLinkProgram( shaderID );
+
+        GLint programSuccess = GL_TRUE;
+        glGetProgramiv( shaderID, GL_LINK_STATUS, &programSuccess );
+        if( programSuccess != GL_TRUE )
+        {
+            printf( "Error linking program %d!\n", shaderID );
+            glDeleteProgram( shaderID );
+            shaderID = 0;
+        }
+    }
+
 	//Load our mesh
     q3BSP test("maps/q3dm1.bsp");
 	j7Model quake3(&test);
 	j7Cam camera;
     GLenum glerror = GL_NO_ERROR;
-
-    GLuint mProgramID = glCreateProgram();
-    GLenum vertshader = loadShader("texture.vert", GL_VERTEX_SHADER);
-    GLenum fragshader = loadShader("texture.frag", GL_FRAGMENT_SHADER);
-    if (vertshader != 0 && fragshader != 0) {
-        glAttachShader( mProgramID, vertshader );
-        glAttachShader( mProgramID, fragshader );
-        glLinkProgram( mProgramID );
-
-        GLint programSuccess = GL_TRUE;
-        glGetProgramiv( mProgramID, GL_LINK_STATUS, &programSuccess );
-        if( programSuccess != GL_TRUE )
-        {
-            printf( "Error linking program %d!\n", mProgramID );
-            glDeleteProgram( mProgramID );
-            mProgramID = 0;
-        }
-    }
 
     // Begin game loop
 	if (mouseLock) sf::Mouse::setPosition(sf::Vector2i(windowsize.x / 2, windowsize.y / 2), window);
@@ -202,7 +204,7 @@ int main(int argc, const char * argv[])
         if (glerror != GL_NO_ERROR) std::cerr << "OpenGL ERROR: " << glerror << '\n';
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glUseProgram(mProgramID);
+        glUseProgram(shaderID);
 
 		camera.update(&window);
 
@@ -223,7 +225,11 @@ int main(int argc, const char * argv[])
 		view *=	glm::scale(glm::fvec3(0.02f, 0.02f, 0.02f))
 		      * glm::rotate(glm::radians(-90.0f), glm::fvec3(1.0f, 0, 0));
 
-		glLoadMatrixf(&view[0][0]);
+		// Send our view matrices to shader
+		GLint uniformLoc = glGetUniformLocation(shaderID, "projectionview");
+		glUniformMatrix4fv(uniformLoc, 1, GL_FALSE, &projectionMatrix.top()[0][0]);
+		uniformLoc = glGetUniformLocation(shaderID, "modelview");
+		glUniformMatrix4fv(uniformLoc, 1, GL_FALSE, &view[0][0]);
 
 		quake3.drawVBO(&test);
 
