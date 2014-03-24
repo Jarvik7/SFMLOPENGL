@@ -7,11 +7,11 @@
 #include <map>
 
 #include <SFML/OpenGL.hpp> // OpenGL datatypes
-#include <glm/glm.hpp> // glm::fvec3, glm::mat2
+#include <glm/glm.hpp> // glm::fvec3, glm::mat2, normalize, rotate, transform, scale
 
 #define IDENT "IBSP"
 #define IBSP_VERSION 46
-#define TESSELLATION_LEVEL 10
+#define TESSELLATION_LEVEL 12
 #define HEADER_LUMPS 17
 
 enum LUMPNAMES {
@@ -55,8 +55,8 @@ public:
 	std::map<std::string, std::string> pair;
 
 	BSPEntity(std::string clause) { // Takes a single clause (within {} braces) and populates a vector of type/value pairs
-		unsigned open = clause.find_first_of('"', 0);
-		unsigned close = 0;
+		unsigned long open = clause.find_first_of('"', 0);
+		unsigned long close = 0;
 		std::string type, value;
 
 		while (open != std::string::npos) {
@@ -77,9 +77,8 @@ public:
 		glm::fvec3 temp; // The entity coordinates are not floats???
 		if (type != "origin"
 			|| type != "_color") return temp; // This index is not a vector
-		int open = 0;
-		int close = 0;
-		int counter = 0;
+		unsigned long open = 0;
+		unsigned long close = 0;
 
 		close = pair[type].find_first_of(' ', open);
 		std::string token = pair[type].substr(open, close - 1);
@@ -112,8 +111,9 @@ class BSPVertex
 public:
 	// Members must be in this order as contents are memcpy'd into them from the binary
 	glm::fvec3 position;
-	glm::mat2 texcoord; //0=surface, 1=lightmap.
+	glm::fmat2 texcoord; //0=surface, 1=lightmap.
 	glm::fvec3 normal;
+    
     std::array<unsigned char, 4> color;	//vertex color, in RGBA, as unsigned.
 
 	// Basic vector math
@@ -123,7 +123,7 @@ public:
 		temp.position = this->position + a.position;
 		temp.normal = this->normal + a.normal;
 		temp.texcoord = this->texcoord + a.texcoord;
-
+        temp.color = this->color;
 		return temp;
 	}
 	BSPVertex operator*(float a) {
@@ -132,7 +132,7 @@ public:
 		temp.position = this->position * a;
 		temp.normal = this->normal * a;
 		temp.texcoord = this->texcoord * a;
-
+        temp.color = this->color;
 		return temp;
 	}
 };
@@ -171,14 +171,14 @@ public:
 	std::array<BSPVertex,9> controls;
 	void tessellate(int level);
 	void render();
-	GLuint bufferID;
+	GLuint bufferID[2];
 
 private:
-	int level;
+	//int level;
 	std::vector<BSPVertex> vertex;
 	std::vector<GLuint> indices;
 	std::vector<GLsizei> trianglesPerRow;
-	std::vector<GLuint> rowIndices;
+	std::vector<size_t> rowIndices;
 };
 
 typedef struct {

@@ -8,6 +8,7 @@
 
 #include <iostream> // std::cout
 #include <string> // std::string
+#include <stack>
 
 #include <GLEW/glew.h>	// For OpenGL Extensions
 
@@ -23,7 +24,6 @@
 
 // Define our key mapping ::TODO:: make this remappable in-game
 const sf::Keyboard::Key key_quit = sf::Keyboard::Escape;
-const sf::Keyboard::Key key_showfps = sf::Keyboard::Tab;
 const sf::Keyboard::Key key_toggle_rotate = sf::Keyboard::R;
 const sf::Keyboard::Key key_reset_rotate = sf::Keyboard::H;
 const sf::Keyboard::Key key_toggle_music = sf::Keyboard::M;
@@ -40,6 +40,10 @@ const sf::Keyboard::Key key_toggle_model = sf::Keyboard::O;
 const sf::Keyboard::Key key_lock_mouse = sf::Keyboard::L;
 
 const std::string windowTitle = "SFML OpenGL";
+
+std::stack<glm::fmat4> projectionMatrix;
+std::stack<glm::fmat4> modelviewMatrix;
+
 
 
 void displayWindowsMenubar(sf::RenderWindow *window)
@@ -70,6 +74,17 @@ bool initGL()
 		std::cerr << "Error: Couldn't initialize GLew.\n";
 		return false;
 	}
+
+    //Set our matrices to identity
+    projectionMatrix.push(glm::fmat4());
+    modelviewMatrix.push(glm::fmat4());
+
+    //Enable VBOs
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    glEnableClientState(GL_NORMAL_ARRAY);
+    glEnableClientState(GL_COLOR_ARRAY);
+
 	if (DISPLAYDEBUGOUTPUT) {
 		if (GLEW_ARB_compatibility) std::cout << "Compatibility mode supported\n";
 		if (GLEW_VERSION_1_1) std::cout << "OpenGL ver >= 1.1: Vertex arrays supported!\n";
@@ -82,6 +97,7 @@ int main(int argc, const char * argv[])
 {
     //Initialize the render window
     sf::ContextSettings windowsettings(24); // Give us a 24-bit depth buffer
+    windowsettings.antialiasingLevel = 12;
     sf::RenderWindow window(sf::VideoMode(800, 600, 32), windowTitle, sf::Style::Default, windowsettings);
     if (!window.isOpen())
     {
@@ -155,44 +171,63 @@ int main(int argc, const char * argv[])
 	glEnable(GL_FOG);
 
 	//Load our mesh
-    q3BSP test("maps\\q3dm1.bsp");
+    q3BSP test("maps/q3dm1.bsp");
 	j7Model quake3(&test);
 	j7Cam camera;
+    GLenum glerror = GL_NO_ERROR;
+
+    GLuint mProgramID = glCreateProgram();
+    GLenum vertshader = loadShader("texture.vert", GL_VERTEX_SHADER);
+    GLenum fragshader = loadShader("texture.frag", GL_FRAGMENT_SHADER);
+    if (vertshader != 0 && fragshader != 0) {
+        glAttachShader( mProgramID, vertshader );
+        glAttachShader( mProgramID, fragshader );
+        glLinkProgram( mProgramID );
+
+        GLint programSuccess = GL_TRUE;
+        glGetProgramiv( mProgramID, GL_LINK_STATUS, &programSuccess );
+        if( programSuccess != GL_TRUE )
+        {
+            printf( "Error linking program %d!\n", mProgramID );
+            glDeleteProgram( mProgramID );
+            mProgramID = 0;
+        }
+    }
 
     // Begin game loop
-	if (mouseLock) sf::Mouse::setPosition(sf::Vector2i(windowsize.x/2, windowsize.y/2), window);
+	if (mouseLock) sf::Mouse::setPosition(sf::Vector2i(windowsize.x / 2, windowsize.y / 2), window);
     while (!gameover)
     {
+        glerror = glGetError();
+        if (glerror != GL_NO_ERROR) std::cerr << "OpenGL ERROR: " << glerror << '\n';
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
+
+        glUseProgram(mProgramID);
+
 		camera.update(&window);
 
 		//Draw the ground
 		//drawGround();
 
 		//Draw our spinny object
-		glPushMatrix();
-		glm::mat4 view;
-		glGetFloatv(GL_MODELVIEW_MATRIX, &view[0][0]); // ::TODO:: Replace with a global view matrix
-		view *= glm::translate(glm::fvec3(0.0f, 1.0f, -5.0f)); // Move into the screen
 
-        if(rotation) rquad+=02.0f;
-		view *= glm::rotate(glm::radians(rquad * 0.5f), glm::fvec3(1.0f, 0.0f, 0.0f));
-		view *= glm::rotate(glm::radians(rquad * 0.3f), glm::fvec3(0.0f, 1.0f, 0.0f));
-		view *= glm::rotate(glm::radians(rquad * 0.9f), glm::fvec3(0.0f, 0.0f, 1.0f));
+		glm::mat4 view = modelviewMatrix.top();
+
+        if (rotation) rquad += 2.0f;
+		view *= glm::rotate(glm::radians(rquad * 0.5f), glm::fvec3(1.0f, 0.0f, 0.0f))
+              * glm::rotate(glm::radians(rquad * 0.3f), glm::fvec3(0.0f, 1.0f, 0.0f))
+		      * glm::rotate(glm::radians(rquad * 0.9f), glm::fvec3(0.0f, 0.0f, 1.0f));
 
         glFrontFace(GL_CW);
 
-		view *=	glm::scale(glm::fvec3(0.02f, 0.02f, 0.02f));
-		view *= glm::rotate(glm::radians(-90.0f), glm::fvec3(1.0f, 0, 0));
+		view *=	glm::scale(glm::fvec3(0.02f, 0.02f, 0.02f))
+		      * glm::rotate(glm::radians(-90.0f), glm::fvec3(1.0f, 0, 0));
+
 		glLoadMatrixf(&view[0][0]);
 
 		quake3.drawVBO(&test);
 
         glFrontFace(GL_CCW);
-
-		glPopMatrix();
-
 
         if (showfps) showFPS(&window); // Display the FPS
 

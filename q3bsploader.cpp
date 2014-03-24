@@ -25,7 +25,7 @@ X) Our early exits are leaking the memblock array? Convert to a vector?
 #include <fstream> // std::ifstream
 #include <vector> // std::vector
 
-#include <GLEW/glew.h>
+//#include <GLEW/glew.h>
 #include <SFML/OpenGL.hpp> // OpenGL datatypes
 #include <glm/glm.hpp>
 
@@ -47,15 +47,18 @@ q3BSP::q3BSP(std::string filename) {
     // Read and check header
     memcpy(&header, &memblock[0], sizeof(BSPHeader));
 	if (std::string(IDENT).compare(0,4,header.magicNumber,4)) { std::cerr << "Invalid format: \n" << header.magicNumber[0] << header.magicNumber[1] << header.magicNumber[2] << header.magicNumber[3] << '\n'; return; }
-    if (header.version != IBSP_VERSION) { std::cerr << "Invalid BSP version: " << header.version << '\n'; return; } // Version 46 = Quake III (47 = RTCW / QuakeLive)
-    std::cout << "File format and version appear ok.\n";
+    if (header.version != IBSP_VERSION) {
+        if (header.version == 47) std::cerr << "IBSP v.47: QuakeLive or RTCW map? Will try to load anyways.\n";
+        else { std::cerr << "Invalid BSP version: " << header.version << '\n'; return; }
+    }
+    else std::cout << "File format and version appear ok.\n";
     
     // Read lumps
     // Lump 0: Entities
 	std::string tempEntityString;
     tempEntityString.insert(0, &memblock[header.direntries[Entities].offset], header.direntries[Entities].length);
     std::cout << "Lump 0: " << tempEntityString.size() << " characters of entities read. ";
-	parseEntities(tempEntityString); // Parse entity string and populate vector of entities ::TODO:: Nothing is actually done with this data yet
+	//parseEntities(tempEntityString); // Parse entity string and populate vector of entities ::TODO:: Nothing is actually done with this data yet
     
     // Lump 1: Textures
     unsigned numEntries = header.direntries[Textures].length / sizeof(BSPTexture);
@@ -177,15 +180,15 @@ void q3BSP::groupMeshByTexture() {
 }
 
 void q3BSP::parseEntities(std::string entitystring) {
-	unsigned open = entitystring.find_first_of('{', 0);
-	unsigned close = 0;
+	unsigned long open = entitystring.find_first_of('{', 0);
+	unsigned long close = 0;
 
 	// Split into vector of each clause
 	std::vector<std::string> clauses;
 	while(open != std::string::npos) {
 			close = entitystring.find_first_of('}', open + 1); // Find closing brace starting at last opening brace
 			clauses.push_back(entitystring.substr(open, close - open)); // Push, minus open & close braces & newlines
-			open=entitystring.find_first_of('{', close + 1); // Set next start location to after closing brace
+			open = entitystring.find_first_of('{', close + 1); // Set next start location to after closing brace
 	}
 	std::cout << clauses.size() << " clauses found.\n";
 	
@@ -228,7 +231,7 @@ BSPPatch q3BSP::dopatch(BSPFace face) {
 	
 void j7Bezier::tessellate(int L) {
 	// Based on info from http://graphics.cs.brown.edu/games/quake/quake3.html, with simplified code and better use of C++
-    level = L;
+ //   level = L;
 
     // The number of vertices along a side is 1 + num edges
     const int L1 = L + 1;
@@ -287,39 +290,42 @@ void j7Bezier::tessellate(int L) {
         trianglesPerRow[row] = 2 * L1;
         rowIndices[row]      = row * 2 * L1 * sizeof(GLuint);
     }
-    //Normalize here ::TODO::
-
-	/*for (unsigned i = 0; i < vertex.size(); ++i) {
-		vertex[1].position = glm::normalize(vertex[i].position);
+    //Normalize the normals
+	for (unsigned i = 0; i < vertex.size(); ++i) {
 		vertex[i].normal = glm::normalize(vertex[i].normal);
-		vertex[1].texcoord[0] = glm::normalize(glm::fvec2(vertex[i].texcoord[0]));
-		vertex[1].texcoord[1] = glm::normalize(glm::fvec2(vertex[i].texcoord[1]));
-	}*/ // This warps some vertices to the origin. Probably it expects all vertices in the bsp to be normalized
+	}
 
 	// Create index buffer for this bezier
-	glGenBuffers(1, &bufferID);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferID);
+	glGenBuffers(2, &bufferID[0]);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferID[0]);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ARRAY_BUFFER, bufferID[1]);
+    glBufferData(GL_ARRAY_BUFFER, vertex.size() * sizeof(BSPVertex), vertex.data(), GL_STATIC_DRAW);
+
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void j7Bezier::render() {
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	glEnableClientState(GL_NORMAL_ARRAY);
-	glEnableClientState(GL_COLOR_ARRAY);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glVertexPointer(3, GL_FLOAT, sizeof(BSPVertex), &vertex[0].position);
-	glNormalPointer(GL_FLOAT, sizeof(BSPVertex), &vertex[0].normal);
-	// Bind texture here, or call this render function in drawVBO like a normal mesh
-    glTexCoordPointer(2, GL_FLOAT, sizeof(BSPVertex), &vertex[0].texcoord);
-	glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(BSPVertex), &vertex[0].color);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferID);
-    glMultiDrawElements(GL_TRIANGLE_STRIP, trianglesPerRow.data(), GL_UNSIGNED_INT, (const GLvoid**)rowIndices.data(), level);
+//	glEnableClientState(GL_VERTEX_ARRAY);
+//	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+//	glEnableClientState(GL_NORMAL_ARRAY);
+//	glEnableClientState(GL_COLOR_ARRAY);
+	glBindBuffer(GL_ARRAY_BUFFER, bufferID[1]);
+    glVertexPointer(3, GL_FLOAT, sizeof(BSPVertex), 0);
+    glTexCoordPointer(2, GL_FLOAT, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, texcoord));
+    glNormalPointer(GL_FLOAT, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, normal));
+    glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, color));
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferID[0]);
+  //  for (int i = 0; i < rowIndices.size(); ++i) {
+  //      glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (const GLvoid*)(5*sizeof(GLuint)*i));
+  //  }
+    glMultiDrawElements(GL_TRIANGLE_STRIP, trianglesPerRow.data(), GL_UNSIGNED_INT, (const GLvoid**)rowIndices.data(), (GLsizei)trianglesPerRow.size());
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-	glDisableClientState(GL_COLOR_ARRAY);
-	glDisableClientState(GL_NORMAL_ARRAY);
-	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-	glDisableClientState(GL_VERTEX_ARRAY);
+//	glDisableClientState(GL_COLOR_ARRAY);
+//	glDisableClientState(GL_NORMAL_ARRAY);
+//	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+//	glDisableClientState(GL_VERTEX_ARRAY);
 }
