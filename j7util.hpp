@@ -640,7 +640,7 @@ GLenum loadShader(std::string filename, GLenum type) {
     // Read in shader source
     std::ifstream file(filename);
 	std::string shaderSource;
-    shaderSource.assign( ( std::istreambuf_iterator< char >( file ) ), std::istreambuf_iterator< char >() );
+    shaderSource.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     file.close();
     const GLchar* shaderStringPointer = shaderSource.c_str();
 
@@ -651,33 +651,30 @@ GLenum loadShader(std::string filename, GLenum type) {
     glCompileShader(shader);
     // Compile and check
     GLint shaderCompiled = GL_FALSE;
-    glGetShaderiv( shader, GL_COMPILE_STATUS, &shaderCompiled );
-    if(shaderCompiled == false)
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &shaderCompiled);
+    if (shaderCompiled == false)
     {
-        fprintf(stderr, "ERROR: Vertex shader not compiled properly.\n");
+        std::cerr << "ERROR: Vertex shader not compiled properly.\n";
 		std::cerr << "Shader type: " << type << ".\n";
 
         GLint blen = 0;
         GLsizei slen = 0;
 
         glGetShaderiv(shader, GL_INFO_LOG_LENGTH , &blen);
-        if (blen > 1)
-        {
+        if (blen > 1) {
             GLchar* compiler_log = new GLchar[blen];
             glGetInfoLogARB(shader, blen, &slen, compiler_log);
             fprintf(stderr, "compiler log:\n %s", compiler_log);
             delete [] compiler_log;
         }
     }
-    if( shaderCompiled != GL_TRUE )
-    {
+    if (shaderCompiled != GL_TRUE) {
         std::cout << "!!! " << shaderCompiled << " !!!\n";
       //  printf( "Unable to compile shader %d!\n\nSource:\n%s\n", shader, shaderStringPointer );
-        glDeleteShader( shader );
+        glDeleteShader(shader);
         shader = 0;
     }
     return shader;
-
 }
 
 #endif

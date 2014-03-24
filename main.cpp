@@ -61,29 +61,21 @@ void displayWindowsMenubar(sf::RenderWindow *window)
 bool initGL()
 {
 	glEnable(GL_CULL_FACE);
-	glEnable(GL_LIGHTING);
-	glEnable(GL_LIGHT0);
-    glShadeModel(GL_SMOOTH);
-    glClearColor(0, 0, 0, 0.5f);
+    glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
     glClearDepth(1.0f);                         // Depth Buffer Setup
     glEnable(GL_DEPTH_TEST);                        // Enables Depth Testing
     glDepthFunc(GL_LEQUAL);                         // The Type Of Depth Testing To Do
+	glFrontFace(GL_CW);							// Quake3 uses CW for frontface
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-	glEnable(GL_TEXTURE_2D);
+
 	if (glewInit()) {
-		std::cerr << "Error: Couldn't initialize GLew.\n";
+		std::cerr << "Error: Couldn't initialize GLEW.\n";
 		return false;
 	}
 
     //Set our matrices to identity
     projectionMatrix.push(glm::fmat4());
     modelviewMatrix.push(glm::fmat4());
-
-    //Enable VBOs
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    glEnableClientState(GL_NORMAL_ARRAY);
-    glEnableClientState(GL_COLOR_ARRAY);
 
 	if (DISPLAYDEBUGOUTPUT) {
 		if (GLEW_ARB_compatibility) std::cout << "Compatibility mode supported\n";
@@ -96,7 +88,7 @@ bool initGL()
 int main(int argc, const char * argv[])
 {
     //Initialize the render window
-    sf::ContextSettings windowsettings(24); // Give us a 24-bit depth buffer
+    sf::ContextSettings windowsettings(24); // 24-bit depth buffer
     windowsettings.antialiasingLevel = 12;
     sf::RenderWindow window(sf::VideoMode(800, 600, 32), windowTitle, sf::Style::Default, windowsettings);
     if (!window.isOpen())
@@ -104,8 +96,6 @@ int main(int argc, const char * argv[])
         std::cerr << "Error: Couldn't create RenderWindow\n";
         return EXIT_FAILURE;
     }
-
-//    window.setFramerateLimit(60); // Not needed w/ vsync
 
     bool fullscreen = false;
     bool vsync = true;
@@ -126,7 +116,7 @@ int main(int argc, const char * argv[])
         sf::Vector2i windowpos = window.getPosition();
 
         std::cout << windowsize.x << "x" << windowsize.y << " window created at " << windowpos.x << "x" << windowpos.y << '\n';
-        std::cout << "OpenGL version:" << windowsettings.majorVersion << "." << windowsettings.minorVersion << '\n';
+        std::cout << "OpenGL version: " << windowsettings.majorVersion << "." << windowsettings.minorVersion << '\n';
         if (sf::Shader::isAvailable()) std::cout << "Shaders are available\n";
         else std::cout << "Shaders are not available\n";
         std::cout << "Depth bits: " << windowsettings.depthBits << '\n';
@@ -157,35 +147,21 @@ int main(int argc, const char * argv[])
 	short modelno=0;
 	
 	bool mouseLock=false;
-
-	// Setup fog
-	glClearColor(0.5f, 0.5f, 0.5f, 1.0f); 
-	GLfloat fogColor[4] = {0.5f, 0.5f, 0.5f, 1.0f};      // Fog Color
-	glFogi(GL_FOG_MODE, GL_LINEAR);        // Fog Mode
-	glFogfv(GL_FOG_COLOR, fogColor);            // Set Fog Color
-	glFogf(GL_FOG_DENSITY, 0.8f);              // How Dense Will The Fog Be
-	glHint(GL_FOG_HINT, GL_DONT_CARE);          // Fog Hint Value
-	glFogf(GL_FOG_START, 1.0f);             // Fog Start Depth
-	glFogf(GL_FOG_END, 50.0f);               // Fog End Depth
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-	glEnable(GL_FOG);
-
-
+	if (mouseLock) sf::Mouse::setPosition(sf::Vector2i(windowsize.x / 2, windowsize.y / 2), window);
 
     shaderID = glCreateProgram();
     GLenum vertshader = loadShader("texture.vert", GL_VERTEX_SHADER);
     GLenum fragshader = loadShader("texture.frag", GL_FRAGMENT_SHADER);
     if (vertshader != 0 && fragshader != 0) {
-        glAttachShader( shaderID, vertshader );
-        glAttachShader( shaderID, fragshader );
-        glLinkProgram( shaderID );
+        glAttachShader(shaderID, vertshader);
+        glAttachShader(shaderID, fragshader);
+        glLinkProgram(shaderID);
 
-        GLint programSuccess = GL_TRUE;
-        glGetProgramiv( shaderID, GL_LINK_STATUS, &programSuccess );
-        if( programSuccess != GL_TRUE )
-        {
-            printf( "Error linking program %d!\n", shaderID );
-            glDeleteProgram( shaderID );
+        GLint programSuccess;
+        glGetProgramiv(shaderID, GL_LINK_STATUS, &programSuccess);
+        if (programSuccess != GL_TRUE) {
+            std::cerr << "Error linking program: " << shaderID << ".\n";
+            glDeleteProgram(shaderID);
             shaderID = 0;
         }
     }
@@ -195,9 +171,10 @@ int main(int argc, const char * argv[])
 	j7Model quake3(&test);
 	j7Cam camera;
     GLenum glerror = GL_NO_ERROR;
+	GLint projectionViewLoc = glGetUniformLocation(shaderID, "projectionview");
+	GLint modelViewLoc = glGetUniformLocation(shaderID, "modelview");
 
     // Begin game loop
-	if (mouseLock) sf::Mouse::setPosition(sf::Vector2i(windowsize.x / 2, windowsize.y / 2), window);
     while (!gameover)
     {
         glerror = glGetError();
@@ -208,32 +185,13 @@ int main(int argc, const char * argv[])
 
 		camera.update(&window);
 
-		//Draw the ground
-		//drawGround();
-
-		//Draw our spinny object
-
-		glm::mat4 view = modelviewMatrix.top();
-
-        if (rotation) rquad += 2.0f;
-		view *= glm::rotate(glm::radians(rquad * 0.5f), glm::fvec3(1.0f, 0.0f, 0.0f))
-              * glm::rotate(glm::radians(rquad * 0.3f), glm::fvec3(0.0f, 1.0f, 0.0f))
-		      * glm::rotate(glm::radians(rquad * 0.9f), glm::fvec3(0.0f, 0.0f, 1.0f));
-
-        glFrontFace(GL_CW);
-
-		view *=	glm::scale(glm::fvec3(0.02f, 0.02f, 0.02f))
-		      * glm::rotate(glm::radians(-90.0f), glm::fvec3(1.0f, 0, 0));
+		glm::mat4 view = modelviewMatrix.top() * glm::scale(glm::fvec3(0.02f, 0.02f, 0.02f)); // Scale down the map ::TODO:: can this be done by adjusting our frustrum or something?
 
 		// Send our view matrices to shader
-		GLint uniformLoc = glGetUniformLocation(shaderID, "projectionview");
-		glUniformMatrix4fv(uniformLoc, 1, GL_FALSE, &projectionMatrix.top()[0][0]);
-		uniformLoc = glGetUniformLocation(shaderID, "modelview");
-		glUniformMatrix4fv(uniformLoc, 1, GL_FALSE, &view[0][0]);
+		glUniformMatrix4fv(projectionViewLoc, 1, GL_FALSE, &projectionMatrix.top()[0][0]);
+		glUniformMatrix4fv(modelViewLoc, 1, GL_FALSE, &view[0][0]);
 
-		quake3.drawVBO(&test);
-
-        glFrontFace(GL_CCW);
+		quake3.drawVBO(&test); // Render the BSP
 
         if (showfps) showFPS(&window); // Display the FPS
 
@@ -249,11 +207,13 @@ int main(int argc, const char * argv[])
 					camera.setMouseLock(false, &window);
 					camera.setFocus(false);
 					break;
+
 				case sf::Event::GainedFocus:
 					if (mouseWasLocked) camera.setMouseLock(true, &window);
 					camera.setFocus(true);
 					hasFocus = true;
 					break;
+
                 case sf::Event::Closed:
                     gameover = true;
                     break;
