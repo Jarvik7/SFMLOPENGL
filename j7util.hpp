@@ -541,6 +541,7 @@ public:
 		hasFocus = true;
 
 		angle = glm::fvec2(float(M_PI), 0.0f); // ::TODO:: Face the other way
+		up = glm::fvec3(0.0f, 1.0f, 0.0f);
 	}
 
 	void update(sf::RenderWindow *window) {
@@ -575,8 +576,8 @@ private:
 	//View matrices
 	glm::fvec3 eye;
 	glm::fvec3 center;
-	const glm::fvec3 up = glm::fvec3(0.0f, 1.0f, 0.0f); // This should always be absolute up
-
+	//static const glm::fvec3 up = glm::fvec3(0.0f, 1.0f, 0.0f); // This should always be absolute up
+	glm::fvec3 up;
 	//Mouse angle
 	glm::fvec2 angle;
 	bool mouseLock;

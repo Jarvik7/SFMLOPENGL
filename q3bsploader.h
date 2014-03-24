@@ -173,7 +173,7 @@ public:
 	void render();
 	GLuint bufferID[2];
 
-private:
+//private:
 	//int level;
 	std::vector<BSPVertex> vertex;
 	std::vector<GLuint> indices;
@@ -186,6 +186,12 @@ typedef struct {
 	GLuint textureID;
 } BSPPatch;
 
+typedef struct {
+	char data[128][128][3]; // 128x128 pixels, RGB
+} BSPLightmap;
+
+
+
 class q3BSP {
 public:
 	q3BSP(std::string filename);
@@ -196,6 +202,8 @@ public:
 	std::vector<BSPPatch> patches;
 	std::vector<BSPEntity> entities;
 	std::vector<BSPEffect> effects;
+	std::vector<BSPLightmap> lightmaps;
+	std::vector<GLuint> lightmapGLIDS;
 
 private:
 	BSPHeader header;
@@ -203,6 +211,7 @@ private:
 	std::vector<BSPFace> faces;
     void groupMeshByTexture();
 	void parseEntities(std::string entities);
+	void bindLightmaps();
 	BSPPatch dopatch(BSPFace face);
 };
 

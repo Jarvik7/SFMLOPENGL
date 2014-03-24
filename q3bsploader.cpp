@@ -25,7 +25,7 @@ X) Our early exits are leaking the memblock array? Convert to a vector?
 #include <fstream> // std::ifstream
 #include <vector> // std::vector
 
-//#include <GLEW/glew.h>
+#include <GLEW/glew.h>
 #include <SFML/OpenGL.hpp> // OpenGL datatypes
 #include <glm/glm.hpp>
 
@@ -121,7 +121,6 @@ q3BSP::q3BSP(std::string filename) {
     numEntries = header.direntries[Faces].length / sizeof(BSPFace);
     std::cout << "Lump 13: " << numEntries << " face(s) found.\n";
     faces.reserve(numEntries);
-
     BSPFace tempFace;
     for (unsigned i = 0; i < numEntries; ++i) {
         memcpy(&tempFace,
@@ -132,11 +131,32 @@ q3BSP::q3BSP(std::string filename) {
     groupMeshByTexture(); // Sort faces into groups by texture id
 
     // Lump 14: Lightmaps
-    
+	numEntries = header.direntries[Lightmaps].length / sizeof(BSPLightmap);
+	std::cout << "Lump 14: " << numEntries << " lightmap(s) found.\n";
+    BSPLightmap tempLightmap;
+	for (unsigned i = 0; i < numEntries; ++i) {
+		memcpy(&tempLightmap,
+				&memblock[header.direntries[Lightmaps].offset + i * sizeof(BSPLightmap)],
+				sizeof(BSPLightmap));
+		lightmaps.push_back(tempLightmap);
+	}
+	bindLightmaps();
     // Lump 15: Lightvols
     
     // Lump 16: Visdata
     
+}
+
+void q3BSP::bindLightmaps() {
+	for (unsigned i = 0; i < lightmaps.size(); ++i) {
+		GLuint id = 0;
+        glGenTextures(1, &id);
+        glBindTexture(GL_TEXTURE_2D, id);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 128, 128, 0, GL_RGB, GL_UNSIGNED_BYTE, &lightmaps[i].data);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		lightmapGLIDS.push_back(id);
+	}
 }
 
 std::vector<GLuint> q3BSP::getIndices(unsigned entry) {
