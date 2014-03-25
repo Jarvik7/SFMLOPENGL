@@ -565,10 +565,10 @@ public:
 	}
 
 	void goTo(glm::fvec3 origin, float viewangle) {
-		eye.x = origin.x * (.02f);
-		eye.y = origin.z * (.02f);
-		eye.z = origin.y * (-0.02f);
-		angle.x = -viewangle;
+		eye.x = origin.x;
+		eye.y = origin.z+.05f; // Offset for player eye height
+		eye.z = -origin.y;/
+		angle.x = viewangle;
 		angle.y = 0;
 		move();
 		std::cout << "Teleporting: ";

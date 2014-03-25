@@ -171,12 +171,19 @@ int main(int argc, const char * argv[])
     q3BSP test("maps/q3dm1.bsp");
 	j7Model quake3(&test);
 	j7Cam camera;
-	unsigned campos = 0;
+	unsigned campos = 1;
+	if (music.openFromFile(test.worldMusic))
+    {
+        music.setLoop(true);
+        music.setVolume(75);
+        music.play();
+    }
+	else std::cerr << "Could not open music file: " << test.worldMusic << ".\n";
 
     GLenum glerror = GL_NO_ERROR;
 	GLint projectionViewLoc = glGetUniformLocation(shaderID, "projectionview");
 	GLint modelViewLoc = glGetUniformLocation(shaderID, "modelview");
-	camera.goTo(test.cameraPositions[0].origin, test.cameraPositions[0].angle);
+	camera.goTo(test.cameraPositions[campos].origin, test.cameraPositions[campos].angle);
     // Begin game loop
     while (!gameover)
     {
@@ -188,7 +195,7 @@ int main(int argc, const char * argv[])
 
 		camera.update(&window);
 		//camera.printPos();
-		glm::mat4 view = modelviewMatrix.top() * glm::scale(glm::fvec3(0.02f, 0.02f, 0.02f)); // Scale down the map ::TODO:: can this be done by adjusting our frustrum or something?
+		glm::mat4 view = modelviewMatrix.top() * glm::scale(glm::fvec3(1.0/255, 1.0/255, 1.0/255)); // Scale down the map ::TODO:: can this be done by adjusting our frustrum or something?
 
 		// Send our view matrices to shader
 		glUniformMatrix4fv(projectionViewLoc, 1, GL_FALSE, &projectionMatrix.top()[0][0]);

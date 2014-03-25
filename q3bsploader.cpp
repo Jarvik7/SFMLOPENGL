@@ -258,9 +258,17 @@ void q3BSP::parseEntities(std::string entitystring) {
 	// Convert each clause into a BSPEntity object
 
 	for (unsigned i = 0; i < clauses.size(); ++i) {
+		// Populate the entities vector
 		entities.push_back(BSPEntity(clauses[i]));
+		// Parse entities ::TODO:: Push only unhandled entities to vector
 		if (entities[i].pair["classname"] == "info_player_deathmatch") cameraPositions.push_back(camPos(entities[i]));
+		else if (entities[i].pair["classname"] == "worldspawn") worldMusic = entities[i].pair["music"];
+		else if (entities[i].pair["classname"] == "light") lightPositions.push_back(lightPos(entities[i]));
+
 	}
+	std::cout << "  Map music: " << worldMusic << '\n';
+	std::cout << "  " << cameraPositions.size() << " spawn points found.\n";
+	std::cout << "  " << lightPositions.size() << " lights found.\n";
 }
 
 BSPPatch q3BSP::dopatch(BSPFace face) {

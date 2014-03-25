@@ -85,6 +85,31 @@ public:
 
 		close = pair[type].find_first_of(' ', open);
 		std::string token = pair[type].substr(open, close);
+		temp[0] = (float)atof(token.c_str())/255.0f;
+
+		open = close + 1;
+		close = pair[type].find_first_of(' ', open);
+		token = pair[type].substr(open, close);
+		temp[1] = (float)atof(token.c_str())/255.0f;
+
+		open = close + 1;
+		close = pair[type].find_first_of(' ', open);
+		token = pair[type].substr(open, close);
+		temp[2] = (float)atof(token.c_str())/255.0f;
+
+		return temp;
+	}
+
+	glm::fvec4 getVector4(std::string type) {
+		glm::fvec4 temp; // The entity coordinates are not floats???
+		//if (type != "origin"
+		//	&& type != "_color") return temp; // This index is not a vector
+		// This parses correctly thanks to atof, but the second token actually contains y and z coords??
+		unsigned long open = 0;
+		unsigned long close = 0;
+
+		close = pair[type].find_first_of(' ', open);
+		std::string token = pair[type].substr(open, close);
 		temp[0] = (float)atof(token.c_str());
 
 		open = close + 1;
@@ -97,6 +122,11 @@ public:
 		token = pair[type].substr(open, close);
 		temp[2] = (float)atof(token.c_str());
 
+		open = close + 1;
+		close = pair[type].find_first_of(' ', open);
+		token = pair[type].substr(open, close);
+		temp[3] = (float)atof(token.c_str());
+
 		return temp;
 	}
 };
@@ -108,8 +138,24 @@ public:
 	camPos(BSPEntity input) {
 		if (input.pair["classname"] != "info_player_deathmatch") return; // Not a spawnpoint
 		origin = input.getVector("origin");
-		angle = glm::radians(atof(input.pair["angle"].c_str()));
-		std::cout << "Camera detected at (" << origin.x << ',' << origin.y << ',' << origin.z << "), facing to " << angle << ".\n";
+
+		angle = (float)(atof(input.pair["angle"].c_str()))/255;
+	}
+};
+
+class lightPos {
+public:
+	glm::fvec3 origin;
+	glm::fvec4 _color;
+	float light; //brightness?
+	//target (ex: t6 - this is defined by the "target_position" classname)
+	//spawnflags
+	//radius
+	lightPos(BSPEntity input) {
+		if (input.pair["classname"] != "light") return; // Not a light
+		origin = input.getVector("origin");
+		_color = input.getVector4("_color");
+		light = (float)atof(input.pair["light"].c_str());
 	}
 };
 
@@ -219,6 +265,8 @@ public:
 	std::vector<BSPLightmap> lightmaps;
 	std::vector<GLuint> lightmapGLIDS;
 	std::vector<camPos> cameraPositions;
+	std::vector<lightPos> lightPositions;
+	std::string worldMusic;
 
 private:
 	BSPHeader header;
