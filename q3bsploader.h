@@ -77,26 +77,39 @@ public:
 
 	glm::fvec3 getVector(std::string type) {
 		glm::fvec3 temp; // The entity coordinates are not floats???
-		if (type != "origin"
-			|| type != "_color") return temp; // This index is not a vector
+		//if (type != "origin"
+		//	&& type != "_color") return temp; // This index is not a vector
+		// This parses correctly thanks to atof, but the second token actually contains y and z coords??
 		unsigned long open = 0;
 		unsigned long close = 0;
 
 		close = pair[type].find_first_of(' ', open);
-		std::string token = pair[type].substr(open, close - 1);
+		std::string token = pair[type].substr(open, close);
 		temp[0] = (float)atof(token.c_str());
 
-		open = close+1;
+		open = close + 1;
 		close = pair[type].find_first_of(' ', open);
-		token = pair[type].substr(open, close - 1);
+		token = pair[type].substr(open, close);
 		temp[1] = (float)atof(token.c_str());
 
-		open = close+1;
+		open = close + 1;
 		close = pair[type].find_first_of(' ', open);
-		token = pair[type].substr(open, close - 1);
+		token = pair[type].substr(open, close);
 		temp[2] = (float)atof(token.c_str());
 
 		return temp;
+	}
+};
+
+class camPos {
+public:
+	glm::vec3 origin;
+	float angle;
+	camPos(BSPEntity input) {
+		if (input.pair["classname"] != "info_player_deathmatch") return; // Not a spawnpoint
+		origin = input.getVector("origin");
+		angle = glm::radians(atof(input.pair["angle"].c_str()));
+		std::cout << "Camera detected at (" << origin.x << ',' << origin.y << ',' << origin.z << "), facing to " << angle << ".\n";
 	}
 };
 
@@ -205,6 +218,7 @@ public:
 	std::vector<BSPEffect> effects;
 	std::vector<BSPLightmap> lightmaps;
 	std::vector<GLuint> lightmapGLIDS;
+	std::vector<camPos> cameraPositions;
 
 private:
 	BSPHeader header;

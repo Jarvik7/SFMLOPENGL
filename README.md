@@ -30,3 +30,6 @@ Culling
 Collision
 Proper face/material handling (done by passing type to shader?)
 
+Goal tech:
+Deferred lighting /w FXAA antialiasing pass (transparency w/ forward rendering?)
+

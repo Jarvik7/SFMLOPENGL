@@ -38,6 +38,7 @@ const sf::Keyboard::Key key_toggle_texturing = sf::Keyboard::Num2;
 const sf::Keyboard::Key key_toggle_lighting = sf::Keyboard::Num3;
 const sf::Keyboard::Key key_toggle_model = sf::Keyboard::O;
 const sf::Keyboard::Key key_lock_mouse = sf::Keyboard::L;
+const sf::Keyboard::Key key_respawn = sf::Keyboard::T;
 
 const std::string windowTitle = "SFML OpenGL";
 
@@ -170,10 +171,12 @@ int main(int argc, const char * argv[])
     q3BSP test("maps/q3dm1.bsp");
 	j7Model quake3(&test);
 	j7Cam camera;
+	unsigned campos = 0;
+
     GLenum glerror = GL_NO_ERROR;
 	GLint projectionViewLoc = glGetUniformLocation(shaderID, "projectionview");
 	GLint modelViewLoc = glGetUniformLocation(shaderID, "modelview");
-
+	camera.goTo(test.cameraPositions[0].origin, test.cameraPositions[0].angle);
     // Begin game loop
     while (!gameover)
     {
@@ -184,7 +187,7 @@ int main(int argc, const char * argv[])
         glUseProgram(shaderID);
 
 		camera.update(&window);
-
+		//camera.printPos();
 		glm::mat4 view = modelviewMatrix.top() * glm::scale(glm::fvec3(0.02f, 0.02f, 0.02f)); // Scale down the map ::TODO:: can this be done by adjusting our frustrum or something?
 
 		// Send our view matrices to shader
@@ -224,6 +227,12 @@ int main(int argc, const char * argv[])
                         case key_quit:
                             gameover = true;
                             break;
+
+						case key_respawn:
+							campos++;
+							if (campos > test.cameraPositions.size()-1) campos=0;
+							camera.goTo(test.cameraPositions[campos].origin, test.cameraPositions[campos].angle);
+							break;
 						// Toggles
 
 						case key_lock_mouse:

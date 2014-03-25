@@ -241,6 +241,7 @@ void q3BSP::groupMeshByTexture() {
     std::cout << "Faces sorted: " << faces.size() << " faces -> " << facesByTexture.size() << " meshes.\n";
 }
 
+
 void q3BSP::parseEntities(std::string entitystring) {
 	unsigned long open = entitystring.find_first_of('{', 0);
 	unsigned long close = 0;
@@ -258,6 +259,7 @@ void q3BSP::parseEntities(std::string entitystring) {
 
 	for (unsigned i = 0; i < clauses.size(); ++i) {
 		entities.push_back(BSPEntity(clauses[i]));
+		if (entities[i].pair["classname"] == "info_player_deathmatch") cameraPositions.push_back(camPos(entities[i]));
 	}
 }
 

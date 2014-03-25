@@ -564,6 +564,24 @@ public:
 		hasFocus = focus;
 	}
 
+	void goTo(glm::fvec3 origin, float viewangle) {
+		eye.x = origin.x * (.02f);
+		eye.y = origin.z * (.02f);
+		eye.z = origin.y * (-0.02f);
+		angle.x = -viewangle;
+		angle.y = 0;
+		move();
+		std::cout << "Teleporting: ";
+		printPos();
+
+	}
+
+	void printPos() {
+		glm::mat4 view = glm::inverse(modelviewMatrix.top());
+		glm::vec4 pos = view[3];
+		std::cout << "Pos: " << pos.x << ',' << pos.y << ',' << pos.z << " Facing: " << angle.x << ".\n";
+	}
+
 private:
 	float mouseSensitivity;
 	float moveSpeed;

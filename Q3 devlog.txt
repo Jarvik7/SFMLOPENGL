@@ -1,3 +1,29 @@
+Diary:
+2014-0-25
+-At present, the state of my renderer is as follows. The entire BSP geometry is correctly rendered. There is no culling. In small maps this still results in a good FPS, but importing a larger QuakeLive map results in unusable FPS.
+-Diffuse texturing is working, though there are some polygons which don't get a texture (top of spire in q3dm1).
+-Vertex lighting is working, though some parts of the tessellated meshes seem to not get colored (arches).
+-3d movement works perfectly, but only in a "noclip" style way. There is no jumping/crouching.
+-Textures are stored in an old-fashioned way (not texstorage), and has anisotropic filtering/mipmapping.
+-The entities/lightmap lumps are parsed, but nothing is actually done with the data.
+-The renderer itself should be free of all deprecated functionality and run in 3.2 core, but this is untested. The FPS counter uses SFML functions and will likely not work. (Uses vert/frag shaders and vao for all data)
+-Currently gets ~155fps on work PC with high antialiasing enabled.
+
+Current near/medium goals are:
+- Refactor code so that all Q3-only functionality is in the q3bsp file/class
+- Figure out proper way to handle all the vertex data. Sorting by texture reduces the speed hit to change bindings, but we still need to make 2 passes (one for meshes one for patches), and it causes difficulty for changing other material properties (transparency, animated textures, q3 shaders, etc.) The current system can be changed to 1 pass by interleaving mesh and patch rendering, but this is just a bandaid on a bigger problem.
+- Implement more effects in shaders in 2 stages: Normal q3 shader effects, and fancy postprocessing (bloom, hdr, dof, etc)
+- Implement a way to cull un-needed geometry. I would prefer to do this using hardware occlusion culling to enable large outdoor scenes and get away from needing pre-baked PVS/portals. May need a way to automatically generate bounding boxes for geometry.
+- Figure out how to implement moving geometry (doors/lifts). Should this be done with a geometry shader?
+- Implement multitexturing (particularly lightmaps and bumpmaps). 3 levels of lighting quality should ultimately be selectable (vertex lighting, lightmaps, fully dynamic)
+- Implement a unified lighting and shadow deferred lighting renderer to handle the dynamic lights
+- Implement MD3 etc renderer and draw in-map entities
+- Expand BSP support to Q1/2/Live/RTCW/Doom3/etc
+
+
+
+
+
 Renderlist:
 
 Data:
