@@ -538,8 +538,8 @@ public:
 		runSpeedMultiplier = 2.0f;
 		mouseLock = false;
 		hasFocus = true;
-
-		angle = glm::fvec2(float(M_PI), 0.0f); // ::TODO:: Face the other way
+		angle = glm::fvec2(0,0);
+		//angle = glm::fvec2(float(M_PI), 0.0f); // ::TODO:: Face the other way
 		up = glm::fvec3(0.0f, 1.0f, 0.0f);
 	}
 
@@ -567,8 +567,8 @@ public:
 	void goTo(glm::fvec3 origin, float viewangle) {
 		eye.x = origin.x;
 		eye.y = origin.z+.05f; // Offset for player eye height
-		eye.z = -origin.y;/
-		angle.x = viewangle;
+		eye.z = -origin.y;
+		angle.x = viewangle - 1;
 		angle.y = 0;
 		move();
 		std::cout << "Teleporting: ";
@@ -643,7 +643,10 @@ private:
 			// ::TODO:: Enable this to be toggled to flightsim-style camera control
 			if (angle.y >= 1.57) angle.y = 1.57f;
 			else if (angle.y <= -1.57) angle.y = -1.57f;
-			
+			float fullcircle = glm::radians(360.0);
+			// Keep x angle between -360 to 360 degrees
+			if (angle.x >= fullcircle) angle.x -= fullcircle;
+			else if (angle.x <= -fullcircle) angle.x += fullcircle;
 			// Reset cursor to center of screen
 			sf::Mouse::setPosition(sf::Vector2i(windowsize.x / 2, windowsize.y / 2), *window);
 		}

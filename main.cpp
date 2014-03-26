@@ -39,6 +39,7 @@ const sf::Keyboard::Key key_toggle_lighting = sf::Keyboard::Num3;
 const sf::Keyboard::Key key_toggle_model = sf::Keyboard::O;
 const sf::Keyboard::Key key_lock_mouse = sf::Keyboard::L;
 const sf::Keyboard::Key key_respawn = sf::Keyboard::T;
+const sf::Keyboard::Key key_printloc = sf::Keyboard::Y;
 
 const std::string windowTitle = "SFML OpenGL";
 
@@ -129,12 +130,6 @@ int main(int argc, const char * argv[])
 
 
     sf::Music music;
-    if (music.openFromFile("furious.ogg"))
-    {
-        music.setLoop(true);
-        music.setVolume(75);
-        music.play();
-    }
 
     // Game loop control vars
     bool gameover = false;
@@ -168,7 +163,7 @@ int main(int argc, const char * argv[])
     }
 
 	//Load our mesh
-    q3BSP test("maps/q3dm1.bsp");
+    q3BSP test("maps/q3tourney2.bsp");
 	j7Model quake3(&test);
 	j7Cam camera;
 	unsigned campos = 1;
@@ -183,7 +178,7 @@ int main(int argc, const char * argv[])
     GLenum glerror = GL_NO_ERROR;
 	GLint projectionViewLoc = glGetUniformLocation(shaderID, "projectionview");
 	GLint modelViewLoc = glGetUniformLocation(shaderID, "modelview");
-	camera.goTo(test.cameraPositions[campos].origin, test.cameraPositions[campos].angle);
+	//camera.goTo(test.cameraPositions[campos].origin, test.cameraPositions[campos].angle);
     // Begin game loop
     while (!gameover)
     {
@@ -239,6 +234,10 @@ int main(int argc, const char * argv[])
 							campos++;
 							if (campos > test.cameraPositions.size()-1) campos=0;
 							camera.goTo(test.cameraPositions[campos].origin, test.cameraPositions[campos].angle);
+							break;
+
+						case key_printloc:
+							camera.printPos();
 							break;
 						// Toggles
 

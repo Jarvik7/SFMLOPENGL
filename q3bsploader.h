@@ -139,7 +139,7 @@ public:
 		if (input.pair["classname"] != "info_player_deathmatch") return; // Not a spawnpoint
 		origin = input.getVector("origin");
 
-		angle = (float)(atof(input.pair["angle"].c_str()))/255;
+		angle = (float)(atof(input.pair["angle"].c_str()))/255.0f;
 	}
 };
 
