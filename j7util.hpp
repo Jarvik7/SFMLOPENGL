@@ -572,14 +572,20 @@ public:
 		angle.y = 0;
 		move();
 		std::cout << "Teleporting: ";
-		printPos();
+		printPos(0);
 
 	}
 
-	void printPos() {
+	void printPos(q3BSP *bsp) {
 		glm::mat4 view = glm::inverse(modelviewMatrix.top());
 		glm::vec4 pos = view[3];
 		std::cout << "Pos: " << pos.x << ',' << pos.y << ',' << pos.z << " Facing: " << angle.x << ".\n";
+		glm::vec3 pos255(pos.x * 255, pos.y * 255, pos.x * 255);
+		if (bsp != 0) {
+			int currleaf = bsp->findCurrentLeaf(pos255);
+			std::cout << "Current leaf: " << currleaf << ".\n";
+			std::cout << "Is 3339 visible? " << bsp->isClusterVisible(currleaf, 3339) << '\n';
+		}
 	}
 
 private:
@@ -643,7 +649,7 @@ private:
 			// ::TODO:: Enable this to be toggled to flightsim-style camera control
 			if (angle.y >= 1.57) angle.y = 1.57f;
 			else if (angle.y <= -1.57) angle.y = -1.57f;
-			float fullcircle = glm::radians(360.0);
+			float fullcircle = (float)glm::radians(360.0);
 			// Keep x angle between -360 to 360 degrees
 			if (angle.x >= fullcircle) angle.x -= fullcircle;
 			else if (angle.x <= -fullcircle) angle.x += fullcircle;

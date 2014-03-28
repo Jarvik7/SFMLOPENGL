@@ -1,11 +1,18 @@
-#version 120
+#version 130
+
+in vec4 outColor;
+in vec2 outTexcoord;
+in vec3 outNormal;
 
 uniform sampler2D tex;
-varying vec4 outColor;
+
+out vec4 fragcolor;
 
 void main()
 {
-    vec4 texColor = texture2D(tex,gl_TexCoord[0].st); // Get texel for this frag
-    gl_FragColor = outColor * texColor * 0.01; // Multiply texel by interpolated vertex color and dampen
+    vec4 texColor = texture2D(tex, outTexcoord); // Get texel for this frag
+    fragcolor = outColor * texColor * (1.0/255); // Multiply texel by interpolated vertex color and dampen
 	// Why is the 0.01 needed to adjust brightness? It wasn't the case when using glColorPointer
+	// It's pretty close to 1/255, suggesting that something is a char instead of a float.
+	// This applies to the scaling of the map too (0.02)
 }

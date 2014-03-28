@@ -237,7 +237,8 @@ int main(int argc, const char * argv[])
 							break;
 
 						case key_printloc:
-							camera.printPos();
+							camera.printPos(&test);
+							
 							break;
 						// Toggles
 

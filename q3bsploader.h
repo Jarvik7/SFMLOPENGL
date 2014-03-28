@@ -14,8 +14,6 @@
 #define TESSELLATION_LEVEL 12
 #define HEADER_LUMPS 17
 
-
-
 enum LUMPNAMES {
 	Entities = 0,
 	Textures,		//LUMP_SHADERS
@@ -166,6 +164,37 @@ typedef struct
     int	contents;
 } BSPTexture; // Lump 1
 
+typedef struct {
+	glm::vec3 normal;
+	float distance;
+} BSPPlane; // Lump 2
+
+typedef struct {
+	int plane;
+	int children[2];
+	int mins[3];
+	int maxs[3];
+} BSPNode; // Lump 3
+
+typedef struct {
+	int cluster; 	//Visdata cluster index.
+	int area; 		//Areaportal area.
+	int mins[3]; 	//Integer bounding box min coord.
+	int maxs[3]; 	//Integer bounding box max coord.
+	int leafface; 	//First leafface for leaf.
+	int n_leaffaces; //Number of leaffaces for leaf.
+	int leafbrush; 	//First leafbrush for leaf.
+	int n_leafbrushes; //Number of leafbrushes for leaf. 
+} BSPLeaf; // Lump 4
+
+typedef struct {
+	int face;
+} BSPLeafFace; // Lump 5
+
+typedef struct {
+	int brush;
+} BSPLeafBrush; // Lump 6
+
 //Lump 10
 class BSPVertex
 {
@@ -250,7 +279,11 @@ typedef struct {
 	char data[128][128][3]; // 128x128 pixels, RGB
 } BSPLightmap;
 
-
+typedef struct {
+	int n_vecs;
+	int sz_vecs;
+	std::vector<unsigned short> vecs;
+}BSPVisData; // Lump 16
 
 class q3BSP {
 public:
@@ -266,8 +299,12 @@ public:
 	std::vector<GLuint> lightmapGLIDS;
 	std::vector<camPos> cameraPositions;
 	std::vector<lightPos> lightPositions;
+	std::vector<BSPPlane> planes;
+	std::vector<BSPNode> nodes;
 	std::string worldMusic;
-
+	BSPVisData visData;
+	int findCurrentLeaf(glm::vec3 position);
+	bool isClusterVisible(int visCluster, int testCluster);
 private:
 	BSPHeader header;
 	std::vector<BSPMeshVert> meshVerts;
@@ -276,6 +313,7 @@ private:
 	void parseEntities(std::string entities);
 	void bindLightmaps();
 	BSPPatch dopatch(BSPFace face);
+
 };
 
 GLuint makeVAO(std::vector<BSPVertex> *vertices, std::vector<GLuint> *indices);

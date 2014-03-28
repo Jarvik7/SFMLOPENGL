@@ -116,9 +116,27 @@ q3BSP::q3BSP(std::string filename) {
     for (unsigned i = 0; i < textures.size(); ++i) std::cout << "  " << i << ':' << textures[i].name << '\n';
     
     // Lump 2: Planes
-    
+	numEntries = header.direntries[Planes].length / sizeof(BSPPlane);
+    std::cout << "Lump 2: " << numEntries << " plane(s) found.\n";
+    planes.reserve(numEntries);
+    BSPPlane tempPlane;
+    for (unsigned i = 0; i < numEntries; ++i) {
+        memcpy(&tempPlane,
+               &memblock[header.direntries[Planes].offset + i * sizeof(BSPPlane)],
+               sizeof(BSPPlane));
+        planes.push_back(tempPlane);
+    }   
     // Lump 3: Nodes
-    
+    numEntries = header.direntries[Nodes].length / sizeof(BSPNode);
+    std::cout << "Lump 3: " << numEntries << " node(s) found.\n";
+    nodes.reserve(numEntries);
+    BSPNode tempNode;
+    for (unsigned i = 0; i < numEntries; ++i) {
+        memcpy(&tempNode,
+               &memblock[header.direntries[Nodes].offset + i * sizeof(BSPNode)],
+               sizeof(BSPNode));
+        nodes.push_back(tempNode);
+    }    
     // Lump 4: Leafs
     
     // Lump 5: Leaffaces
@@ -186,7 +204,15 @@ q3BSP::q3BSP(std::string filename) {
     // Lump 15: Lightvols
     
     // Lump 16: Visdata
-    
+	memcpy(&visData,
+		&memblock[header.direntries[Visdata].offset],
+		2 * sizeof(int));
+	visData.vecs.resize(visData.n_vecs * visData.sz_vecs);
+    memcpy(visData.vecs.data(),
+           &memblock[header.direntries[Visdata].offset + 2 * sizeof(int)],
+           visData.n_vecs * visData.sz_vecs);
+
+	std::cout << "Visdata: " << visData.n_vecs << " vectors x " << visData.sz_vecs << " size = " << visData.vecs.size() << " bytes.\n";
 }
 
 void q3BSP::bindLightmaps() {
@@ -370,4 +396,29 @@ void j7Bezier::render() {
 	glBindVertexArray(vao);
     glMultiDrawElements(GL_TRIANGLE_STRIP, trianglesPerRow.data(), GL_UNSIGNED_INT, (const GLvoid**)rowIndices.data(), (GLsizei)trianglesPerRow.size());
 	glBindVertexArray(0);
+}
+
+int q3BSP::findCurrentLeaf(glm::vec3 position) {
+    int index = 0;
+    while (index >= 0) {
+        const BSPNode&  node  = nodes[index];
+        const BSPPlane& plane = planes[node.plane];
+
+        // Distance from point to a plane
+        const double distance = glm::dot(plane.normal, position) - plane.distance;
+
+        if (distance >= 0)  index = node.children[0];
+        else index = node.children[1];
+    }
+    return -index - 1;
+}
+
+bool q3BSP::isClusterVisible(int visCluster, int testCluster) {
+	//Sanity check
+    if ((visData.vecs.size() == 0) || (visCluster < 0)) return true;
+
+	int i = (visCluster * visData.sz_vecs) + (testCluster >> 3);
+    long visSet = visData.vecs[i];
+
+    return (visSet & (1 << (testCluster & 7))) != 0;
 }
