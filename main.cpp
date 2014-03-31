@@ -197,7 +197,7 @@ int main(int argc, const char * argv[])
 		glUniformMatrix4fv(projectionViewLoc, 1, GL_FALSE, &camera.projectionMatrix.top()[0][0]);
 		glUniformMatrix4fv(modelViewLoc, 1, GL_FALSE, &view[0][0]);
 
-		quake3.drawVBO(&test); // Render the BSP
+		quake3.drawVBO(&test, camera.getCurrentPos()); // Render the BSP
 
         //if (showfps) showFPS(&window); // Display the FPS
 

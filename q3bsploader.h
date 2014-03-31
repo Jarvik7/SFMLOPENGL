@@ -227,10 +227,7 @@ public:
 	}
 };
 
-typedef struct
-{
-    int	offset;	//Vertex index offset, relative to first vertex of corresponding face.
-} BSPMeshVert; // Lump 11
+// Lump 11: MeshVerts (standard data type)
 
 typedef struct {
 	char name[64];
@@ -302,7 +299,7 @@ public:
 	// Lump 8
 	// Lump 9
 	std::vector<BSPVertex> vertices; // Lump 10
-	std::vector<BSPMeshVert> meshVerts; // Lump 11
+	std::vector<int> meshVerts; // Lump 11
 	std::vector<BSPEffect> effects; // Lump 12
 	std::vector<BSPFace> faces; // Lump 13
 	std::vector<BSPLightmap> lightmaps; // Lump 14
@@ -325,7 +322,7 @@ public:
 
 	//Lump 13
 	BSPPatch dopatch(BSPFace face);
-	void makeListofVisibleFaces(glm::vec3 position); // Generates a list of faces visible from position
+	std::vector<int> makeListofVisibleFaces(glm::vec3 position); // Generates a list of faces visible from position
 	std::vector<GLuint> getIndices(unsigned entry); // Generates indices
 	std::vector<std::vector<BSPFace>> facesByTexture; // All of the faces grouped by texture
 	std::vector<BSPPatch> patches; // Contains the tessellated faces

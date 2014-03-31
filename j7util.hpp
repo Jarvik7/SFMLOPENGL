@@ -268,36 +268,72 @@ public:
 
 class j7Model {
 public:
-    void drawVBO(q3BSP *bsp) { 
+    void drawVBO(q3BSP *bsp, glm::vec3 position) { 
         if (vao != 0) {
 			glBindVertexArray(vao);
-            for (unsigned i=0; i < meshes.size(); ++i) {
-				glBindTexture(GL_TEXTURE_2D, bsp->textureIDs[meshes[i].materialIndex]);
-                // Indexes
-                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes[i].bufferID);
-                glDrawElements(GL_TRIANGLES, (GLsizei)meshes[i].indices.size(), GL_UNSIGNED_INT, 0); // Index 1 of trdis has no texture coords!
+			std::vector<int> visiblefaces = bsp->makeListofVisibleFaces(position);
+            for (unsigned i=0; i < visiblefaces.size(); ++i) {
+				if (bsp->faces[visiblefaces[i]].type == 1 || bsp->faces[i].type == 3) {
+					glBindTexture(GL_TEXTURE_2D, bsp->textureIDs[bsp->faces[visiblefaces[i]].texture]);
+					glDrawElements(GL_TRIANGLES, sizes[visiblefaces[i]], GL_UNSIGNED_INT, (const GLvoid*)(offsets[visiblefaces[i]] * sizeof(GLuint))); // Index 1 of trdis has no texture coords!
+				}
             }
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+			glBindVertexArray(0);
 			for (unsigned i = 0; i < bsp->patches.size(); ++i) { // For every patch
 				glBindTexture(GL_TEXTURE_2D, bsp->textureIDs[bsp->patches[i].textureID]);
 				for (unsigned j = 0; j< bsp->patches[i].bezier.size(); ++j) { // For every bezier in every patch
 					bsp->patches[i].bezier[j].render();
 				}
 			}
-			glBindVertexArray(0);
         }
     }
 
 	j7Model(q3BSP *bsp) { // Load from a BSP object
-        vao = makeVAO(&bsp->vertices, 0);
-
-		// Buffer the index data
+		// Use the mesh constructor for now. Note that this only does the sorted faces
 		for (unsigned i = 0; i < bsp->facesByTexture.size(); ++i) meshes.push_back(j7Mesh(bsp,i));
+
+		// Push the indices into a single array. Also populate arrays saying offsets and number of indices for each face
+		// Note that sizes can be taken from the face object once sorting is fixed
+		
+		//Build indices for all mesh/poly faces
+		for (unsigned i = 0; i < bsp->faces.size(); ++i) {
+			offsets.push_back(indexes.size());
+			sizes.push_back(bsp->faces[i].n_meshverts);
+			if (bsp->faces[i].type == 1 || bsp->faces[i].type == 3) { 
+				for (int j = 0; j < bsp->faces[i].n_meshverts; ++j) {
+					indexes.push_back(bsp->faces[i].vertex + bsp->meshVerts[j + bsp->faces[i].meshvert]);
+				}
+			}
+		}
+		
+		/*for (unsigned i = 0; i < meshes.size(); ++i) {
+			offsets.push_back(indexes.size());
+			sizes.push_back(meshes[i].indices.size());
+			for (unsigned j = 0; j < meshes[i].indices.size(); ++j) {
+				indexes.push_back(meshes[i].indices[j]);
+			}
+		}*/
+
+	/*	for (unsigned i = 0; i < bsp->patches.size(); ++i) { // For each patch
+
+			for (unsigned j = 0; j < bsp->patches[i].bezier.size(); ++j) { // For each bezier in patch
+				unsigned offset = bsp->vertices.size();
+				unsigned size = bsp->patches[i].bezier[j].vertex.size();
+				for (unsigned k = 0; k < bsp->patches[i].bezier[j].vertex.size(); ++k) { // For each vertex in bezier
+					bsp->vertices.push_back(bsp->patches[i].bezier[j].vertex[k]) // Push vertex
+				}
+			}
+		}*/ // Leave patches for once geometry is working nicely
+
+		vao = makeVAO(&bsp->vertices, &indexes);
 	}
 
 private:
     std::vector<j7Mesh> meshes;
 	GLuint vao;
+	std::vector<GLuint> indexes;
+	std::vector<GLuint> offsets;
+	std::vector<GLuint> sizes;
 };
 
 class j7Cam {
@@ -359,7 +395,7 @@ public:
 		if (bsp != 0) {
 			int currleaf = bsp->findCurrentLeaf(pos255);
 			std::cout << "Current leaf: " << currleaf << ".\n";
-			std::cout << "Is 3339 visible? " << bsp->isClusterVisible(currleaf, 3339) << '\n';
+			std::cout << "Is 1612 visible? " << bsp->isClusterVisible(1612, currleaf) << '\n';
 		}
 	}
     glm::vec3 getCurrentPos() {

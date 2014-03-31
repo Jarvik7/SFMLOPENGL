@@ -136,9 +136,19 @@ q3BSP::q3BSP(std::string filename) {
 		header.direntries[Nodes].length);
   
     // Lump 4: Leafs
-    
+	numEntries = header.direntries[Leafs].length / sizeof(BSPLeaf);
+	std::cout << "Lump 4: " << numEntries << " leaf(s) found.\n";
+	leafs.resize(numEntries);
+	memcpy(leafs.data(),
+		&memblock[header.direntries[Leafs].offset],
+		header.direntries[Leafs].length);
     // Lump 5: Leaffaces
-    
+	numEntries = header.direntries[Leaffaces].length / sizeof(BSPLeafFace);
+	std::cout << "Lump 5: " << numEntries << " leafface(s) found.\n";
+	leafFaces.resize(numEntries);
+	memcpy(leafFaces.data(),
+		&memblock[header.direntries[Leaffaces].offset],
+		header.direntries[Leaffaces].length);
     // Lump 6: Leafbrushes
     
     // Lump 7: Models
@@ -156,7 +166,7 @@ q3BSP::q3BSP(std::string filename) {
 		header.direntries[Vertexes].length);
 	
     // Lump 11: Meshverts
-    numEntries = header.direntries[Meshverts].length / sizeof(BSPMeshVert);
+    numEntries = header.direntries[Meshverts].length / sizeof(int);
     std::cout << "Lump 11: " << numEntries << " Meshvert(s) found.\n";
     meshVerts.resize(numEntries);
 	memcpy(meshVerts.data(),
@@ -235,7 +245,7 @@ std::vector<GLuint> q3BSP::getIndices(unsigned entry) {
 		case 1:	// Polygons
 		case 3:	// Meshes
 			for (int k = 0; k < face.n_meshverts; ++k) { // For each meshvert in face
-				GLuint value = face.vertex + meshVerts[k + face.meshvert].offset;
+				GLuint value = face.vertex + meshVerts[k + face.meshvert];
 				temp.push_back(value);
 			}
 			break;
@@ -412,7 +422,7 @@ int q3BSP::findCurrentLeaf(glm::vec3 position) {
 
 bool q3BSP::isClusterVisible(int visCluster, int testCluster) {
 	//Sanity check
-    if ((visData.vecs.size() == 0) || (visCluster < 0)) return true;
+   // if ((visData.vecs.size() == 0) || (visCluster < 0)) return true;
 
 	int i = (visCluster * visData.sz_vecs) + (testCluster >> 3);
     long visSet = visData.vecs[i];
@@ -420,7 +430,7 @@ bool q3BSP::isClusterVisible(int visCluster, int testCluster) {
     return (visSet & (1 << (testCluster & 7))) != 0;
 }
 
-void q3BSP::makeListofVisibleFaces(glm::vec3 position) {
+std::vector<int> q3BSP::makeListofVisibleFaces(glm::vec3 position) {
     std::vector<int> visibleFaces;
     int currentLeaf = findCurrentLeaf(position);
     for (auto& leaf : leafs) {
@@ -430,6 +440,7 @@ void q3BSP::makeListofVisibleFaces(glm::vec3 position) {
             }
         }
     }
+	return visibleFaces;
 }
 
 void q3BSPrender(GLenum type, std::vector<std::vector<unsigned>>* visibleIndices, std::vector<unsigned>* n_visibleIndices) {
