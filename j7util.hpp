@@ -268,7 +268,7 @@ public:
 
 class j7Model {
 public:
-    void drawVBO(q3BSP *bsp) {
+    void drawVBO(q3BSP *bsp) { 
         if (vao != 0) {
 			glBindVertexArray(vao);
             for (unsigned i=0; i < meshes.size(); ++i) {
@@ -292,14 +292,12 @@ public:
         vao = makeVAO(&bsp->vertices, 0);
 
 		// Buffer the index data
-
 		for (unsigned i = 0; i < bsp->facesByTexture.size(); ++i) meshes.push_back(j7Mesh(bsp,i));
 	}
 
 private:
     std::vector<j7Mesh> meshes;
 	GLuint vao;
-	GLuint ibo;
 };
 
 class j7Cam {
