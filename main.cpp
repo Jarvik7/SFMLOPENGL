@@ -43,8 +43,6 @@ const sf::Keyboard::Key key_printloc = sf::Keyboard::Y;
 
 const std::string windowTitle = "SFML OpenGL";
 
-std::stack<glm::fmat4> projectionMatrix;
-std::stack<glm::fmat4> modelviewMatrix;
 GLuint shaderID;
 
 
@@ -75,9 +73,7 @@ bool initGL()
 		return false;
 	}
 
-    //Set our matrices to identity
-    projectionMatrix.push(glm::fmat4());
-    modelviewMatrix.push(glm::fmat4());
+
 
 	if (DISPLAYDEBUGOUTPUT) {
 		if (GLEW_ARB_compatibility) std::cout << "Compatibility mode supported\n";
@@ -107,10 +103,12 @@ int main(int argc, const char * argv[])
     window.setVerticalSyncEnabled(vsync);
 
     sf::Vector2u windowsize = window.getSize();
+	j7Cam camera;
+	unsigned campos = 1;
 
     // Initialize the OpenGL state
     if (!initGL()) return EXIT_FAILURE; // Exit, GLew failed.
-    adjustPerspective(windowsize);
+    camera.adjustPerspective(windowsize);
 
     //Display debug info about graphics
     if (DISPLAYDEBUGOUTPUT) {
@@ -165,8 +163,7 @@ int main(int argc, const char * argv[])
 	//Load our mesh
     q3BSP test("maps/q3tourney2.bsp");
 	j7Model quake3(&test);
-	j7Cam camera;
-	unsigned campos = 1;
+
 	if (music.openFromFile(test.worldMusic))
     {
         music.setLoop(true);
@@ -190,10 +187,10 @@ int main(int argc, const char * argv[])
 
 		camera.update(&window);
 		//camera.printPos();
-		glm::mat4 view = modelviewMatrix.top() * glm::scale(glm::fvec3(1.0/255, 1.0/255, 1.0/255)); // Scale down the map ::TODO:: can this be done by adjusting our frustrum or something?
+		glm::mat4 view = camera.modelviewMatrix.top() * glm::scale(glm::fvec3(1.0/255, 1.0/255, 1.0/255)); // Scale down the map ::TODO:: can this be done by adjusting our frustrum or something?
 
 		// Send our view matrices to shader
-		glUniformMatrix4fv(projectionViewLoc, 1, GL_FALSE, &projectionMatrix.top()[0][0]);
+		glUniformMatrix4fv(projectionViewLoc, 1, GL_FALSE, &camera.projectionMatrix.top()[0][0]);
 		glUniformMatrix4fv(modelViewLoc, 1, GL_FALSE, &view[0][0]);
         //test.makeListofVisibleFaces(camera.getCurrentPos());
 		quake3.drawVBO(&test); // Render the BSP
@@ -330,7 +327,7 @@ int main(int argc, const char * argv[])
                             initGL();
 							displayWindowsMenubar(&window);
                             windowsize = window.getSize();
-                            adjustPerspective(windowsize);
+                            camera.adjustPerspective(windowsize);
                             window.setVerticalSyncEnabled(vsync);
                             break;
                         }
@@ -348,13 +345,13 @@ int main(int argc, const char * argv[])
                 case sf::Event::MouseWheelMoved: // Zoom
 					if(hasFocus) {
 						fov -= event.mouseWheel.delta * 1.5f;
-						adjustPerspective(windowsize, fov);
+						camera.adjustPerspective(windowsize, fov);
 					}
                     break;
 
                 case sf::Event::Resized:
                     windowsize = window.getSize();
-                    adjustPerspective(windowsize, fov);
+                    camera.adjustPerspective(windowsize, fov);
                     break;
 
 			/*	case sf::Event::MenuitemSelected:

@@ -316,6 +316,9 @@ public:
 	std::vector<camPos> cameraPositions; // Spawnpoints
 	std::vector<lightPos> lightPositions; // Lights
 
+	// Lump 1
+	std::vector<GLuint> textureIDs;
+
 	//Lump 4
 	int findCurrentLeaf(glm::vec3 position); // Finds what leaf the given position is in
 	bool isClusterVisible(int visCluster, int testCluster); // Determines if testCluster is visible from visCluster

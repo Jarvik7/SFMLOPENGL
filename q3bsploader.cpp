@@ -31,6 +31,8 @@ X) Our early exits are leaking the memblock array? Convert to a vector?
 
 #include "q3bsploader.h"
 
+extern GLuint loadTexture(std::string filename);
+
 extern GLuint shaderID;
 
 GLuint makeVAO(std::vector<BSPVertex> *vertices, std::vector<GLuint> *indices) {
@@ -106,7 +108,6 @@ q3BSP::q3BSP(std::string filename) {
 	std::string tempEntityString;
     tempEntityString.insert(0, &memblock[header.direntries[Entities].offset], header.direntries[Entities].length);
     std::cout << "Lump 0: " << tempEntityString.size() << " characters of entities read. ";
-	parseEntities(tempEntityString); // Parse entity string and populate vector of entities ::TODO:: Nothing is actually done with this data yet
     
     // Lump 1: Textures
     unsigned numEntries = header.direntries[Textures].length / sizeof(BSPTexture);
@@ -178,8 +179,6 @@ q3BSP::q3BSP(std::string filename) {
 		&memblock[header.direntries[Faces].offset],
 		header.direntries[Faces].length);
 
-    groupMeshByTexture(); // Sort faces into groups by texture id
-
     // Lump 14: Lightmaps
 	numEntries = header.direntries[Lightmaps].length / sizeof(BSPLightmap);
 	std::cout << "Lump 14: " << numEntries << " lightmap(s) found.\n";
@@ -187,7 +186,6 @@ q3BSP::q3BSP(std::string filename) {
 	memcpy(lightmaps.data(),
 		&memblock[header.direntries[Lightmaps].offset],
 		header.direntries[Lightmaps].length);
-	bindLightmaps();
     
 	// Lump 15: Lightvols
     
@@ -199,8 +197,18 @@ q3BSP::q3BSP(std::string filename) {
     memcpy(visData.vecs.data(),
            &memblock[header.direntries[Visdata].offset + 2 * sizeof(int)],
            visData.n_vecs * visData.sz_vecs);
+	std::cout << "Lump 16: " << visData.n_vecs << " vectors @ " << visData.sz_vecs << " bytes each = " << visData.vecs.size() << " bytes of visdata.\n";
 
-	std::cout << "Visdata: " << visData.n_vecs << " vectors x " << visData.sz_vecs << " size = " << visData.vecs.size() << " bytes.\n";
+
+	// Begin parsing
+
+	parseEntities(tempEntityString); // Parse entity string and populate vector of entities ::TODO:: Nothing is actually done with this data yet
+	
+	// Load textures into memory
+	for (auto& texture : textures) textureIDs.push_back(loadTexture(texture.name));
+
+	groupMeshByTexture(); // Sort faces into groups by texture id
+	bindLightmaps();
 }
 
 void q3BSP::bindLightmaps() {
@@ -261,6 +269,7 @@ void q3BSP::groupMeshByTexture() {
 
 
 void q3BSP::parseEntities(std::string entitystring) {
+	std::cout << "Parsing entities...\n";
 	unsigned long open = entitystring.find_first_of('{', 0);
 	unsigned long close = 0;
 

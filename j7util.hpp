@@ -12,8 +12,12 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <stack>
 
+#include <GLEW/glew.h>	// For OpenGL Extensions
 #include <SFML/OpenGL.hpp>
+#include <SFML/Graphics.hpp>
+
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -32,8 +36,6 @@
 	#define M_PI 3.14159265358979323846
 #endif
 
-extern std::stack<glm::fmat4> modelviewMatrix;
-extern std::stack<glm::fmat4> projectionMatrix;
 extern GLuint shaderID;
 
 // Handles for VBO
@@ -61,6 +63,44 @@ const sf::Keyboard::Key key_move_run = sf::Keyboard::LShift;
 inline bool fileExists(std::string filename) {
     std::ifstream infile(filename);
     return infile.good();
+}
+GLuint loadTexture(std::string filename) {
+	//Sanity checking
+	if (filename == "") {
+		std::cerr << "Texture name is null\n";
+		return 0;
+	}
+	if (fileExists(filename)) filename = filename;
+	// Try some common filetypes (Quake3 etc don't specify extension in BSP)
+	else if (fileExists(filename + ".jpg")) filename += ".jpg";
+	else if (fileExists(filename + ".tga")) filename += ".tga";
+	else if (fileExists(filename + ".png")) filename += ".png";
+	else {
+		std::cerr << "Unable to find texture file: " << filename << '\n';
+		return 0;
+	}
+
+	sf::Image texture;
+
+	if (!texture.loadFromFile(filename)) {
+		std::cerr << "Error loading texture file: " << filename << '\n';
+		return 0;
+	}
+	GLuint id = 0;
+	glGenTextures(1, &id);
+	glBindTexture(GL_TEXTURE_2D, id);
+	GLfloat largest_aniso;
+
+	// Enable anisotropic filtering
+	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &largest_aniso);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, largest_aniso);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texture.getSize().x, texture.getSize().y, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.getPixelsPtr());
+	
+	// Enable mipmapping
+	glGenerateMipmap(GL_TEXTURE_2D);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	return id;
 }
 
 inline float degtorad(float degrees) //Converts degrees to radians
@@ -134,29 +174,7 @@ void showFPS(sf::RenderWindow *window)
 	}
 }
 
-void adjustPerspective(sf::Vector2u windowsize, GLfloat fovy = 75.0f, GLfloat zNear = 0.1f, GLfloat zFar = 100.0f)
-{
-    //Adjust drawing area & perspective on window resize
-    //::TODO:: This currently runs many times for one resize as the window border is dragged. Add throttling?
-    //::TODO:: Move into Camera class?
 
-#if defined(SFML_SYSTEM_WINDOWS) // Windows allows window height of 0, prevent div/0
-    if (windowsize.y == 0) ++windowsize.y;
-#endif
-    if (DISPLAYDEBUGOUTPUT)
-    {
-        std::cout << "Window resized to " << windowsize.x << "x" << windowsize.y << '\n';
-    }
-
-    glViewport(0, 0, windowsize.x, windowsize.y);
-
-    glMatrixMode(GL_PROJECTION);
-	projectionMatrix.pop();
-	projectionMatrix.push(glm::perspective<float>(glm::radians(fovy), GLfloat(windowsize.x) / windowsize.y, zNear, zFar));
-
-    glMatrixMode(GL_MODELVIEW);
-	// Don't need to change anything?
-}
 /*unsigned j7MenuIdentifier(std::string name)
 {
 		std::hash<std::string> hashfunc;
@@ -339,64 +357,27 @@ public:
     } // ::TODO:: Can we put directly into the buffer from the assimp structure without making arrays?
 };
 
-class j7Model { // ::TODO:: Make into a VAO
+class j7Model {
 public:
-    void drawArray() { // Indexed Vertex Array
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-        glEnableClientState(GL_NORMAL_ARRAY);
-        for (unsigned i=0; i<meshes.size(); ++i) {
-            bindtex(textures[meshes[i].materialIndex-1]);
-            glVertexPointer(3, GL_FLOAT, 0, meshes[i].vertices.data());
-            glTexCoordPointer(2, GL_FLOAT, 0, meshes[i].textureCoordinates.data());
-            glNormalPointer(GL_FLOAT, 0, meshes[i].normals.data());
-            glDrawElements(GL_TRIANGLES, (GLsizei)meshes[i].indices.size(), GL_UNSIGNED_INT, meshes[i].indices.data());
-        }
-        glDisableClientState(GL_NORMAL_ARRAY);
-        glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-        glDisableClientState(GL_VERTEX_ARRAY);
-    }
-
     void drawVBO(q3BSP *bsp) { // Indexed VBO
 		//::TODO:: The lighting looks as if it is using a face normal instead of a vertex normal - is screwed up
-
         if (vao != 0) {
 			glBindVertexArray(vao);
             for (unsigned i=0; i < meshes.size(); ++i) {
-                bindtex(textures[meshes[i].materialIndex]);
+				glBindTexture(GL_TEXTURE_2D, bsp->textureIDs[meshes[i].materialIndex]);
                 // Indexes
                 glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes[i].bufferObjects[INDEX_DATA]);
                 glDrawElements(GL_TRIANGLES, (GLsizei)meshes[i].indices.size(), GL_UNSIGNED_INT, 0); // Index 1 of trdis has no texture coords!
             }
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 			for (unsigned i = 0; i < bsp->patches.size(); ++i) { // For every patch
-
-				bindtex(textures[bsp->patches[i].textureID]);
+				glBindTexture(GL_TEXTURE_2D, bsp->textureIDs[bsp->patches[i].textureID]);
 				for (unsigned j = 0; j< bsp->patches[i].bezier.size(); ++j) { // For every bezier in every patch
 					bsp->patches[i].bezier[j].render();
 				}
 			}
 			glBindVertexArray(0);
         }
-
-        else for (unsigned i=0; i<meshes.size(); ++i) {
-            bindtex(textures[meshes[i].materialIndex]);
-            glBindBuffer(GL_ARRAY_BUFFER, meshes[i].bufferObjects[VERTEX_DATA]);
-            glVertexPointer(3, GL_FLOAT, 0, 0);
-            // Normal data
-            glBindBuffer(GL_ARRAY_BUFFER, meshes[i].bufferObjects[NORMAL_DATA]);
-            glNormalPointer(GL_FLOAT, 0, 0);
-            // Texture coordinates
-            glBindBuffer(GL_ARRAY_BUFFER, meshes[i].bufferObjects[TEXTURE_DATA]);
-            glTexCoordPointer(2, GL_FLOAT, 0, 0);
-            // Indexes
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes[i].bufferObjects[INDEX_DATA]);
-            glDrawElements(GL_TRIANGLES, (GLsizei)meshes[i].indices.size(), GL_UNSIGNED_INT, 0); // Index 1 of trdis has no texture coords!
-            // Vertex colors
-            glBindBuffer(GL_ARRAY_BUFFER, meshes[i].bufferObjects[COLOR_DATA]);
-            glColorPointer(4, GL_FLOAT, 0, 0);
-        }
-		glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind, fixes SFML Text display
     }
 
     j7Model(std::string filename) {
@@ -423,15 +404,10 @@ public:
     } // Load from filesystem
 
 	j7Model(q3BSP *bsp) { // Load from a BSP object
-		GLuint bufferID;
-        glGenBuffers(1, &bufferID);
         vao = makeVAO(&bsp->vertices, 0);
 
 		// Buffer the index data
 		for (unsigned i = 0; i < bsp->facesByTexture.size(); ++i) meshes.push_back(j7Mesh(bsp,i));
-
-		// Load the textures
-		importTextures(bsp);
 	}
 
 private:
@@ -442,73 +418,6 @@ private:
 
     // For meshes where the vertex data is shared for everything (BSP)
 	GLuint vao;
-
-    void bindtex(GLuint id) {
-      //  glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, id);
-    }
-    GLuint loadTexture(std::string filename) {
-        if (filename == "") {
-            std::cerr << "Texture name is null\n";
-            return 0;
-        }
-        if (fileExists(filename + ".jpg")) filename += ".jpg";
-        else if (fileExists(filename + ".tga")) filename += ".tga";
-        else if (fileExists(filename + ".png")) filename += ".png"; // QuakeLive uses some PNG textures
-        else {
-            std::cerr << "Unable to find texture file: " << filename << '\n';
-            return 0;
-        }
-
-        sf::Image texture;
-
-       // if (path.data[0] != '*') { // Texture is a file
-        if (!texture.loadFromFile(filename)) {
-            std::cerr << "Error loading texture file: " << filename << '\n';
-            return 0;
-        }
-
-        //}
-        /*
-        else { // Texture is internal
-            std::cout << "Loading internal texture\n";
-            unsigned id = atoi(&path.data[1]); // Get texture index from "path"
-            unsigned size;
-
-            if (scene->mTextures[id]->mHeight == 0) {
-                size = scene->mTextures[id]->mWidth; // Compressed texture
-                texture.loadFromMemory(reinterpret_cast<unsigned char*>(scene->mTextures[id]->pcData),size);
-            }
-
-            else {
-                std::cout << "Texture is NOT compressed (" << scene->mTextures[id]->mWidth << 'x' << scene->mTextures[id]->mHeight << "). Size: ";
-                size=scene->mTextures[id]->mWidth * scene->mTextures[id]->mHeight; // Number of texels
-                std::vector<unsigned char> texels;
-                for (int i=0; i< size; ++i) { // Convert aiTexel's ARGB8888 to SFML's RGBA8888
-                    aiTexel temp = scene->mTextures[id]->pcData[i]; //Get the texel
-                    rawTexture.push_back(temp.r);
-                    rawTexture.push_back(temp.g);
-                    rawTexture.push_back(temp.b);
-                    rawTexture.push_back(temp.a);
-                }
-            }
-        }
-         */
-        GLuint id = 0;
-        glGenTextures(1, &id);
-        glBindTexture(GL_TEXTURE_2D, id);
-		GLfloat largest_aniso;
-		// Enable anisotropic filtering
-		glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &largest_aniso);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, largest_aniso);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texture.getSize().x, texture.getSize().y, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.getPixelsPtr());
-		// Enable mipmapping
-		glGenerateMipmap(GL_TEXTURE_2D); // GL3.0
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        return id;
-
-    }
 
     void importTextures(q3BSP *bsp) {
         std::cout << "Loading textures...\n";
@@ -531,6 +440,9 @@ private:
 
 class j7Cam {
 public:
+	std::stack<glm::fmat4> modelviewMatrix;
+	std::stack<glm::fmat4> projectionMatrix;
+
 	j7Cam() {
 		//Initialize control settings
 		mouseSensitivity = 0.01f;
@@ -541,6 +453,10 @@ public:
 		angle = glm::fvec2(0,0);
 		//angle = glm::fvec2(float(M_PI), 0.0f); // ::TODO:: Face the other way
 		up = glm::fvec3(0.0f, 1.0f, 0.0f);
+
+		//Set our matrices to identity
+		projectionMatrix.push(glm::fmat4());
+		modelviewMatrix.push(glm::fmat4());
 	}
 
 	void update(sf::RenderWindow *window) {
@@ -591,6 +507,30 @@ public:
 		glm::vec3 pos255(pos.x * 255, pos.y * 255, pos.x * 255);
         return pos255;
     }
+
+	void adjustPerspective(sf::Vector2u windowsize, GLfloat fovy = 75.0f, GLfloat zNear = 0.1f, GLfloat zFar = 100.0f)
+	{
+		//Adjust drawing area & perspective on window resize
+		//::TODO:: This currently runs many times for one resize as the window border is dragged. Add throttling?
+		//::TODO:: Move into Camera class?
+
+#if defined(SFML_SYSTEM_WINDOWS) // Windows allows window height of 0, prevent div/0
+		if (windowsize.y == 0) ++windowsize.y;
+#endif
+		if (DISPLAYDEBUGOUTPUT)
+		{
+			std::cout << "Window resized to " << windowsize.x << "x" << windowsize.y << '\n';
+		}
+
+		glViewport(0, 0, windowsize.x, windowsize.y);
+
+		glMatrixMode(GL_PROJECTION);
+		projectionMatrix.pop();
+		projectionMatrix.push(glm::perspective<float>(glm::radians(fovy), GLfloat(windowsize.x) / windowsize.y, zNear, zFar));
+
+		glMatrixMode(GL_MODELVIEW);
+		// Don't need to change anything?
+	}
 
 private:
 	float mouseSensitivity;
@@ -710,5 +650,8 @@ GLenum loadShader(std::string filename, GLenum type) {
     }
     return shader;
 }
+
+
+
 
 #endif
