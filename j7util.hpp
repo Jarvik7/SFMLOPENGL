@@ -23,12 +23,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
 
-#include <assimp/Importer.hpp>	//For 3D model loading
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
-
-//#include <functional> // For hash
-//#include <Windows.h>
 #include "q3bsploader.h"
 
 // Not all compilers provide a definition for pi
@@ -101,11 +95,6 @@ GLuint loadTexture(std::string filename) {
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	return id;
-}
-
-inline float degtorad(float degrees) //Converts degrees to radians
-{
-	return float(degrees*M_PI/180.0f);
 }
 
 void getVarSizes() {
@@ -259,65 +248,9 @@ void generateMenu(sf::RenderWindow *window)
 
 class j7Mesh {
 public:
-	std::vector<GLfloat> vertices;
-	std::vector<GLfloat> normals;
-	std::vector<GLfloat> textureCoordinates;
-    std::vector<GLfloat> vertexColors;
     std::vector<GLuint> indices;
     unsigned materialIndex;
-    GLuint bufferObjects[5];
-
-    j7Mesh(aiMesh* mesh) {
-        materialIndex = mesh->mMaterialIndex;
-
-        if (mesh->HasNormals()) {
-            for (unsigned i = 0; i < mesh->mNumVertices; ++i) {
-                normals.push_back(mesh->mNormals[i].x);
-                normals.push_back(mesh->mNormals[i].y);
-                normals.push_back(mesh->mNormals[i].z);
-            }
-        }
-
-        if (mesh->HasPositions()) {
-            for (unsigned i = 0; i < mesh->mNumVertices; ++i) {
-                vertices.push_back(mesh->mVertices[i].x);
-                vertices.push_back(mesh->mVertices[i].y);
-                vertices.push_back(mesh->mVertices[i].z);
-            }
-        }
-
-        if (mesh->HasFaces()) {
-            for (unsigned i = 0; i < mesh->mNumFaces; ++i) {
-                for (unsigned j = 0; j < mesh->mFaces[i].mNumIndices; ++j) {
-                    indices.push_back(mesh->mFaces[i].mIndices[j]);
-                }
-            }
-        }
-
-        if (mesh->HasTextureCoords(0)) {
-            for (unsigned i = 0; i < mesh->mNumVertices; ++i) {
-                textureCoordinates.push_back(mesh->mTextureCoords[0][i].x);
-                textureCoordinates.push_back(1 - mesh->mTextureCoords[0][i].y);
-
-            }
-        }
-       else for (unsigned i = 0; i < mesh->mNumVertices; ++i) { // ::TODO:: How to handle a mesh with no uv?
-            textureCoordinates.push_back(0);
-            textureCoordinates.push_back(0);
-        }
-
-        if (mesh->HasVertexColors(0)) {
-            for (unsigned i=0; i < mesh->mNumVertices; ++i) {
-                vertexColors.push_back(mesh->mColors[0][i].r);
-                vertexColors.push_back(mesh->mColors[0][i].g);
-                vertexColors.push_back(mesh->mColors[0][i].b);
-                vertexColors.push_back(mesh->mColors[0][i].a);
-            }
-        }
-
-        makeVBO(); // ::TODO:: Make VBO generation dependent on passing a bool to constructor
-
-    }
+    GLuint bufferID;
 
 	j7Mesh(q3BSP *bsp, unsigned faceSetIndex) { // ::TODO:: Move vertex info into j7Model. Mesh should just have indices and texture id
 
@@ -327,34 +260,10 @@ public:
         for (auto& index : temp) { //For each index in this set
             indices.push_back(index);
         }
-
-        makeVBO(false); // Don't need objects for anything other than indices
+		glGenBuffers(1, &bufferID);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferID);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint)* indices.size(), indices.data(), GL_STATIC_DRAW);
 	}
-
-//private
-    void makeVBO(bool generateVertexBuffers=true) {
-        glGenBuffers(5, bufferObjects);
-        // Copy data to video memory
-        if (generateVertexBuffers) {
-            // Vertex data
-            glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[VERTEX_DATA]);
-            glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
-            // Normal data
-            glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[NORMAL_DATA]);
-            glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * normals.size(), normals.data(), GL_STATIC_DRAW);
-            // Texture coordinates
-            glBindBuffer(GL_ARRAY_BUFFER, bufferObjects[TEXTURE_DATA]);
-            glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * textureCoordinates.size(), textureCoordinates.data(), GL_STATIC_DRAW);
-            // Colors
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferObjects[COLOR_DATA]);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * vertexColors.size(), vertexColors.data(), GL_STATIC_DRAW);
-        }
-        // Indexes
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferObjects[INDEX_DATA]);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indices.size(), indices.data(), GL_STATIC_DRAW);
-
-    } // ::TODO:: Can we put directly into the buffer from the assimp structure without making arrays?
 };
 
 class j7Model {
@@ -366,7 +275,7 @@ public:
             for (unsigned i=0; i < meshes.size(); ++i) {
 				glBindTexture(GL_TEXTURE_2D, bsp->textureIDs[meshes[i].materialIndex]);
                 // Indexes
-                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes[i].bufferObjects[INDEX_DATA]);
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes[i].bufferID);
                 glDrawElements(GL_TRIANGLES, (GLsizei)meshes[i].indices.size(), GL_UNSIGNED_INT, 0); // Index 1 of trdis has no texture coords!
             }
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -380,29 +289,6 @@ public:
         }
     }
 
-    j7Model(std::string filename) {
-		vao=0; // We won't use a buffer object for the whole model
-		Assimp::Importer importer;
-		std::cout << "\nTrying to load mesh file: " << filename << '\n';
-		const aiScene *scene = importer.ReadFile(filename, aiProcessPreset_TargetRealtime_Quality);
-		if (!scene) {
-			std::cerr << "Failed to load mesh \"" << filename << "\"\n";
-			return; // Couldn't load mesh, abort
-		}
-
-        if (scene->HasMeshes()) for (unsigned i=0; i < scene->mNumMeshes; ++i) {
-            meshes.push_back(j7Mesh(scene->mMeshes[i]));
-        }
-		if (scene->HasMaterials()) importTextures(scene); // ::TODO:: Only supports external diffuse textures right now
-		/*if (scene->HasLights()) for (unsigned i=0; i< scene->mNumLights; ++i) {
-			lights.push_back(j7Light(scene->mLights[i]->mPosition,
-									scene->mLights[i]->mDirection,
-									scene->mLights[i]->mColorAmbient,
-									scene->mLights[i]->mColorDiffuse,
-									scene->mLights[i]->mColorSpecular));
-		}*/
-    } // Load from filesystem
-
 	j7Model(q3BSP *bsp) { // Load from a BSP object
         vao = makeVAO(&bsp->vertices, 0);
 
@@ -412,30 +298,7 @@ public:
 
 private:
     std::vector<j7Mesh> meshes;
-    std::vector<GLuint> textures; // Vector of texture IDs.
-    //std::vector<j7Light> lights;
-	//std::vector<j7Bone> bones; //::TODO::
-
-    // For meshes where the vertex data is shared for everything (BSP)
 	GLuint vao;
-
-    void importTextures(q3BSP *bsp) {
-        std::cout << "Loading textures...\n";
-		for (unsigned i = 0; i < bsp->textures.size(); ++i) textures.push_back(loadTexture(bsp->textures[i].name));
-    }
-
-    void importTextures(const aiScene *scene) {
-		std::vector<unsigned char> rawTexture;
-		for (unsigned i=0; i < scene->mNumMaterials; ++i)
-		{
-			aiString path;	// filename
-			if (scene->mMaterials[i]->GetTextureCount(aiTextureType_DIFFUSE) != 0) {
-				// Get path for diffuse texture
-				scene->mMaterials[i]->GetTexture(aiTextureType_DIFFUSE, 0, &path);
-			}
-			textures.push_back(loadTexture(path.data));
-		}
-    }
 };
 
 class j7Cam {

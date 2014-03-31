@@ -200,11 +200,11 @@ q3BSP::q3BSP(std::string filename) {
 	std::cout << "Lump 16: " << visData.n_vecs << " vectors @ " << visData.sz_vecs << " bytes each = " << visData.vecs.size() << " bytes of visdata.\n";
 
 
-	// Begin parsing
-
-	parseEntities(tempEntityString); // Parse entity string and populate vector of entities ::TODO:: Nothing is actually done with this data yet
+	// Begin working on data
+	// Lump 0
+	parseEntities(tempEntityString); // Parse entity string and populate vector of entities. Only spawnpoints, lights and music are read right now
 	
-	// Load textures into memory
+	// Load textures into memory and build vector of IDs. Note that at present this loads an empty texture for everything with a shader
 	for (auto& texture : textures) textureIDs.push_back(loadTexture(texture.name));
 
 	groupMeshByTexture(); // Sort faces into groups by texture id
@@ -222,9 +222,6 @@ void q3BSP::bindLightmaps() {
 		lightmapGLIDS.push_back(id);
 	}
 }
-
-
-
 
 std::vector<GLuint> q3BSP::getIndices(unsigned entry) {
 	std::vector<GLuint> temp; // A vector of lists of indices
@@ -266,7 +263,6 @@ void q3BSP::groupMeshByTexture() {
 	for (auto& face : faces) facesByTexture[face.texture].push_back(face);
     std::cout << "Faces sorted: " << faces.size() << " faces -> " << facesByTexture.size() << " meshes.\n";
 }
-
 
 void q3BSP::parseEntities(std::string entitystring) {
 	std::cout << "Parsing entities...\n";
@@ -393,13 +389,6 @@ void j7Bezier::tessellate(int L) {
 	vao = makeVAO(&vertex, &indices);
 }
 
-/*void derpthebez(BSPPatch patch) {
-	for (auto& bezier : patch.bezier) {// For each bezier in this patch
-	bezier.
-	
-	}
-}*/
-
 void j7Bezier::render() {
 	glBindVertexArray(vao);
     glMultiDrawElements(GL_TRIANGLE_STRIP, trianglesPerRow.data(), GL_UNSIGNED_INT, (const GLvoid**)rowIndices.data(), (GLsizei)trianglesPerRow.size());
@@ -442,21 +431,6 @@ void q3BSP::makeListofVisibleFaces(glm::vec3 position) {
         }
     }
 }
-
-/*void generateDrawList(std::vector<int>* visibleFaces) {
-	std::vector<std::vector<unsigned>> visibleIndices;
-	visibleIndices.resize(visibleFaces->size());
-	std::vector<unsigned> n_visibleIndices;
-	n_visibleIndices.resize(visibleFaces->size());
-	std::vector<BSPFace> faces; //temp
-	for (auto& face : *visibleFaces) {
-		BSPFace tempFace = faces[face];
-		n_visibleIndices[face] = faces[face].n_meshverts; // Set number of vertices for face #
-		for (int i = 0; i < faces[face].n_meshverts; ++i) {
-			visibleIndices[face].push_back(face.vertex + meshVerts[k + face.meshvert].offset);
-		}
-	}
-}*/
 
 void q3BSPrender(GLenum type, std::vector<std::vector<unsigned>>* visibleIndices, std::vector<unsigned>* n_visibleIndices) {
 	GLuint vao; // temp
