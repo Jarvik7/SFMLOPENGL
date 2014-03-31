@@ -401,7 +401,7 @@ public:
     glm::vec3 getCurrentPos() {
 		glm::mat4 view = glm::inverse(modelviewMatrix.top());
 		glm::vec4 pos = view[3];
-		std::cout << "Pos: " << pos.x << ',' << pos.y << ',' << pos.z << " Facing: " << angle.x << ".\n";
+		//std::cout << "Pos: " << pos.x << ',' << pos.y << ',' << pos.z << " Facing: " << angle.x << ".\n";
 		glm::vec3 pos255(pos.x * 255, pos.y * 255, pos.x * 255);
         return pos255;
     }

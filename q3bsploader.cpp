@@ -142,8 +142,9 @@ q3BSP::q3BSP(std::string filename) {
 	memcpy(leafs.data(),
 		&memblock[header.direntries[Leafs].offset],
 		header.direntries[Leafs].length);
+
     // Lump 5: Leaffaces
-	numEntries = header.direntries[Leaffaces].length / sizeof(BSPLeafFace);
+	numEntries = header.direntries[Leaffaces].length / sizeof(int);
 	std::cout << "Lump 5: " << numEntries << " leafface(s) found.\n";
 	leafFaces.resize(numEntries);
 	memcpy(leafFaces.data(),
@@ -425,21 +426,26 @@ bool q3BSP::isClusterVisible(int visCluster, int testCluster) {
    // if ((visData.vecs.size() == 0) || (visCluster < 0)) return true;
 
 	int i = (visCluster * visData.sz_vecs) + (testCluster >> 3);
-    long visSet = visData.vecs[i];
+    unsigned long visSet = visData.vecs[i];
 
     return (visSet & (1 << (testCluster & 7))) != 0;
 }
 
 std::vector<int> q3BSP::makeListofVisibleFaces(glm::vec3 position) {
     std::vector<int> visibleFaces;
+	std::vector<bool> temp; //Keep track of already added faces
+	temp.resize(faces.size());
     int currentLeaf = findCurrentLeaf(position);
     for (auto& leaf : leafs) {
-		if (isClusterVisible(currentLeaf, leaf.cluster)) { // If this leaf is visible
+		if (isClusterVisible(leaf.cluster, currentLeaf)) { // If this leaf is visible
 			for (int j = leaf.leafface; j < leaf.leafface + leaf.n_leaffaces; ++j) { // Then push all its faces to vector
-                visibleFaces.push_back(leafFaces[j].face);
+                if(!temp[leafFaces[j]]) visibleFaces.push_back(leafFaces[j]);
+				temp[leafFaces[j]] = true;
             }
         }
     }
+
+
 	return visibleFaces;
 }
 

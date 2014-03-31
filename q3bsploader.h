@@ -293,7 +293,7 @@ public:
 	std::vector<BSPPlane> planes; // Lump 2
 	std::vector<BSPNode> nodes; // Lump 3
 	std::vector<BSPLeaf> leafs; // Lump 4
-	std::vector<BSPLeafFace> leafFaces; // Lump 5
+	std::vector<int> leafFaces; // Lump 5
 	// Lump 6
 	// Lump 7
 	// Lump 8
