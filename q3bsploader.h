@@ -288,35 +288,49 @@ typedef struct {
 class q3BSP {
 public:
 	q3BSP(std::string filename);
-	std::vector<GLuint> getIndices(unsigned entry);
-    std::vector<std::vector<BSPFace>> facesByTexture;
-	std::vector<BSPVertex> vertices;
-	std::vector<BSPTexture> textures;
-	std::vector<BSPPatch> patches;
-	std::vector<BSPEntity> entities;
-	std::vector<BSPEffect> effects;
-	std::vector<BSPLightmap> lightmaps;
-	std::vector<GLuint> lightmapGLIDS;
-	std::vector<camPos> cameraPositions;
-	std::vector<lightPos> lightPositions;
-	std::vector<BSPPlane> planes;
-	std::vector<BSPNode> nodes;
-    std::vector<BSPLeaf> leafs;
-    std::vector<BSPLeafFace> leafFaces;
-	std::string worldMusic;
-	BSPVisData visData;
-	int findCurrentLeaf(glm::vec3 position);
-	bool isClusterVisible(int visCluster, int testCluster);
-    void makeListofVisibleFaces(glm::vec3 position);
-private:
+//private:
+	// Raw data from the BSP file
 	BSPHeader header;
-	std::vector<BSPMeshVert> meshVerts;
-	std::vector<BSPFace> faces;
-    void groupMeshByTexture();
-	void parseEntities(std::string entities);
-	void bindLightmaps();
-	BSPPatch dopatch(BSPFace face);
+	std::vector<BSPEntity> entities; // Lump 0
+	std::vector<BSPTexture> textures; // Lump 1
+	std::vector<BSPPlane> planes; // Lump 2
+	std::vector<BSPNode> nodes; // Lump 3
+	std::vector<BSPLeaf> leafs; // Lump 4
+	std::vector<BSPLeafFace> leafFaces; // Lump 5
+	// Lump 6
+	// Lump 7
+	// Lump 8
+	// Lump 9
+	std::vector<BSPVertex> vertices; // Lump 10
+	std::vector<BSPMeshVert> meshVerts; // Lump 11
+	std::vector<BSPEffect> effects; // Lump 12
+	std::vector<BSPFace> faces; // Lump 13
+	std::vector<BSPLightmap> lightmaps; // Lump 14
+	// Lump 15
+	BSPVisData visData; // Lump 16
 
+	// Functions for parsing BSP data and the processed data
+	// Lump 0
+	void parseEntities(std::string entities); // Take raw string of entities and make a vector of clauses
+	std::string worldMusic; // Music for the level ::TODO:: Intro music is not played
+	std::vector<camPos> cameraPositions; // Spawnpoints
+	std::vector<lightPos> lightPositions; // Lights
+
+	//Lump 4
+	int findCurrentLeaf(glm::vec3 position); // Finds what leaf the given position is in
+	bool isClusterVisible(int visCluster, int testCluster); // Determines if testCluster is visible from visCluster
+
+	//Lump 13
+	BSPPatch dopatch(BSPFace face);
+	void makeListofVisibleFaces(glm::vec3 position); // Generates a list of faces visible from position
+	std::vector<GLuint> getIndices(unsigned entry); // Generates indices
+	std::vector<std::vector<BSPFace>> facesByTexture; // All of the faces grouped by texture
+	std::vector<BSPPatch> patches; // Contains the tessellated faces
+
+    void groupMeshByTexture(); // Groups the faces by texture
+
+	void bindLightmaps(); // Not working yet
+	std::vector<GLuint> lightmapGLIDS;
 };
 
 GLuint makeVAO(std::vector<BSPVertex> *vertices, std::vector<GLuint> *indices);

@@ -306,8 +306,8 @@ public:
         materialIndex = 0;
         if (bsp->facesByTexture[faceSetIndex].size() != 0) materialIndex = bsp->facesByTexture[faceSetIndex][0].texture;
         std::vector<GLuint> temp = bsp->getIndices(faceSetIndex);
-        for (unsigned i = 0; i < temp.size(); ++i) { //For each index in this set
-            indices.push_back(temp[i]);
+        for (auto& index : temp) { //For each index in this set
+            indices.push_back(index);
         }
 
         makeVBO(false); // Don't need objects for anything other than indices

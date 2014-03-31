@@ -111,38 +111,29 @@ q3BSP::q3BSP(std::string filename) {
     // Lump 1: Textures
     unsigned numEntries = header.direntries[Textures].length / sizeof(BSPTexture);
     std::cout << "Lump 1: " << numEntries << " texture(s) found.\n";
-    textures.reserve(numEntries);
-    BSPTexture tempTexture;
-    for (unsigned i = 0; i < numEntries; ++i) {
-        memcpy(&tempTexture,
-               &memblock[header.direntries[Textures].offset + i * sizeof(BSPTexture)],
-               sizeof(BSPTexture));
-        textures.push_back(tempTexture);
-    }
+    textures.resize(numEntries);
+	memcpy(textures.data(),
+		&memblock[header.direntries[Textures].offset],
+		header.direntries[Textures].length);
+
     for (unsigned i = 0; i < textures.size(); ++i) std::cout << "  " << i << ':' << textures[i].name << '\n';
     
     // Lump 2: Planes
 	numEntries = header.direntries[Planes].length / sizeof(BSPPlane);
     std::cout << "Lump 2: " << numEntries << " plane(s) found.\n";
-    planes.reserve(numEntries);
-    BSPPlane tempPlane;
-    for (unsigned i = 0; i < numEntries; ++i) {
-        memcpy(&tempPlane,
-               &memblock[header.direntries[Planes].offset + i * sizeof(BSPPlane)],
-               sizeof(BSPPlane));
-        planes.push_back(tempPlane);
-    }   
+    planes.resize(numEntries);
+	memcpy(planes.data(),
+		&memblock[header.direntries[Planes].offset],
+		header.direntries[Planes].length);
+ 
     // Lump 3: Nodes
     numEntries = header.direntries[Nodes].length / sizeof(BSPNode);
     std::cout << "Lump 3: " << numEntries << " node(s) found.\n";
-    nodes.reserve(numEntries);
-    BSPNode tempNode;
-    for (unsigned i = 0; i < numEntries; ++i) {
-        memcpy(&tempNode,
-               &memblock[header.direntries[Nodes].offset + i * sizeof(BSPNode)],
-               sizeof(BSPNode));
-        nodes.push_back(tempNode);
-    }    
+    nodes.resize(numEntries);
+    memcpy(nodes.data(),
+		&memblock[header.direntries[Nodes].offset],
+		header.direntries[Nodes].length);
+  
     // Lump 4: Leafs
     
     // Lump 5: Leaffaces
@@ -158,56 +149,47 @@ q3BSP::q3BSP(std::string filename) {
     // Lump 10: Vertexes
     numEntries = header.direntries[Vertexes].length / sizeof(BSPVertex);
     std::cout << "Lump 10: " << numEntries << " vertex(es) found.\n";
-    vertices.reserve(numEntries);
-    BSPVertex tempVertex;
-    for (unsigned i = 0; i < numEntries; ++i) {
-        memcpy(&tempVertex,
-               &memblock[header.direntries[Vertexes].offset + i * sizeof(BSPVertex)],
-               sizeof(BSPVertex));
-        vertices.push_back(tempVertex);
-    }
+    vertices.resize(numEntries);
+    memcpy(vertices.data(),
+		&memblock[header.direntries[Vertexes].offset],
+		header.direntries[Vertexes].length);
 	
     // Lump 11: Meshverts
     numEntries = header.direntries[Meshverts].length / sizeof(BSPMeshVert);
     std::cout << "Lump 11: " << numEntries << " Meshvert(s) found.\n";
-    meshVerts.reserve(numEntries);
+    meshVerts.resize(numEntries);
 	memcpy(meshVerts.data(),
-               &memblock[header.direntries[Meshverts].offset],
-               header.direntries[Meshverts].length);
+		&memblock[header.direntries[Meshverts].offset],
+		header.direntries[Meshverts].length);
     
     // Lump 12: Effects
 	numEntries = header.direntries[Effects].length / sizeof(BSPEffect);
 	std::cout << "Lump 12: " << numEntries << " effects(s) found.\n";
 	effects.reserve(numEntries);
 	memcpy(effects.data(),
-               &memblock[header.direntries[Effects].offset],
-               header.direntries[Effects].length);
+		&memblock[header.direntries[Effects].offset],
+		header.direntries[Effects].length);
     
     // Lump 13: Faces
     numEntries = header.direntries[Faces].length / sizeof(BSPFace);
     std::cout << "Lump 13: " << numEntries << " face(s) found.\n";
-    faces.reserve(numEntries);
-    BSPFace tempFace;
-    for (unsigned i = 0; i < numEntries; ++i) {
-        memcpy(&tempFace,
-               &memblock[header.direntries[Faces].offset + i * sizeof(BSPFace)],
-               sizeof(BSPFace));
-        faces.push_back(tempFace);
-    }
+    faces.resize(numEntries);
+    memcpy(faces.data(),
+		&memblock[header.direntries[Faces].offset],
+		header.direntries[Faces].length);
+
     groupMeshByTexture(); // Sort faces into groups by texture id
 
     // Lump 14: Lightmaps
 	numEntries = header.direntries[Lightmaps].length / sizeof(BSPLightmap);
 	std::cout << "Lump 14: " << numEntries << " lightmap(s) found.\n";
-    BSPLightmap tempLightmap;
-	for (unsigned i = 0; i < numEntries; ++i) {
-		memcpy(&tempLightmap,
-				&memblock[header.direntries[Lightmaps].offset + i * sizeof(BSPLightmap)],
-				sizeof(BSPLightmap));
-		lightmaps.push_back(tempLightmap);
-	}
+	lightmaps.resize(numEntries);
+	memcpy(lightmaps.data(),
+		&memblock[header.direntries[Lightmaps].offset],
+		header.direntries[Lightmaps].length);
 	bindLightmaps();
-    // Lump 15: Lightvols
+    
+	// Lump 15: Lightvols
     
     // Lump 16: Visdata
 	memcpy(&visData,
@@ -233,24 +215,28 @@ void q3BSP::bindLightmaps() {
 	}
 }
 
+
+
+
 std::vector<GLuint> q3BSP::getIndices(unsigned entry) {
+	std::vector<GLuint> temp; // A vector of lists of indices
 	if (facesByTexture[entry].size() == 0) {
 		std::cerr << " No faces found for group " << entry << ".\n";
-		return std::vector<GLuint>(); // No meshes for this texture, return empty vector
+		return temp; // No meshes for this texture, return empty vector
 	}
-	std::vector<GLuint> temp; // A vector of lists of indices
-	for (unsigned i = 0; i < facesByTexture[entry].size(); ++i) { // for each face in set
-		switch(facesByTexture[entry][i].type) {
+
+	for (auto& face : facesByTexture[entry]) { // for each face in set
+		switch (face.type) {
 		case 1:	// Polygons
 		case 3:	// Meshes
-			for (int k = 0; k < facesByTexture[entry][i].n_meshverts; ++k) { // For each meshvert in face
-				GLuint value = facesByTexture[entry][i].vertex + meshVerts[k + facesByTexture[entry][i].meshvert].offset;
+			for (int k = 0; k < face.n_meshverts; ++k) { // For each meshvert in face
+				GLuint value = face.vertex + meshVerts[k + face.meshvert].offset;
 				temp.push_back(value);
 			}
 			break;
 
 		case 2:	// Patches
-			patches.push_back(dopatch(facesByTexture[entry][i]));
+			patches.push_back(dopatch(face));
 			break;
 	
 		case 4:	// Billboards, skip
@@ -258,7 +244,7 @@ std::vector<GLuint> q3BSP::getIndices(unsigned entry) {
 			break;
 
 		default: // Unknown type, skip
-			std::cerr << "Unknown face type: " << facesByTexture[entry][0].type << '\n';
+			std::cerr << "Unknown face type: " << face.type << '\n';
 			break;
 		}
 	}
@@ -269,7 +255,7 @@ void q3BSP::groupMeshByTexture() {
     //The index for the face = the texture index
 	//There are other ways to render the right texture for the face, but sorting them enables the number of texture swaps to be limited.
     facesByTexture.resize(textures.size()); // Reserve 1 entry per texture
-    for (unsigned i = 0; i < faces.size(); ++i) facesByTexture[faces[i].texture].push_back(faces[i]);
+	for (auto& face : faces) facesByTexture[face.texture].push_back(face);
     std::cout << "Faces sorted: " << faces.size() << " faces -> " << facesByTexture.size() << " meshes.\n";
 }
 
@@ -392,11 +378,18 @@ void j7Bezier::tessellate(int L) {
         rowIndices[row] = row * 2 * L1 * sizeof(GLuint);
     }
     //Normalize the normals
-	for (unsigned i = 0; i < vertex.size(); ++i) {
-		vertex[i].normal = glm::normalize(vertex[i].normal);
+	for (auto& vert : vertex) {
+		vert.normal = glm::normalize(vert.normal);
 	}
 	vao = makeVAO(&vertex, &indices);
 }
+
+/*void derpthebez(BSPPatch patch) {
+	for (auto& bezier : patch.bezier) {// For each bezier in this patch
+	bezier.
+	
+	}
+}*/
 
 void j7Bezier::render() {
 	glBindVertexArray(vao);
@@ -432,13 +425,34 @@ bool q3BSP::isClusterVisible(int visCluster, int testCluster) {
 void q3BSP::makeListofVisibleFaces(glm::vec3 position) {
     std::vector<int> visibleFaces;
     int currentLeaf = findCurrentLeaf(position);
-    for (unsigned i = 0; i < leafs.size(); ++i) {
-        if (isClusterVisible(currentLeaf, leafs[i].cluster)) { // If this leaf is visible
-            for (int j = leafs[i].leafface; j < leafs[i].leafface + leafs[i].n_leaffaces; ++j) { // Then push all its faces to vector
+    for (auto& leaf : leafs) {
+		if (isClusterVisible(currentLeaf, leaf.cluster)) { // If this leaf is visible
+			for (int j = leaf.leafface; j < leaf.leafface + leaf.n_leaffaces; ++j) { // Then push all its faces to vector
                 visibleFaces.push_back(leafFaces[j].face);
             }
         }
     }
-
-
 }
+
+/*void generateDrawList(std::vector<int>* visibleFaces) {
+	std::vector<std::vector<unsigned>> visibleIndices;
+	visibleIndices.resize(visibleFaces->size());
+	std::vector<unsigned> n_visibleIndices;
+	n_visibleIndices.resize(visibleFaces->size());
+	std::vector<BSPFace> faces; //temp
+	for (auto& face : *visibleFaces) {
+		BSPFace tempFace = faces[face];
+		n_visibleIndices[face] = faces[face].n_meshverts; // Set number of vertices for face #
+		for (int i = 0; i < faces[face].n_meshverts; ++i) {
+			visibleIndices[face].push_back(face.vertex + meshVerts[k + face.meshvert].offset);
+		}
+	}
+}*/
+
+void q3BSPrender(GLenum type, std::vector<std::vector<unsigned>>* visibleIndices, std::vector<unsigned>* n_visibleIndices) {
+	GLuint vao; // temp
+	glBindVertexArray(vao); // Bind vao of all vertex data
+	glMultiDrawElements(type, (GLsizei*)n_visibleIndices->data(), GL_UNSIGNED_INT, (const GLvoid**)visibleIndices->data(), (GLsizei)n_visibleIndices->size());
+	glBindVertexArray(0);
+}
+
