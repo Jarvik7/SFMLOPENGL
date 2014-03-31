@@ -103,12 +103,15 @@ int main(int argc, const char * argv[])
     window.setVerticalSyncEnabled(vsync);
 
     sf::Vector2u windowsize = window.getSize();
+	bool mouseLock = false;
+	if (mouseLock) sf::Mouse::setPosition(sf::Vector2i(windowsize.x / 2, windowsize.y / 2), window);
 	j7Cam camera;
-	unsigned campos = 1;
+	camera.adjustPerspective(windowsize);
+
 
     // Initialize the OpenGL state
     if (!initGL()) return EXIT_FAILURE; // Exit, GLew failed.
-    camera.adjustPerspective(windowsize);
+
 
     //Display debug info about graphics
     if (DISPLAYDEBUGOUTPUT) {
@@ -140,8 +143,7 @@ int main(int argc, const char * argv[])
     bool showfps = true;
 	short modelno=0;
 	
-	bool mouseLock=false;
-	if (mouseLock) sf::Mouse::setPosition(sf::Vector2i(windowsize.x / 2, windowsize.y / 2), window);
+
 
     shaderID = glCreateProgram();
     GLenum vertshader = loadShader("texture.vert", GL_VERTEX_SHADER);
@@ -161,7 +163,7 @@ int main(int argc, const char * argv[])
     }
 
 	//Load our mesh
-    q3BSP test("maps/q3tourney2.bsp");
+    q3BSP test("maps/q3dm1.bsp");
 	j7Model quake3(&test);
 
 	if (music.openFromFile(test.worldMusic))
@@ -175,13 +177,15 @@ int main(int argc, const char * argv[])
     GLenum glerror = GL_NO_ERROR;
 	GLint projectionViewLoc = glGetUniformLocation(shaderID, "projectionview");
 	GLint modelViewLoc = glGetUniformLocation(shaderID, "modelview");
-	//camera.goTo(test.cameraPositions[campos].origin, test.cameraPositions[campos].angle);
+
+	unsigned campos = 1;
+	camera.goTo(test.cameraPositions[campos].origin, test.cameraPositions[campos].angle);
     // Begin game loop
     while (!gameover)
     {
         glerror = glGetError();
         if (glerror != GL_NO_ERROR) std::cerr << "OpenGL ERROR: " << glerror << '\n';
-        glClear(/*GL_COLOR_BUFFER_BIT | */GL_DEPTH_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glUseProgram(shaderID);
 
@@ -192,7 +196,7 @@ int main(int argc, const char * argv[])
 		// Send our view matrices to shader
 		glUniformMatrix4fv(projectionViewLoc, 1, GL_FALSE, &camera.projectionMatrix.top()[0][0]);
 		glUniformMatrix4fv(modelViewLoc, 1, GL_FALSE, &view[0][0]);
-        //test.makeListofVisibleFaces(camera.getCurrentPos());
+
 		quake3.drawVBO(&test); // Render the BSP
 
         //if (showfps) showFPS(&window); // Display the FPS
@@ -228,7 +232,7 @@ int main(int argc, const char * argv[])
                             break;
 
 						case key_respawn:
-							campos++;
+							++campos;
 							if (campos > test.cameraPositions.size()-1) campos=0;
 							camera.goTo(test.cameraPositions[campos].origin, test.cameraPositions[campos].angle);
 							break;
@@ -249,7 +253,7 @@ int main(int argc, const char * argv[])
 							}
 
 						case key_toggle_model:
-							modelno=(modelno+1)%3;
+							modelno = (modelno + 1) % 3;
 							break;
 
 						case key_toggle_culling:
@@ -380,17 +384,4 @@ int main(int argc, const char * argv[])
     return EXIT_SUCCESS;
 }
 
-
-
-/*
-Deprecated stuff I've already learned:
--Immediate drawing (glBegin, glEnd)
--Fixed function drawing (glVertex, glNormal, etc.)
--GL_QUADS
--Display lists
-
-
-
-
-*/
 

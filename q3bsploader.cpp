@@ -439,3 +439,22 @@ void q3BSPrender(GLenum type, std::vector<std::vector<unsigned>>* visibleIndices
 	glBindVertexArray(0);
 }
 
+typedef struct {
+	GLenum type;
+	unsigned indexOffset;
+	unsigned indexCount;
+	GLuint textureID;
+} derpface;
+
+void derpthefaces() {
+	std::vector<BSPFace> faces; // temp
+	std::vector<derpface> drawFaces;
+	derpface temp;
+
+	for (auto& face : faces) { // For each face
+		temp.type = face.type;
+		temp.textureID = face.texture;
+
+	}
+}
+

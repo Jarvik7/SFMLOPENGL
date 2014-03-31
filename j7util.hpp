@@ -252,7 +252,7 @@ public:
     unsigned materialIndex;
     GLuint bufferID;
 
-	j7Mesh(q3BSP *bsp, unsigned faceSetIndex) { // ::TODO:: Move vertex info into j7Model. Mesh should just have indices and texture id
+	j7Mesh(q3BSP *bsp, unsigned faceSetIndex) {
 
         materialIndex = 0;
         if (bsp->facesByTexture[faceSetIndex].size() != 0) materialIndex = bsp->facesByTexture[faceSetIndex][0].texture;
@@ -268,8 +268,7 @@ public:
 
 class j7Model {
 public:
-    void drawVBO(q3BSP *bsp) { // Indexed VBO
-		//::TODO:: The lighting looks as if it is using a face normal instead of a vertex normal - is screwed up
+    void drawVBO(q3BSP *bsp) {
         if (vao != 0) {
 			glBindVertexArray(vao);
             for (unsigned i=0; i < meshes.size(); ++i) {
@@ -293,12 +292,14 @@ public:
         vao = makeVAO(&bsp->vertices, 0);
 
 		// Buffer the index data
+
 		for (unsigned i = 0; i < bsp->facesByTexture.size(); ++i) meshes.push_back(j7Mesh(bsp,i));
 	}
 
 private:
     std::vector<j7Mesh> meshes;
 	GLuint vao;
+	GLuint ibo;
 };
 
 class j7Cam {
