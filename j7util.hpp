@@ -138,7 +138,7 @@ void adjustPerspective(sf::Vector2u windowsize, GLfloat fovy = 75.0f, GLfloat zN
 {
     //Adjust drawing area & perspective on window resize
     //::TODO:: This currently runs many times for one resize as the window border is dragged. Add throttling?
-    //::TODO:: Make into an object?
+    //::TODO:: Move into Camera class?
 
 #if defined(SFML_SYSTEM_WINDOWS) // Windows allows window height of 0, prevent div/0
     if (windowsize.y == 0) ++windowsize.y;
@@ -577,16 +577,20 @@ public:
 	}
 
 	void printPos(q3BSP *bsp) {
-		glm::mat4 view = glm::inverse(modelviewMatrix.top());
-		glm::vec4 pos = view[3];
-		std::cout << "Pos: " << pos.x << ',' << pos.y << ',' << pos.z << " Facing: " << angle.x << ".\n";
-		glm::vec3 pos255(pos.x * 255, pos.y * 255, pos.x * 255);
+		glm::vec3 pos255 = getCurrentPos();
 		if (bsp != 0) {
 			int currleaf = bsp->findCurrentLeaf(pos255);
 			std::cout << "Current leaf: " << currleaf << ".\n";
 			std::cout << "Is 3339 visible? " << bsp->isClusterVisible(currleaf, 3339) << '\n';
 		}
 	}
+    glm::vec3 getCurrentPos() {
+		glm::mat4 view = glm::inverse(modelviewMatrix.top());
+		glm::vec4 pos = view[3];
+		std::cout << "Pos: " << pos.x << ',' << pos.y << ',' << pos.z << " Facing: " << angle.x << ".\n";
+		glm::vec3 pos255(pos.x * 255, pos.y * 255, pos.x * 255);
+        return pos255;
+    }
 
 private:
 	float mouseSensitivity;
@@ -611,7 +615,7 @@ private:
 		center.y = eye.y + sin(angle.y);
 		center.z = eye.z + cos(angle.x) * cos(angle.y);
 
-		//Push camera matrix to GL
+		//Update the modelview matrix
         modelviewMatrix.pop();
         modelviewMatrix.push(glm::lookAt(eye, center, up));
 	}
@@ -649,10 +653,12 @@ private:
 			// ::TODO:: Enable this to be toggled to flightsim-style camera control
 			if (angle.y >= 1.57) angle.y = 1.57f;
 			else if (angle.y <= -1.57) angle.y = -1.57f;
-			float fullcircle = (float)glm::radians(360.0);
-			// Keep x angle between -360 to 360 degrees
+
+			// Cap horizotal angle to +/- 360 degrees to avoid possible overflow
+            float fullcircle = glm::radians(360.0f);
 			if (angle.x >= fullcircle) angle.x -= fullcircle;
 			else if (angle.x <= -fullcircle) angle.x += fullcircle;
+
 			// Reset cursor to center of screen
 			sf::Mouse::setPosition(sf::Vector2i(windowsize.x / 2, windowsize.y / 2), *window);
 		}
@@ -681,29 +687,24 @@ GLenum loadShader(std::string filename, GLenum type) {
     GLenum shader = glCreateShader(type);
     glShaderSource(shader, 1, (const GLchar**)&shaderStringPointer, NULL);
 
+    std::cout << "Trying to compile.\n";
     glCompileShader(shader);
     // Compile and check
     GLint shaderCompiled = GL_FALSE;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &shaderCompiled);
     if (shaderCompiled == false)
     {
-        std::cerr << "ERROR: Vertex shader not compiled properly.\n";
+        std::cerr << "ERROR: shader not compiled properly.\n";
 		std::cerr << "Shader type: " << type << ".\n";
 
-        GLint blen = 0;
-        GLsizei slen = 0;
+        GLint maxLength = 0;
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH , &maxLength);
+        std::string infoLog;
+        infoLog.reserve(maxLength);
+        glGetShaderInfoLog(shader, maxLength, &maxLength, &infoLog[0]);
+        std::cout << "Compiler log: " << infoLog << "\n:ENDLOG:\n";
 
-        glGetShaderiv(shader, GL_INFO_LOG_LENGTH , &blen);
-        if (blen > 1) {
-            GLchar* compiler_log = new GLchar[blen];
-            glGetInfoLogARB(shader, blen, &slen, compiler_log);
-            fprintf(stderr, "compiler log:\n %s", compiler_log);
-            delete [] compiler_log;
-        }
-    }
-    if (shaderCompiled != GL_TRUE) {
-        std::cout << "!!! " << shaderCompiled << " !!!\n";
-      //  printf( "Unable to compile shader %d!\n\nSource:\n%s\n", shader, shaderStringPointer );
+        //Cleanup
         glDeleteShader(shader);
         shader = 0;
     }

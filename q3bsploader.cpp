@@ -31,6 +31,8 @@ X) Our early exits are leaking the memblock array? Convert to a vector?
 
 #include "q3bsploader.h"
 
+extern GLuint shaderID;
+
 GLuint makeVAO(std::vector<BSPVertex> *vertices, std::vector<GLuint> *indices) {
 	GLuint vao;
 	glGenVertexArrays(1, &vao);
@@ -50,20 +52,24 @@ GLuint makeVAO(std::vector<BSPVertex> *vertices, std::vector<GLuint> *indices) {
     glBufferData(GL_ARRAY_BUFFER, vertices->size() * sizeof(BSPVertex), vertices->data(), GL_STATIC_DRAW);
 
     //Position
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, position));
+    GLint attribLoc = glGetAttribLocation(shaderID, "position");
+    glEnableVertexAttribArray(attribLoc);
+    glVertexAttribPointer(attribLoc, 3, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, position));
 
 	//Texture coordinates
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, texcoord));    
+    attribLoc = glGetAttribLocation(shaderID, "texcoord");
+    glEnableVertexAttribArray(attribLoc);
+    glVertexAttribPointer(attribLoc, 2, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, texcoord));
 
 	//Normals
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, normal));
+    attribLoc = glGetAttribLocation(shaderID, "normal");
+    glEnableVertexAttribArray(attribLoc);
+    glVertexAttribPointer(attribLoc, 3, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, normal));
 
 	//Colors
-    glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 4, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, color));
+    attribLoc = glGetAttribLocation(shaderID, "color");
+    glEnableVertexAttribArray(attribLoc);
+    glVertexAttribPointer(attribLoc, 4, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, color));
 
 	//Unbind
 	glBindVertexArray(0);
@@ -421,4 +427,18 @@ bool q3BSP::isClusterVisible(int visCluster, int testCluster) {
     long visSet = visData.vecs[i];
 
     return (visSet & (1 << (testCluster & 7))) != 0;
+}
+
+void q3BSP::makeListofVisibleFaces(glm::vec3 position) {
+    std::vector<int> visibleFaces;
+    int currentLeaf = findCurrentLeaf(position);
+    for (unsigned i = 0; i < leafs.size(); ++i) {
+        if (isClusterVisible(currentLeaf, leafs[i].cluster)) { // If this leaf is visible
+            for (int j = leafs[i].leafface; j < leafs[i].leafface + leafs[i].n_leaffaces; ++j) { // Then push all its faces to vector
+                visibleFaces.push_back(leafFaces[j].face);
+            }
+        }
+    }
+
+
 }

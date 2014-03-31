@@ -69,7 +69,7 @@ bool initGL()
     glDepthFunc(GL_LEQUAL);                         // The Type Of Depth Testing To Do
 	glFrontFace(GL_CW);							// Quake3 uses CW for frontface
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-
+    glewExperimental = true;
 	if (glewInit()) {
 		std::cerr << "Error: Couldn't initialize GLEW.\n";
 		return false;
@@ -184,7 +184,7 @@ int main(int argc, const char * argv[])
     {
         glerror = glGetError();
         if (glerror != GL_NO_ERROR) std::cerr << "OpenGL ERROR: " << glerror << '\n';
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClear(/*GL_COLOR_BUFFER_BIT | */GL_DEPTH_BUFFER_BIT);
 
         glUseProgram(shaderID);
 
@@ -195,10 +195,10 @@ int main(int argc, const char * argv[])
 		// Send our view matrices to shader
 		glUniformMatrix4fv(projectionViewLoc, 1, GL_FALSE, &projectionMatrix.top()[0][0]);
 		glUniformMatrix4fv(modelViewLoc, 1, GL_FALSE, &view[0][0]);
-
+        //test.makeListofVisibleFaces(camera.getCurrentPos());
 		quake3.drawVBO(&test); // Render the BSP
 
-        if (showfps) showFPS(&window); // Display the FPS
+        //if (showfps) showFPS(&window); // Display the FPS
 
         window.display();
 

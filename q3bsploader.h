@@ -301,10 +301,13 @@ public:
 	std::vector<lightPos> lightPositions;
 	std::vector<BSPPlane> planes;
 	std::vector<BSPNode> nodes;
+    std::vector<BSPLeaf> leafs;
+    std::vector<BSPLeafFace> leafFaces;
 	std::string worldMusic;
 	BSPVisData visData;
 	int findCurrentLeaf(glm::vec3 position);
 	bool isClusterVisible(int visCluster, int testCluster);
+    void makeListofVisibleFaces(glm::vec3 position);
 private:
 	BSPHeader header;
 	std::vector<BSPMeshVert> meshVerts;

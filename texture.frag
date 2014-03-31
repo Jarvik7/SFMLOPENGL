@@ -1,4 +1,4 @@
-#version 130
+#version 330
 
 in vec4 outColor;
 in vec2 outTexcoord;
@@ -10,7 +10,7 @@ out vec4 fragcolor;
 
 void main()
 {
-    vec4 texColor = texture2D(tex, outTexcoord); // Get texel for this frag
+    vec4 texColor = texture(tex, outTexcoord); // Get texel for this frag
     fragcolor = outColor * texColor * (1.0/255); // Multiply texel by interpolated vertex color and dampen
 	// Why is the 0.01 needed to adjust brightness? It wasn't the case when using glColorPointer
 	// It's pretty close to 1/255, suggesting that something is a char instead of a float.
