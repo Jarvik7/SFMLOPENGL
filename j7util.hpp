@@ -275,8 +275,8 @@ public:
             for (unsigned i=0; i < visiblefaces.size(); ++i) {
 				if (bsp->faces[visiblefaces[i]].type == 1 || bsp->faces[i].type == 3) {
 					glBindTexture(GL_TEXTURE_2D, bsp->textureIDs[bsp->faces[visiblefaces[i]].texture]);
-					glDrawElements(GL_TRIANGLES, sizes[visiblefaces[i]], GL_UNSIGNED_INT, (const GLvoid*)(offsets[visiblefaces[i]] * sizeof(GLuint))); // Index 1 of trdis has no texture coords!
-				}
+					glDrawElements(GL_TRIANGLES, sizes[visiblefaces[i]], GL_UNSIGNED_INT, (const GLvoid*)(offsets[visiblefaces[i]] * sizeof(GLuint)));
+                }
             }
 			glBindVertexArray(0);
 			for (unsigned i = 0; i < bsp->patches.size(); ++i) { // For every patch
@@ -380,9 +380,9 @@ public:
 
 	void goTo(glm::fvec3 origin, float viewangle) {
 		eye.x = origin.x;
-		eye.y = origin.z+.05f; // Offset for player eye height
+		eye.y = origin.z + .102f; // Offset for player eye height (26 in byte)
 		eye.z = -origin.y;
-		angle.x = viewangle - 1;
+		angle.x = viewangle;
 		angle.y = 0;
 		move();
 		std::cout << "Teleporting: ";
@@ -392,9 +392,11 @@ public:
 
 	void printPos(q3BSP *bsp) {
 		glm::vec3 pos255 = getCurrentPos();
+        std::cout << "Pos: " << pos255.x << ',' << pos255.y << ',' << pos255.z << " Angle: " << angle.x << '\n';
 		if (bsp != 0) {
 			int currleaf = bsp->findCurrentLeaf(pos255);
-			std::cout << "Current leaf: " << currleaf << ".\n";
+
+			std::cout << "Current leaf: " << bsp->leafs[currleaf].cluster << ".\n";
 			std::cout << "Is 1612 visible? " << bsp->isClusterVisible(1612, currleaf) << '\n';
 		}
 	}
@@ -402,7 +404,7 @@ public:
 		glm::mat4 view = glm::inverse(modelviewMatrix.top());
 		glm::vec4 pos = view[3];
 		//std::cout << "Pos: " << pos.x << ',' << pos.y << ',' << pos.z << " Facing: " << angle.x << ".\n";
-		glm::vec3 pos255(pos.x * 255, pos.y * 255, pos.x * 255);
+		glm::vec3 pos255(pos.x * 255, pos.z * -255, pos.y * 255);
         return pos255;
     }
 

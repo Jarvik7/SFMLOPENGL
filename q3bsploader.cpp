@@ -277,6 +277,7 @@ void q3BSP::groupMeshByTexture() {
 
 void q3BSP::parseEntities(std::string entitystring) {
 	std::cout << "Parsing entities...\n";
+	std::cout << sizeof(short) << "SHORT.\n";
 	unsigned long open = entitystring.find_first_of('{', 0);
 	unsigned long close = 0;
 
@@ -409,11 +410,10 @@ void j7Bezier::render() {
 int q3BSP::findCurrentLeaf(glm::vec3 position) {
     int index = 0;
     while (index >= 0) {
-        const BSPNode&  node  = nodes[index];
+        const BSPNode& node = nodes[index];
         const BSPPlane& plane = planes[node.plane];
-
         // Distance from point to a plane
-        const double distance = glm::dot(plane.normal, position) - plane.distance;
+        const double distance = glm::dot(position, plane.normal) - plane.distance;
 
         if (distance >= 0)  index = node.children[0];
         else index = node.children[1];
@@ -421,14 +421,18 @@ int q3BSP::findCurrentLeaf(glm::vec3 position) {
     return -index - 1;
 }
 
-bool q3BSP::isClusterVisible(int visCluster, int testCluster) {
+bool q3BSP::isClusterVisible(int testCluster, int visCluster) {
 	//Sanity check
    // if ((visData.vecs.size() == 0) || (visCluster < 0)) return true;
 
-	int i = (visCluster * visData.sz_vecs) + (testCluster >> 3);
-    unsigned long visSet = visData.vecs[i];
+	//int i = (visCluster * visData.sz_vecs) + (testCluster >> 3);
+   // unsigned long visSet = visData.vecs[i];
 
-    return (visSet & (1 << (testCluster & 7))) != 0;
+  //  return (visSet & (1 << (testCluster & 7))) != 0;
+
+	if (visData.vecs[(testCluster >> 3)+(visCluster*visData.sz_vecs)] & (1 << (testCluster & 7))) return true;
+	return false;
+
 }
 
 std::vector<int> q3BSP::makeListofVisibleFaces(glm::vec3 position) {
@@ -437,10 +441,10 @@ std::vector<int> q3BSP::makeListofVisibleFaces(glm::vec3 position) {
 	temp.resize(faces.size());
     int currentLeaf = findCurrentLeaf(position);
     for (auto& leaf : leafs) {
-		if (isClusterVisible(leaf.cluster, currentLeaf)) { // If this leaf is visible
+		if (isClusterVisible(leaf.cluster, leafs[currentLeaf].cluster)) { // If this leaf is visible
 			for (int j = leaf.leafface; j < leaf.leafface + leaf.n_leaffaces; ++j) { // Then push all its faces to vector
-                if(!temp[leafFaces[j]]) visibleFaces.push_back(leafFaces[j]);
-				temp[leafFaces[j]] = true;
+                visibleFaces.push_back(leafFaces[j]);
+               // std::cout << "Visible faces size : " << visibleFaces.size() << '\n';
             }
         }
     }
@@ -449,29 +453,6 @@ std::vector<int> q3BSP::makeListofVisibleFaces(glm::vec3 position) {
 	return visibleFaces;
 }
 
-void q3BSPrender(GLenum type, std::vector<std::vector<unsigned>>* visibleIndices, std::vector<unsigned>* n_visibleIndices) {
-	GLuint vao; // temp
-	glBindVertexArray(vao); // Bind vao of all vertex data
-	glMultiDrawElements(type, (GLsizei*)n_visibleIndices->data(), GL_UNSIGNED_INT, (const GLvoid**)visibleIndices->data(), (GLsizei)n_visibleIndices->size());
-	glBindVertexArray(0);
-}
 
-typedef struct {
-	GLenum type;
-	unsigned indexOffset;
-	unsigned indexCount;
-	GLuint textureID;
-} derpface;
 
-void derpthefaces() {
-	std::vector<BSPFace> faces; // temp
-	std::vector<derpface> drawFaces;
-	derpface temp;
-
-	for (auto& face : faces) { // For each face
-		temp.type = face.type;
-		temp.textureID = face.texture;
-
-	}
-}
 

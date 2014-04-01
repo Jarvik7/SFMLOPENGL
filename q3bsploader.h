@@ -137,7 +137,7 @@ public:
 		if (input.pair["classname"] != "info_player_deathmatch") return; // Not a spawnpoint
 		origin = input.getVector("origin");
 
-		angle = (float)(atof(input.pair["angle"].c_str()))/255.0f;
+		angle = (float)glm::radians(atof(input.pair["angle"].c_str()) - 270); // Why 270? is it because of swizzling? is this why culling is broken?
 	}
 };
 
@@ -279,7 +279,7 @@ typedef struct {
 typedef struct {
 	int n_vecs;
 	int sz_vecs;
-	std::vector<unsigned short> vecs;
+	std::vector<unsigned char> vecs;
 }BSPVisData; // Lump 16
 
 class q3BSP {
