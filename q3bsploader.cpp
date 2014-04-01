@@ -235,7 +235,6 @@ void q3BSP::bindLightmaps() {
 
 void q3BSP::parseEntities(std::string entitystring) {
 	std::cout << "Parsing entities...\n";
-	std::cout << sizeof(short) << "SHORT.\n";
 	unsigned long open = entitystring.find_first_of('{', 0);
 	unsigned long close = 0;
 

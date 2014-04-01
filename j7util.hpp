@@ -32,15 +32,6 @@
 
 extern GLuint shaderID;
 
-// Handles for VBO
-enum BUFFERTYPES {
-	VERTEX_DATA=0,
-	NORMAL_DATA,
-	TEXTURE_DATA,
-	INDEX_DATA,
-    COLOR_DATA
-};
-
 const bool DISPLAYDEBUGOUTPUT = true;
 
 //Camera control/movement keys
@@ -167,39 +158,35 @@ public:
 			glBindVertexArray(vao);
 			std::vector<int> visiblefaces = bsp->makeListofVisibleFaces(position); // Find all faces visible from here
             for (unsigned i=0; i < visiblefaces.size(); ++i) {
+				glBindTexture(GL_TEXTURE_2D, bsp->textureIDs[bsp->faces[visiblefaces[i]].texture]);
 				if (bsp->faces[visiblefaces[i]].type == 1 || bsp->faces[i].type == 3) {
-					glBindTexture(GL_TEXTURE_2D, bsp->textureIDs[bsp->faces[visiblefaces[i]].texture]);
 					glDrawElements(GL_TRIANGLES, sizes[visiblefaces[i]], GL_UNSIGNED_INT, (const GLvoid*)(offsets[visiblefaces[i]] * sizeof(GLuint)));
                 }
+				else if (bsp->faces[visiblefaces[i]].type == 2) {
+					for (unsigned j = 0; j < bsp->patches[visiblefaces[i]].bezier.size(); ++j) { // For every bezier in patch
+						bsp->patches[visiblefaces[i]].bezier[j].render();
+					}
+					glBindVertexArray(vao);
+				}
             }
 			glBindVertexArray(0);
-			for (unsigned i = 0; i < bsp->patches.size(); ++i) { // For every patch
-				glBindTexture(GL_TEXTURE_2D, bsp->textureIDs[bsp->patches[i].textureID]);
-				for (unsigned j = 0; j< bsp->patches[i].bezier.size(); ++j) { // For every bezier in every patch
-					bsp->patches[i].bezier[j].render();
-				}
-			}
         }
     }
 
 	j7Model(q3BSP *bsp) { // Load from a BSP object
-		// Use the mesh constructor for now. Note that this only does the sorted faces
-
-		// Push the indices into a single array. Also populate arrays saying offsets and number of indices for each face
-		// Note that sizes can be taken from the face object once sorting is fixed
-		
-		//Build indices for all mesh/poly faces
+		// Push the indices into a single array. Also populate arrays for offsets and number of indices of each face
 		std::vector<GLuint> indexes;
+		bsp->patches.resize(bsp->faces.size()); // messy hack
 		for (unsigned i = 0; i < bsp->faces.size(); ++i) {
 			offsets.push_back(indexes.size());
 			sizes.push_back(bsp->faces[i].n_meshverts);
-			if (bsp->faces[i].type == 1 || bsp->faces[i].type == 3) { 
+			if (bsp->faces[i].type == 1 || bsp->faces[i].type == 3) { // Meshes and polys
 				for (int j = 0; j < bsp->faces[i].n_meshverts; ++j) {
 					indexes.push_back(bsp->faces[i].vertex + bsp->meshVerts[j + bsp->faces[i].meshvert]);
 				}
 			}
-			else if (bsp->faces[i].type == 2) {
-				bsp->patches.push_back(bsp->dopatch(bsp->faces[i]));
+			else if (bsp->faces[i].type == 2) { // Patches
+				bsp->patches[i] = bsp->dopatch(bsp->faces[i]);
 			}
 		}
 		vao = makeVAO(&bsp->vertices, &indexes);
