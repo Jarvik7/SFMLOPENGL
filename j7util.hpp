@@ -120,6 +120,7 @@ void showFPS(sf::RenderWindow *window)
 	// ::TODO:: Render without SFML? It would avoid needing a pointer argument and a Window
 	// could be used instead of a RenderWindow.
 	// ::TODO:: Is there a way to eliminate the fontloaded bool?
+	// This only works in a compatibility profile due to SFML being out of date
 
 	static sf::Font font;
 	static bool fontloaded=false;
@@ -154,124 +155,17 @@ void showFPS(sf::RenderWindow *window)
 	if(fps > 0)
 	{
 		window->pushGLStates();
-#if defined(SFML_SYSTEM_WINDOWS) // MSVC2010 is not fully C++11 compliant
-		window->draw(sf::Text(std::to_string((long long)fps)+ " fps", font, 20));
-#elif defined(SFML_SYSTEM_MACOS)
         window->draw(sf::Text(std::to_string(fps) + " fps", font, 20));
-#endif
 		window->popGLStates();
 	}
 }
-
-
-/*unsigned j7MenuIdentifier(std::string name)
-{
-		std::hash<std::string> hashfunc;
-		return hashfunc(name)%10000; // ::TODO: This is a bodge, IDs should be handed out in order and stored in a map
-}
-class j7Menu
-{
-public:
-	std::vector<j7Menu> child;
-	std::string name;
-	unsigned identifier;
-	bool checked;
-	j7Menu(std::string menuname="", bool checkmark=false)
-	{
-		name = menuname;
-		identifier = j7MenuIdentifier(name);
-		checked=checkmark;
-		std::cout << "Added menu named " << menuname << " with ID of " << identifier << std::endl;
-	}
-	void addchild(std::string childmenu, bool check=false)
-	{
-		child.push_back(j7Menu(childmenu, check));
-	}
-	void addchild(j7Menu childmenu) {
-		child.push_back(childmenu);
-	}
-
-	void draw(sf::RenderWindow *window) {
-		auto menu = CreateMenu();
-		auto submenu = CreatePopupMenu();
-		if (name == "root") { // Go through top menu items
-			for (int i = 0; i<child.size(); i++) {
-				drawSubitem(&child[i], &submenu); //add topitem's subitems
-				AppendMenu(menu, MF_STRING | MF_POPUP, (UINT)submenu, child[i].name.c_str()); // Add the topitem and its subitems to menu structure
-				submenu = CreatePopupMenu(); // Reset the subitem structure
-			}
-			SetMenu(window->getSystemHandle(),menu); // Draw the menu
-		}
-	}
-
-	void drawSubitem(j7Menu *node, HMENU *submenu)
-	{
-		for (int i = 0; i<node->child.size(); i++) { //Go through children
-			if (node->child[i].child.size()!=0) { // If there are subchildren
-				auto subsubmenu = CreatePopupMenu();
-				drawSubitem(&node->child[i], &subsubmenu); // Recurse if there are subchildren
-				AppendMenu(*submenu, MF_STRING | MF_POPUP, (UINT)subsubmenu, node->child[i].name.c_str());
-			}
-			else {
-				AppendMenu(*submenu, MF_STRING, UINT(node->child[i].identifier), node->child[i].name.c_str()); // Otherwise, add to the structure
-				std::cout << "Added menu item: " << node->child[i].name << ", with id: " << node->child[i].identifier << std::endl;
-			}
-		}
-	}
-};
-void generateMenu(sf::RenderWindow *window)
-{
-	j7Menu rootmenu("root");
-
-	//File
-	j7Menu filemenu("File");
-	filemenu.addchild("Open model");
-	filemenu.addchild("Open music");
-	filemenu.addchild("Exit");
-
-
-	j7Menu test("Hello");
-	test.addchild("Joe");
-	filemenu.addchild(test);
-
-	rootmenu.addchild(filemenu);
-
-	//Render Options
-	j7Menu rendermenu("Render Options");
-	rendermenu.addchild("Wireframe");
-	rendermenu.addchild("Texturing",true);
-	rendermenu.addchild("Backface culling",true);
-	rendermenu.addchild("Rotation",true);
-	rootmenu.addchild(rendermenu);
-	rootmenu.draw(window);
-}*/
-
-class j7Mesh {
-public:
-    std::vector<GLuint> indices;
-    unsigned materialIndex;
-    GLuint bufferID;
-
-	j7Mesh(q3BSP *bsp, unsigned faceSetIndex) {
-
-        materialIndex = 0;
-        if (bsp->facesByTexture[faceSetIndex].size() != 0) materialIndex = bsp->facesByTexture[faceSetIndex][0].texture;
-        std::vector<GLuint> temp = bsp->getIndices(faceSetIndex);
-        for (auto& index : temp) { //For each index in this set
-            indices.push_back(index);
-        }
-		glGenBuffers(1, &bufferID);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferID);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint)* indices.size(), indices.data(), GL_STATIC_DRAW);
-	}
-};
 
 class j7Model {
 public:
     void drawVBO(q3BSP *bsp, glm::vec3 position) { 
         if (vao != 0) {
 			glBindVertexArray(vao);
-			std::vector<int> visiblefaces = bsp->makeListofVisibleFaces(position);
+			std::vector<int> visiblefaces = bsp->makeListofVisibleFaces(position); // Find all faces visible from here
             for (unsigned i=0; i < visiblefaces.size(); ++i) {
 				if (bsp->faces[visiblefaces[i]].type == 1 || bsp->faces[i].type == 3) {
 					glBindTexture(GL_TEXTURE_2D, bsp->textureIDs[bsp->faces[visiblefaces[i]].texture]);
@@ -290,12 +184,12 @@ public:
 
 	j7Model(q3BSP *bsp) { // Load from a BSP object
 		// Use the mesh constructor for now. Note that this only does the sorted faces
-		for (unsigned i = 0; i < bsp->facesByTexture.size(); ++i) meshes.push_back(j7Mesh(bsp,i));
 
 		// Push the indices into a single array. Also populate arrays saying offsets and number of indices for each face
 		// Note that sizes can be taken from the face object once sorting is fixed
 		
 		//Build indices for all mesh/poly faces
+		std::vector<GLuint> indexes;
 		for (unsigned i = 0; i < bsp->faces.size(); ++i) {
 			offsets.push_back(indexes.size());
 			sizes.push_back(bsp->faces[i].n_meshverts);
@@ -304,34 +198,17 @@ public:
 					indexes.push_back(bsp->faces[i].vertex + bsp->meshVerts[j + bsp->faces[i].meshvert]);
 				}
 			}
+			else if (bsp->faces[i].type == 2) {
+				bsp->patches.push_back(bsp->dopatch(bsp->faces[i]));
+			}
 		}
-		
-		/*for (unsigned i = 0; i < meshes.size(); ++i) {
-			offsets.push_back(indexes.size());
-			sizes.push_back(meshes[i].indices.size());
-			for (unsigned j = 0; j < meshes[i].indices.size(); ++j) {
-				indexes.push_back(meshes[i].indices[j]);
-			}
-		}*/
-
-	/*	for (unsigned i = 0; i < bsp->patches.size(); ++i) { // For each patch
-
-			for (unsigned j = 0; j < bsp->patches[i].bezier.size(); ++j) { // For each bezier in patch
-				unsigned offset = bsp->vertices.size();
-				unsigned size = bsp->patches[i].bezier[j].vertex.size();
-				for (unsigned k = 0; k < bsp->patches[i].bezier[j].vertex.size(); ++k) { // For each vertex in bezier
-					bsp->vertices.push_back(bsp->patches[i].bezier[j].vertex[k]) // Push vertex
-				}
-			}
-		}*/ // Leave patches for once geometry is working nicely
-
 		vao = makeVAO(&bsp->vertices, &indexes);
 	}
 
 private:
-    std::vector<j7Mesh> meshes;
-	GLuint vao;
-	std::vector<GLuint> indexes;
+
+	GLuint vao; // Our vertexes and indexes are here
+	//List of index offsets and counts for each face (index = face number)
 	std::vector<GLuint> offsets;
 	std::vector<GLuint> sizes;
 };

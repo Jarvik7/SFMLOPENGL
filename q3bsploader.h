@@ -323,11 +323,8 @@ public:
 	//Lump 13
 	BSPPatch dopatch(BSPFace face);
 	std::vector<int> makeListofVisibleFaces(glm::vec3 position); // Generates a list of faces visible from position
-	std::vector<GLuint> getIndices(unsigned entry); // Generates indices
 	std::vector<std::vector<BSPFace>> facesByTexture; // All of the faces grouped by texture
 	std::vector<BSPPatch> patches; // Contains the tessellated faces
-
-    void groupMeshByTexture(); // Groups the faces by texture
 
 	void bindLightmaps(); // Not working yet
 	std::vector<GLuint> lightmapGLIDS;

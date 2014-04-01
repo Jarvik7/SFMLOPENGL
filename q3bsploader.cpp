@@ -218,7 +218,6 @@ q3BSP::q3BSP(std::string filename) {
 	// Load textures into memory and build vector of IDs. Note that at present this loads an empty texture for everything with a shader
 	for (auto& texture : textures) textureIDs.push_back(loadTexture(texture.name));
 
-	groupMeshByTexture(); // Sort faces into groups by texture id
 	bindLightmaps();
 }
 
@@ -232,47 +231,6 @@ void q3BSP::bindLightmaps() {
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		lightmapGLIDS.push_back(id);
 	}
-}
-
-std::vector<GLuint> q3BSP::getIndices(unsigned entry) {
-	std::vector<GLuint> temp; // A vector of lists of indices
-	if (facesByTexture[entry].size() == 0) {
-		std::cerr << " No faces found for group " << entry << ".\n";
-		return temp; // No meshes for this texture, return empty vector
-	}
-
-	for (auto& face : facesByTexture[entry]) { // for each face in set
-		switch (face.type) {
-		case 1:	// Polygons
-		case 3:	// Meshes
-			for (int k = 0; k < face.n_meshverts; ++k) { // For each meshvert in face
-				GLuint value = face.vertex + meshVerts[k + face.meshvert];
-				temp.push_back(value);
-			}
-			break;
-
-		case 2:	// Patches
-			patches.push_back(dopatch(face));
-			break;
-	
-		case 4:	// Billboards, skip
-			std::cerr << "Face group " << entry << " is billboard(s).\n";
-			break;
-
-		default: // Unknown type, skip
-			std::cerr << "Unknown face type: " << face.type << '\n';
-			break;
-		}
-	}
-	return temp;
-}
-
-void q3BSP::groupMeshByTexture() {
-    //The index for the face = the texture index
-	//There are other ways to render the right texture for the face, but sorting them enables the number of texture swaps to be limited.
-    facesByTexture.resize(textures.size()); // Reserve 1 entry per texture
-	for (auto& face : faces) facesByTexture[face.texture].push_back(face);
-    std::cout << "Faces sorted: " << faces.size() << " faces -> " << facesByTexture.size() << " meshes.\n";
 }
 
 void q3BSP::parseEntities(std::string entitystring) {
@@ -306,6 +264,7 @@ void q3BSP::parseEntities(std::string entitystring) {
 	std::cout << "  " << lightPositions.size() << " lights found.\n";
 }
 
+//Tessellation functions
 BSPPatch q3BSP::dopatch(BSPFace face) {
 	// This code just generates the control points. Actual tessellation is done by another function
 	BSPPatch patch;
@@ -407,6 +366,7 @@ void j7Bezier::render() {
 	glBindVertexArray(0);
 }
 
+// PVS Culling functions
 int q3BSP::findCurrentLeaf(glm::vec3 position) {
     int index = 0;
     while (index >= 0) {
@@ -423,33 +383,26 @@ int q3BSP::findCurrentLeaf(glm::vec3 position) {
 
 bool q3BSP::isClusterVisible(int testCluster, int visCluster) {
 	//Sanity check
-   // if ((visData.vecs.size() == 0) || (visCluster < 0)) return true;
+    if ((visData.vecs.size() == 0) || (visCluster < 0)) return true; // Show all faces when outside map or there is no visdata
 
-	//int i = (visCluster * visData.sz_vecs) + (testCluster >> 3);
-   // unsigned long visSet = visData.vecs[i];
-
-  //  return (visSet & (1 << (testCluster & 7))) != 0;
-
-	if (visData.vecs[(testCluster >> 3)+(visCluster*visData.sz_vecs)] & (1 << (testCluster & 7))) return true;
+	if (visData.vecs[(testCluster >> 3) + (visCluster * visData.sz_vecs)] & (1 << (testCluster & 7))) return true;
 	return false;
 
 }
 
 std::vector<int> q3BSP::makeListofVisibleFaces(glm::vec3 position) {
     std::vector<int> visibleFaces;
-	std::vector<bool> temp; //Keep track of already added faces
-	temp.resize(faces.size());
+	std::vector<bool> alreadyVisible; //Keep track of already added faces
+	alreadyVisible.resize(faces.size());
     int currentLeaf = findCurrentLeaf(position);
     for (auto& leaf : leafs) {
 		if (isClusterVisible(leaf.cluster, leafs[currentLeaf].cluster)) { // If this leaf is visible
 			for (int j = leaf.leafface; j < leaf.leafface + leaf.n_leaffaces; ++j) { // Then push all its faces to vector
-                visibleFaces.push_back(leafFaces[j]);
-               // std::cout << "Visible faces size : " << visibleFaces.size() << '\n';
+				if (!alreadyVisible[leafFaces[j]]) visibleFaces.push_back(leafFaces[j]);
+				alreadyVisible[leafFaces[j]] = true; // Prevent faces from being added more than once
             }
         }
     }
-
-
 	return visibleFaces;
 }
 
