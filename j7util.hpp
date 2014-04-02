@@ -157,19 +157,48 @@ public:
         if (vao != 0) {
 			glBindVertexArray(vao);
 			std::vector<int> visiblefaces = bsp->makeListofVisibleFaces(position); // Find all faces visible from here
-            for (unsigned i=0; i < visiblefaces.size(); ++i) {
-				glBindTexture(GL_TEXTURE_2D, bsp->textureIDs[bsp->faces[visiblefaces[i]].texture]);
-				if (bsp->faces[visiblefaces[i]].type == 1 || bsp->faces[i].type == 3) {
-					glDrawElements(GL_TRIANGLES, sizes[visiblefaces[i]], GL_UNSIGNED_INT, (const GLvoid*)(offsets[visiblefaces[i]] * sizeof(GLuint)));
-                }
-				else if (bsp->faces[visiblefaces[i]].type == 2) {
-					for (unsigned j = 0; j < bsp->patches[visiblefaces[i]].bezier.size(); ++j) { // For every bezier in patch
-						bsp->patches[visiblefaces[i]].bezier[j].render();
-					}
-					glBindVertexArray(vao);
-				}
+
+            // Sort faces by texture ::TODO:: do the same cluster checking here to prevent resorting these faces, or sort the faces in the list generation function
+            // This can be further optimized by pushing all patch vertices into the mesh vao, preventing context switching.
+            // It might be faster to just do all patches at the end. This increases texture changes but eliminates almost all vao switching.
+            // Should check which is better. Also, it might be better to draw in z order overall.
+            // Frustrum culling should be added here as well. z-sorting the faces within the faceset might give speedups if a lot of faces use the same texture
+            // GLMultiDrawElements might be faster than looping ourselves. It would still need to be split into triangle and tristrip sets though
+            // Tristrip might not be a good candidate for multidraw as a call would be made for each bezier strip -> no savings over drawelements
+            // Restart primitive might be another candidate
+            // We will need z-sorting at a minimum for transparent faces so we can draw back to front. We'l also need to do the splitting here
+            // Only model[0] is currently drawn. Q3 culls the models due to pvs despite not being in the bsp tree. Is it using the entities?
+            // Q3 does not cull pickups. we can do better. entity culling must also be done here.
+            /*
+             1) Determine PVS faces. DONE
+             2) Frustrum cull
+             3) Split into opaque/transparent
+             4) Op1: qsort both. Op2: qsort transparent, texture sort opaque.
+             
+             
+             */
+
+            std::vector<std::vector<int>> sortedfaces;
+            sortedfaces.resize(bsp->textures.size());
+            for (auto& face : visiblefaces) {
+                sortedfaces[bsp->faces[face].texture].push_back(face);
             }
-			glBindVertexArray(0);
+            for (auto& faceset : sortedfaces) {
+                if (faceset.size() == 0) continue; // This texture has no visible faces
+                glBindTexture(GL_TEXTURE_2D, bsp->textureIDs[bsp->faces[faceset[0]].texture]);
+                for (unsigned i=0; i < faceset.size(); ++i) {
+                    if (bsp->faces[faceset[i]].type == 1 || bsp->faces[i].type == 3) {
+                        glDrawElements(GL_TRIANGLES, sizes[faceset[i]], GL_UNSIGNED_INT, (const GLvoid*)(offsets[faceset[i]] * sizeof(GLuint)));
+                    }
+                    else if (bsp->faces[faceset[i]].type == 2) {
+                        for (unsigned j = 0; j < bsp->patches[faceset[i]].bezier.size(); ++j) { // For every bezier in patch
+                            bsp->patches[faceset[i]].bezier[j].render();
+                        }
+                        glBindVertexArray(vao);
+                    }
+                }
+            }
+            glBindVertexArray(0);
         }
     }
 
@@ -178,7 +207,7 @@ public:
 		std::vector<GLuint> indexes;
 		bsp->patches.resize(bsp->faces.size()); // messy hack
 		for (unsigned i = 0; i < bsp->faces.size(); ++i) {
-			offsets.push_back(indexes.size());
+			offsets.push_back((unsigned int)indexes.size());
 			sizes.push_back(bsp->faces[i].n_meshverts);
 			if (bsp->faces[i].type == 1 || bsp->faces[i].type == 3) { // Meshes and polys
 				for (int j = 0; j < bsp->faces[i].n_meshverts; ++j) {

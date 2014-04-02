@@ -163,7 +163,7 @@ int main(int argc, const char * argv[])
     }
 
 	//Load our mesh
-    q3BSP test("maps/q3dm1.bsp");
+    q3BSP test("maps/q3dm0.bsp");
 	j7Model quake3(&test);
 
 	if (music.openFromFile(test.worldMusic))
@@ -185,7 +185,7 @@ int main(int argc, const char * argv[])
     {
         glerror = glGetError();
         if (glerror != GL_NO_ERROR) std::cerr << "OpenGL ERROR: " << glerror << '\n';
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClear(/*GL_COLOR_BUFFER_BIT | */GL_DEPTH_BUFFER_BIT);
 
         glUseProgram(shaderID);
 

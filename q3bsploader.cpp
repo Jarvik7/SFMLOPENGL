@@ -390,10 +390,13 @@ bool q3BSP::isClusterVisible(int testCluster, int visCluster) {
 }
 
 std::vector<int> q3BSP::makeListofVisibleFaces(glm::vec3 position) {
-    std::vector<int> visibleFaces;
+    static std::vector<int> visibleFaces;
 	std::vector<bool> alreadyVisible; //Keep track of already added faces
 	alreadyVisible.resize(faces.size());
+    static int prevLeaf = -1;
     int currentLeaf = findCurrentLeaf(position);
+    if (currentLeaf == prevLeaf) return visibleFaces; // Same cluster as last frame
+    visibleFaces.resize(0); // reset
     for (auto& leaf : leafs) {
 		if (isClusterVisible(leaf.cluster, leafs[currentLeaf].cluster)) { // If this leaf is visible
 			for (int j = leaf.leafface; j < leaf.leafface + leaf.n_leaffaces; ++j) { // Then push all its faces to vector
@@ -402,6 +405,7 @@ std::vector<int> q3BSP::makeListofVisibleFaces(glm::vec3 position) {
             }
         }
     }
+    prevLeaf = currentLeaf;
 	return visibleFaces;
 }
 
