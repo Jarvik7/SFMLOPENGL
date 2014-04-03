@@ -81,7 +81,7 @@ GLuint makeVAO(std::vector<BSPVertex> *vertices, std::vector<GLuint> *indices) {
 	return vao;
 }
 
-q3BSP::q3BSP(std::string filename) {
+q3BSP::q3BSP(const std::string filename) {
     std::cout << "Loading " << filename.c_str() << '\n';
 
     // Load file to memory
@@ -213,7 +213,7 @@ q3BSP::q3BSP(std::string filename) {
 
 	// Begin working on data
 	// Lump 0
-	parseEntities(tempEntityString); // Parse entity string and populate vector of entities. Only spawnpoints, lights and music are read right now
+	parseEntities(&tempEntityString); // Parse entity string and populate vector of entities. Only spawnpoints, lights and music are read right now
 	
 	// Load textures into memory and build vector of IDs. Note that at present this loads an empty texture for everything with a shader
 	for (auto& texture : textures) textureIDs.push_back(loadTexture(texture.name));
@@ -222,41 +222,42 @@ q3BSP::q3BSP(std::string filename) {
 }
 
 void q3BSP::bindLightmaps() {
-	for (unsigned i = 0; i < lightmaps.size(); ++i) {
+	for (auto& lightmap : lightmaps) {
 		GLuint id = 0;
         glGenTextures(1, &id);
         glBindTexture(GL_TEXTURE_2D, id);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 128, 128, 0, GL_RGB, GL_UNSIGNED_BYTE, &lightmaps[i].data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 128, 128, 0, GL_RGB, GL_UNSIGNED_BYTE, &lightmap.data);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		lightmapGLIDS.push_back(id);
 	}
 }
 
-void q3BSP::parseEntities(std::string entitystring) {
+void q3BSP::parseEntities(const std::string *entitystring) {
 	std::cout << "Parsing entities...\n";
-	unsigned long open = entitystring.find_first_of('{', 0);
+	unsigned long open = entitystring->find_first_of('{', 0);
 	unsigned long close = 0;
 
 	// Split into vector of each clause
 	std::vector<std::string> clauses;
 	while(open != std::string::npos) {
-			close = entitystring.find_first_of('}', open + 1); // Find closing brace starting at last opening brace
-			clauses.push_back(entitystring.substr(open, close - open)); // Push, minus open & close braces & newlines
-			open = entitystring.find_first_of('{', close + 1); // Set next start location to after closing brace
+			close = entitystring->find_first_of('}', open + 1); // Find closing brace starting at last opening brace
+			clauses.push_back(entitystring->substr(open, close - open)); // Push, minus open & close braces & newlines
+			open = entitystring->find_first_of('{', close + 1); // Set next start location to after closing brace
 	}
 	std::cout << clauses.size() << " clauses found.\n";
 	
 	// Convert each clause into a BSPEntity object
 
 	for (unsigned i = 0; i < clauses.size(); ++i) {
+		BSPEntity tempEntity(clauses[i]);
 		// Populate the entities vector
 		entities.push_back(BSPEntity(clauses[i]));
 		// Parse entities ::TODO:: Push only unhandled entities to vector
 		if (entities[i].pair["classname"] == "info_player_deathmatch") cameraPositions.push_back(camPos(entities[i]));
 		else if (entities[i].pair["classname"] == "worldspawn") worldMusic = entities[i].pair["music"];
 		else if (entities[i].pair["classname"] == "light") lightPositions.push_back(lightPos(entities[i]));
-
+		else entities.push_back(tempEntity);
 	}
 	std::cout << "  Map music: " << worldMusic << '\n';
 	std::cout << "  " << cameraPositions.size() << " spawn points found.\n";
@@ -291,7 +292,7 @@ BSPPatch q3BSP::dopatch(BSPFace face) {
 	return patch;
 }
 	
-void j7Bezier::tessellate(int L) {
+void j7Bezier::tessellate(const int L) {
 	// Based on info from http://graphics.cs.brown.edu/games/quake/quake3.html, with simplified code and better use of C++
  //   level = L;
 
@@ -325,7 +326,7 @@ void j7Bezier::tessellate(int L) {
                 controls[k + 2] * (a * a);
         }
 
-        for(int j = 0; j <= L; ++j) {
+        for (int j = 0; j <= L; ++j) {
             float a = (float)j / L;
             float b = 1.0f - a;
 
@@ -340,7 +341,7 @@ void j7Bezier::tessellate(int L) {
     indices.resize(L * L1 * 2);
 
     for (int row = 0; row < L; ++row) {
-        for(int col = 0; col <= L; ++col)	{
+        for (int col = 0; col <= L; ++col)	{
             indices[(row * (L + 1) + col) * 2 + 1] = row       * L1 + col;
             indices[(row * (L + 1) + col) * 2]     = (row + 1) * L1 + col;
         }
@@ -366,7 +367,7 @@ void j7Bezier::render() {
 }
 
 // PVS Culling functions
-int q3BSP::findCurrentLeaf(glm::vec3 position) {
+int q3BSP::findCurrentLeaf(const glm::vec3 position) {
     int index = 0;
     while (index >= 0) {
         const BSPNode& node = nodes[index];
@@ -380,7 +381,7 @@ int q3BSP::findCurrentLeaf(glm::vec3 position) {
     return -index - 1;
 }
 
-bool q3BSP::isClusterVisible(int testCluster, int visCluster) {
+bool q3BSP::isClusterVisible(const int testCluster, const int visCluster) {
 	//Sanity check
     if ((visData.vecs.size() == 0) || (visCluster < 0)) return true; // Show all faces when outside map or there is no visdata
 
@@ -389,7 +390,7 @@ bool q3BSP::isClusterVisible(int testCluster, int visCluster) {
 
 }
 
-std::vector<int> q3BSP::makeListofVisibleFaces(glm::vec3 position) {
+std::vector<int> q3BSP::makeListofVisibleFaces(const glm::vec3 position) {
     static std::vector<int> visibleFaces;
 	std::vector<bool> alreadyVisible; //Keep track of already added faces
 	alreadyVisible.resize(faces.size());

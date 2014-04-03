@@ -73,36 +73,34 @@ public:
 		}
 	}
 
-	glm::fvec3 getVector(std::string type) {
+	glm::fvec3 getVector(const std::string type) {
 		glm::fvec3 temp; // The entity coordinates are not floats???
-		//if (type != "origin"
-		//	&& type != "_color") return temp; // This index is not a vector
-		// This parses correctly thanks to atof, but the second token actually contains y and z coords??
-		unsigned long open = 0;
-		unsigned long close = 0;
+		if (type != "origin") return temp; // This index is not a vector
 
-		close = pair[type].find_first_of(' ', open);
-		std::string token = pair[type].substr(open, close);
-		temp[0] = (float)atof(token.c_str())/255.0f;
-
-		open = close + 1;
-		close = pair[type].find_first_of(' ', open);
-		token = pair[type].substr(open, close);
-		temp[1] = (float)atof(token.c_str())/255.0f;
-
-		open = close + 1;
-		close = pair[type].find_first_of(' ', open);
-		token = pair[type].substr(open, close);
-		temp[2] = (float)atof(token.c_str())/255.0f;
-
+		std::string::size_type offset = 0;
+		std::string token = pair[type];
+		for (unsigned i = 0; i < 3; ++i) {
+			temp[i] = std::stof(token, &offset) / 255.0f;
+			token = token.substr(offset);
+		}
 		return temp;
 	}
 
-	glm::fvec4 getVector4(std::string type) {
+	glm::fvec4 getVector4(const std::string type) {
 		glm::fvec4 temp; // The entity coordinates are not floats???
-		//if (type != "origin"
-		//	&& type != "_color") return temp; // This index is not a vector
+		if (type != "_color") return temp; // This index is not a vector
 		// This parses correctly thanks to atof, but the second token actually contains y and z coords??
+		// For some reason this is causing crashes
+	/*	std::string::size_type offset = 0;
+		std::string token = pair[type];
+		for (unsigned i = 0; i < 4; ++i) {
+			temp[i] = std::stof(token, &offset) / 255.0f;
+			token = token.substr(offset);
+		}
+		return temp;*/
+		
+		
+		
 		unsigned long open = 0;
 		unsigned long close = 0;
 
@@ -137,7 +135,7 @@ public:
 		if (input.pair["classname"] != "info_player_deathmatch") return; // Not a spawnpoint
 		origin = input.getVector("origin");
 
-		angle = (float)glm::radians(atof(input.pair["angle"].c_str()) - 270); // Why 270? is it because of swizzling? is this why culling is broken?
+		angle = static_cast<float>(glm::radians(std::stof(input.pair["angle"]) - 270)); // Why 270? is it because of swizzling? is this why culling is broken?
 	}
 };
 
@@ -153,7 +151,7 @@ public:
 		if (input.pair["classname"] != "light") return; // Not a light
 		origin = input.getVector("origin");
 		_color = input.getVector4("_color");
-		light = (float)atof(input.pair["light"].c_str());
+		light = std::stof(input.pair["light"]);
 	}
 };
 
@@ -308,7 +306,7 @@ public:
 
 	// Functions for parsing BSP data and the processed data
 	// Lump 0
-	void parseEntities(std::string entities); // Take raw string of entities and make a vector of clauses
+	void parseEntities(const std::string *entities); // Take raw string of entities and make a vector of clauses
 	std::string worldMusic; // Music for the level ::TODO:: Intro music is not played
 	std::vector<camPos> cameraPositions; // Spawnpoints
 	std::vector<lightPos> lightPositions; // Lights

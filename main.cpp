@@ -45,19 +45,6 @@ const std::string windowTitle = "SFML OpenGL";
 
 GLuint shaderID;
 
-
-void displayWindowsMenubar(sf::RenderWindow *window)
-{
-	//::TODO: Automatically generate Windows/OSX menus from a structure containing the layout
-
-	//For Windows
-	#if defined(SFML_SYSTEM_WINDOWS)
-//	generateMenu(window);
-	#endif
-
-	//For OSX
-}
-
 bool initGL()
 {
 	glEnable(GL_CULL_FACE);
@@ -127,9 +114,6 @@ int main(int argc, const char * argv[])
         std::cout << "Antialiasing level: " << windowsettings.antialiasingLevel << '\n';
     }
 
-	displayWindowsMenubar(&window); // Display the menu bars
-
-
     sf::Music music;
 
     // Game loop control vars
@@ -163,7 +147,7 @@ int main(int argc, const char * argv[])
     }
 
 	//Load our mesh
-    q3BSP test("maps/q3dm0.bsp");
+    q3BSP test("maps/q3dm1.bsp");
 	j7Model quake3(&test);
 
 	if (music.openFromFile(test.worldMusic))
@@ -329,7 +313,6 @@ int main(int argc, const char * argv[])
                             }
                             else window.create(sf::VideoMode(oldwindowsize.x, oldwindowsize.y), windowTitle, sf::Style::Default, windowsettings);
                             initGL();
-							displayWindowsMenubar(&window);
                             windowsize = window.getSize();
                             camera.adjustPerspective(windowsize);
                             window.setVerticalSyncEnabled(vsync);

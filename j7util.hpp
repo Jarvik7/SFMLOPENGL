@@ -30,7 +30,7 @@
 	#define M_PI 3.14159265358979323846
 #endif
 
-extern GLuint shaderID;
+//extern GLuint shaderID;
 
 const bool DISPLAYDEBUGOUTPUT = true;
 
@@ -45,7 +45,7 @@ const sf::Keyboard::Key key_move_CW = sf::Keyboard::E;
 const sf::Keyboard::Key key_move_CCW = sf::Keyboard::Q;
 const sf::Keyboard::Key key_move_run = sf::Keyboard::LShift;
 
-inline bool fileExists(std::string filename) {
+inline bool fileExists(const std::string filename) {
     std::ifstream infile(filename);
     return infile.good();
 }
@@ -56,7 +56,7 @@ GLuint loadTexture(std::string filename) {
 		return 0;
 	}
 	if (fileExists(filename)) filename = filename;
-	// Try some common filetypes (Quake3 etc don't specify extension in BSP)
+	// Try some common filetypes (Quake 3 etc don't specify extension in BSP)
 	else if (fileExists(filename + ".jpg")) filename += ".jpg";
 	else if (fileExists(filename + ".tga")) filename += ".tga";
 	else if (fileExists(filename + ".png")) filename += ".png";
@@ -71,12 +71,13 @@ GLuint loadTexture(std::string filename) {
 		std::cerr << "Error loading texture file: " << filename << '\n';
 		return 0;
 	}
+
 	GLuint id = 0;
 	glGenTextures(1, &id);
 	glBindTexture(GL_TEXTURE_2D, id);
-	GLfloat largest_aniso;
 
 	// Enable anisotropic filtering
+	GLfloat largest_aniso;
 	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &largest_aniso);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, largest_aniso);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texture.getSize().x, texture.getSize().y, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.getPixelsPtr());
@@ -143,8 +144,7 @@ void showFPS(sf::RenderWindow *window)
 	}
 
 	//Draw on screen, skip first second as it doesn't have a sample to calculate from yet
-	if(fps > 0)
-	{
+	if(fps > 0)	{
 		window->pushGLStates();
         window->draw(sf::Text(std::to_string(fps) + " fps", font, 20));
 		window->popGLStates();
@@ -186,13 +186,13 @@ public:
             for (auto& faceset : sortedfaces) {
                 if (faceset.size() == 0) continue; // This texture has no visible faces
                 glBindTexture(GL_TEXTURE_2D, bsp->textureIDs[bsp->faces[faceset[0]].texture]);
-                for (unsigned i=0; i < faceset.size(); ++i) {
-                    if (bsp->faces[faceset[i]].type == 1 || bsp->faces[i].type == 3) {
-                        glDrawElements(GL_TRIANGLES, sizes[faceset[i]], GL_UNSIGNED_INT, (const GLvoid*)(offsets[faceset[i]] * sizeof(GLuint)));
+                for (auto& face : faceset) {
+					if (bsp->faces[face].type == 1 || bsp->faces[face].type == 3) {
+						glDrawElements(GL_TRIANGLES, sizes[face], GL_UNSIGNED_INT, (const GLvoid*)(offsets[face] * sizeof(GLuint)));
                     }
-                    else if (bsp->faces[faceset[i]].type == 2) {
-                        for (unsigned j = 0; j < bsp->patches[faceset[i]].bezier.size(); ++j) { // For every bezier in patch
-                            bsp->patches[faceset[i]].bezier[j].render();
+					else if (bsp->faces[face].type == 2) {
+						for (auto& bezier : bsp->patches[face].bezier) { // For every bezier in patch
+                            bezier.render();
                         }
                         glBindVertexArray(vao);
                     }
@@ -207,7 +207,7 @@ public:
 		std::vector<GLuint> indexes;
 		bsp->patches.resize(bsp->faces.size()); // messy hack
 		for (unsigned i = 0; i < bsp->faces.size(); ++i) {
-			offsets.push_back((unsigned int)indexes.size());
+			offsets.push_back(static_cast<GLuint>(indexes.size()));
 			sizes.push_back(bsp->faces[i].n_meshverts);
 			if (bsp->faces[i].type == 1 || bsp->faces[i].type == 3) { // Meshes and polys
 				for (int j = 0; j < bsp->faces[i].n_meshverts; ++j) {
@@ -241,8 +241,7 @@ public:
 		runSpeedMultiplier = 2.0f;
 		mouseLock = false;
 		hasFocus = true;
-		angle = glm::fvec2(0,0);
-		//angle = glm::fvec2(float(M_PI), 0.0f); // ::TODO:: Face the other way
+		angle = glm::fvec2(0, 0);
 		up = glm::fvec3(0.0f, 1.0f, 0.0f);
 
 		//Set our matrices to identity
@@ -250,62 +249,52 @@ public:
 		modelviewMatrix.push(glm::fmat4());
 	}
 
-	void update(sf::RenderWindow *window) {
+	void update(const sf::RenderWindow *window) {
 		updatePosition(); // Movement
 		updateAngle(window); // Look
 		move(); // Apply change
 	}
 
-	void setMouseLock(bool locked, sf::RenderWindow *window) { // Toggle mouse locking
-		mouseLock=locked;
+	void setMouseLock(const bool locked, sf::RenderWindow *window) { // Toggle mouse locking
+		mouseLock = locked;
 		window->setMouseCursorVisible(!mouseLock);
 		if (mouseLock) {
 			savedMousePosition = sf::Mouse::getPosition(); // Save mouse position
 			sf::Vector2u windowsize = window->getSize();
-			sf::Mouse::setPosition(sf::Vector2i(windowsize.x / 2, windowsize.y /2 ), *window);
+			sf::Mouse::setPosition(sf::Vector2i(windowsize.x / 2, windowsize.y / 2 ), *window);
 		}
 		else sf::Mouse::setPosition(savedMousePosition); // Restore mouse position
 	}
 
-	void setFocus(bool focus) {
+	void setFocus(const bool focus) {
 		hasFocus = focus;
 	}
 
-	void goTo(glm::fvec3 origin, float viewangle) {
+	void goTo(const glm::fvec3 origin, const float viewangle) {
 		eye.x = origin.x;
-		eye.y = origin.z + .102f; // Offset for player eye height (26 in byte)
+		eye.y = origin.z + 0.102f; // Offset for player eye height (26 in byte)
 		eye.z = -origin.y;
 		angle.x = viewangle;
 		angle.y = 0;
 		move();
 		std::cout << "Teleporting: ";
 		printPos(0);
-
 	}
 
 	void printPos(q3BSP *bsp) {
 		glm::vec3 pos255 = getCurrentPos();
         std::cout << "Pos: " << pos255.x << ',' << pos255.y << ',' << pos255.z << " Angle: " << angle.x << '\n';
-		if (bsp != 0) {
-			int currleaf = bsp->findCurrentLeaf(pos255);
-
-			std::cout << "Current leaf: " << bsp->leafs[currleaf].cluster << ".\n";
-			std::cout << "Is 1612 visible? " << bsp->isClusterVisible(1612, currleaf) << '\n';
-		}
+		if (bsp) std::cout << "Current leaf: " << bsp->leafs[bsp->findCurrentLeaf(pos255)].cluster << ".\n";
 	}
     glm::vec3 getCurrentPos() {
-		glm::mat4 view = glm::inverse(modelviewMatrix.top());
-		glm::vec4 pos = view[3];
-		//std::cout << "Pos: " << pos.x << ',' << pos.y << ',' << pos.z << " Facing: " << angle.x << ".\n";
-		glm::vec3 pos255(pos.x * 255, pos.z * -255, pos.y * 255);
-        return pos255;
+		glm::vec4 pos = glm::inverse(modelviewMatrix.top())[3];
+		return glm::vec3(pos.x * 255, pos.z * -255, pos.y * 255); // Return de-swizzled position
     }
 
-	void adjustPerspective(sf::Vector2u windowsize, GLfloat fovy = 75.0f, GLfloat zNear = 0.1f, GLfloat zFar = 100.0f)
+	void adjustPerspective(sf::Vector2u windowsize, const GLfloat fovy = 75.0f, const GLfloat zNear = 0.1f, const GLfloat zFar = 100.0f)
 	{
 		//Adjust drawing area & perspective on window resize
 		//::TODO:: This currently runs many times for one resize as the window border is dragged. Add throttling?
-		//::TODO:: Move into Camera class?
 
 #if defined(SFML_SYSTEM_WINDOWS) // Windows allows window height of 0, prevent div/0
 		if (windowsize.y == 0) ++windowsize.y;
@@ -319,7 +308,7 @@ public:
 
 		glMatrixMode(GL_PROJECTION);
 		projectionMatrix.pop();
-		projectionMatrix.push(glm::perspective<float>(glm::radians(fovy), GLfloat(windowsize.x) / windowsize.y, zNear, zFar));
+		projectionMatrix.push(glm::perspective<float>(glm::radians(fovy), static_cast<float>(windowsize.x) / windowsize.y, zNear, zFar));
 
 		glMatrixMode(GL_MODELVIEW);
 		// Don't need to change anything?
@@ -372,7 +361,7 @@ private:
 		if (sf::Keyboard::isKeyPressed(key_move_down)) eye -= up * moveSpeed;
 	}
 
-	void updateAngle(sf::RenderWindow *window) {
+	void updateAngle(const sf::RenderWindow *window) {
 		if (mouseLock && hasFocus) {
 			sf::Vector2u windowsize = window->getSize();
 			sf::Vector2i mouseOffset = sf::Mouse::getPosition(*window);
@@ -398,7 +387,7 @@ private:
 	}
 };
 
-GLenum loadShader(std::string filename, GLenum type) {
+GLenum loadShader(const std::string filename, const GLenum type) {
     // Check arguments
     if (!fileExists(filename)) {
         std::cerr << "Unable to open file: " << filename << '\n';
@@ -418,14 +407,14 @@ GLenum loadShader(std::string filename, GLenum type) {
 
     // Load it into OpenGL
     GLenum shader = glCreateShader(type);
-    glShaderSource(shader, 1, (const GLchar**)&shaderStringPointer, NULL);
+    glShaderSource(shader, 1, &shaderStringPointer, NULL);
 
     std::cout << "Trying to compile.\n";
     glCompileShader(shader);
     // Compile and check
     GLint shaderCompiled = GL_FALSE;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &shaderCompiled);
-    if (shaderCompiled == false)
+    if (!shaderCompiled)
     {
         std::cerr << "ERROR: shader not compiled properly.\n";
 		std::cerr << "Shader type: " << type << ".\n";
