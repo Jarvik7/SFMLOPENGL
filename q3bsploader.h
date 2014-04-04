@@ -4,7 +4,7 @@
 #include <string> // std::string
 #include <array> // std::array
 #include <vector> // std::vector
-#include <map>
+#include <map> // std::map
 
 #include <SFML/OpenGL.hpp> // OpenGL datatypes
 #include <glm/glm.hpp> // glm::fvec3, glm::mat2, normalize, rotate, transform, scale
@@ -13,26 +13,6 @@
 #define IBSP_VERSION 46
 #define TESSELLATION_LEVEL 12
 #define HEADER_LUMPS 17
-
-enum LUMPNAMES {
-	Entities = 0,
-	Textures,		//LUMP_SHADERS
-	Planes,
-	Nodes,
-	Leafs,
-	Leaffaces,		//LUMP_LEAFSURFACES
-	Leafbrushes,
-	Models,
-	Brushes,
-	Brushsides,
-	Vertexes,		//LUMP_DRAWVERTS
-	Meshverts,		//LUMP_DRAWINDEXES
-	Effects,		//LUMP_FOGS
-	Faces,			//LUMP_SURFACES
-	Lightmaps,
-	Lightvols,		//LUMP_LIGHTGRID
-	Visdata			//LUMP_VISIBILITY
-};
 
 typedef struct {
 	int offset;
@@ -46,10 +26,6 @@ typedef struct {
 } BSPHeader;
 
 // Lump 0
-typedef struct {
-	std::string type;
-	std::string value;
-} BSPEntityClausePair;
 class BSPEntity {
 public:
 	std::map<std::string, std::string> pair;
@@ -61,7 +37,7 @@ public:
 
 		while (open != std::string::npos) {
 			close = clause.find_first_of('"', open + 1); // First match is type
-			type = clause.substr(open+1, close - open - 1);
+			type = clause.substr(open + 1, close - open - 1);
 
 			open = clause.find_first_of('"', close + 1);;
 			close = clause.find_first_of('"', open + 1); // Second match is value
@@ -69,59 +45,24 @@ public:
 
 			pair[type] = value;
 			
-			open=clause.find_first_of('"', close + 1); // Go around for next line
+			open = clause.find_first_of('"', close + 1); // Go around for next line
 		}
 	}
 
 	glm::fvec3 getVector(const std::string type) {
-		glm::fvec3 temp; // The entity coordinates are not floats???
-		if (type != "origin") return temp; // This index is not a vector
+		glm::fvec3 temp;
+		if (type != "origin" && type != "_color") return temp;
+		std::string token = pair[type];
+        if (token == "") return temp;
+
+        float normalizer = 255.0f;
+        if (type == "_color") normalizer = 1.0f;
 
 		std::string::size_type offset = 0;
-		std::string token = pair[type];
 		for (unsigned i = 0; i < 3; ++i) {
-			temp[i] = std::stof(token, &offset) / 255.0f;
+			temp[i] = std::stof(token, &offset) / normalizer;
 			token = token.substr(offset);
 		}
-		return temp;
-	}
-
-	glm::fvec4 getVector4(const std::string type) {
-		glm::fvec4 temp; // The entity coordinates are not floats???
-		if (type != "_color") return temp; // This index is not a vector
-		// This parses correctly thanks to atof, but the second token actually contains y and z coords??
-		// For some reason this is causing crashes
-	/*	std::string::size_type offset = 0;
-		std::string token = pair[type];
-		for (unsigned i = 0; i < 4; ++i) {
-			temp[i] = std::stof(token, &offset) / 255.0f;
-			token = token.substr(offset);
-		}
-		return temp;*/
-		
-		
-		
-		unsigned long open = 0;
-		unsigned long close = 0;
-
-		close = pair[type].find_first_of(' ', open);
-		std::string token = pair[type].substr(open, close);
-		temp[0] = (float)atof(token.c_str());
-
-		open = close + 1;
-		close = pair[type].find_first_of(' ', open);
-		token = pair[type].substr(open, close);
-		temp[1] = (float)atof(token.c_str());
-
-		open = close + 1;
-		close = pair[type].find_first_of(' ', open);
-		token = pair[type].substr(open, close);
-		temp[2] = (float)atof(token.c_str());
-
-		open = close + 1;
-		close = pair[type].find_first_of(' ', open);
-		token = pair[type].substr(open, close);
-		temp[3] = (float)atof(token.c_str());
 
 		return temp;
 	}
@@ -131,26 +72,28 @@ class camPos {
 public:
 	glm::vec3 origin;
 	float angle;
+
 	camPos(BSPEntity input) {
 		if (input.pair["classname"] != "info_player_deathmatch") return; // Not a spawnpoint
-		origin = input.getVector("origin");
 
-		angle = static_cast<float>(glm::radians(std::stof(input.pair["angle"]) - 270)); // Why 270? is it because of swizzling? is this why culling is broken?
+		origin = input.getVector("origin");
+		angle = static_cast<float>(glm::radians(std::stof(input.pair["angle"]) + 90)); // Why 90 (or -270)? is it because of swizzling?
 	}
 };
 
 class lightPos {
 public:
 	glm::fvec3 origin;
-	glm::fvec4 _color;
+	glm::fvec3 _color;
 	float light; //brightness?
 	//target (ex: t6 - this is defined by the "target_position" classname)
 	//spawnflags
 	//radius
 	lightPos(BSPEntity input) {
 		if (input.pair["classname"] != "light") return; // Not a light
+
 		origin = input.getVector("origin");
-		_color = input.getVector4("_color");
+		_color = input.getVector("_color");
 		light = std::stof(input.pair["light"]);
 	}
 };
@@ -185,13 +128,28 @@ typedef struct {
 	int n_leafbrushes; //Number of leafbrushes for leaf. 
 } BSPLeaf; // Lump 4
 
-typedef struct {
-	int face;
-} BSPLeafFace; // Lump 5
+// Lump 5: LeafFace (standard data type)
+// Lump 6: LeafBrush (standard data type)
 
 typedef struct {
-	int brush;
-} BSPLeafBrush; // Lump 6
+    float mins[3];	//Bounding box min coord.
+    float maxs[3];	//Bounding box max coord.
+    int face;	//First face for model.
+    int n_faces;	//Number of faces for model.
+    int brush;	//First brush for model.
+    int n_brushes;	//Number of brushes for model.
+} BSPModel; // Lump 7
+
+typedef struct {
+    int brushside; //	First brushside for brush.
+    int n_brushsides; //	Number of brushsides for brush.
+    int texture; //	Texture index.
+} BSPBrush; // Lump 8
+
+typedef struct {
+    int plane; //	Plane index.
+    int texture; //	Texture index.
+} BSPBrushSide; // Lump 9
 
 //Lump 10
 class BSPVertex
@@ -199,7 +157,8 @@ class BSPVertex
 public:
 	// Members must be in this order as contents are memcpy'd into them from the binary
 	glm::fvec3 position;
-	glm::fmat2 texcoord; //0=surface, 1=lightmap.
+	glm::fvec2 texcoord;
+    glm::fvec2 lmcoord;
 	glm::fvec3 normal;
     
     std::array<unsigned char, 4> color;	//vertex color, in RGBA, as unsigned.
@@ -214,6 +173,7 @@ public:
         temp.color = this->color;
 		return temp;
 	}
+    
 	BSPVertex operator*(float a) {
 		BSPVertex temp;
 
@@ -245,9 +205,9 @@ typedef struct
     int	lm_index;	//Lightmap index.
     int	lm_start[2];	//Corner of this face's lightmap image in lightmap.
     int	lm_size[2];	//Size of this face's lightmap image in lightmap.
-    float	lm_origin[3];	//World space origin of lightmap.
-    float	lm_vecs[2][3];	//World space lightmap s and t unit vectors.
-    float	normal[3];	//Surface normal.
+    float lm_origin[3];	//World space origin of lightmap.
+    float lm_vecs[2][3];	//World space lightmap s and t unit vectors.
+    float normal[3];	//Surface normal.
     int	size[2];	//Patch dimensions. 0=width, 1=height.
 } BSPFace; // Lump 13
 
@@ -257,7 +217,7 @@ public:
 	void tessellate(int level);
 	void render();
 
-private:
+//private:
 	std::vector<BSPVertex> vertex;
 	std::vector<GLuint> indices;
 	std::vector<GLsizei> trianglesPerRow;
@@ -278,29 +238,49 @@ typedef struct {
 	int n_vecs;
 	int sz_vecs;
 	std::vector<unsigned char> vecs;
-}BSPVisData; // Lump 16
+} BSPVisData; // Lump 16
 
 class q3BSP {
 public:
+	enum LUMPNAMES {
+		Entities = 0,
+		Textures,		//LUMP_SHADERS
+		Planes,
+		Nodes,
+		Leafs,
+		Leaffaces,		//LUMP_LEAFSURFACES
+		Leafbrushes,
+		Models,
+		Brushes,
+		Brushsides,
+		Vertexes,		//LUMP_DRAWVERTS
+		Meshverts,		//LUMP_DRAWINDEXES
+		Effects,		//LUMP_FOGS
+		Faces,			//LUMP_SURFACES
+		Lightmaps,
+		Lightvols,		//LUMP_LIGHTGRID
+		Visdata			//LUMP_VISIBILITY
+	};
+
 	q3BSP(std::string filename);
 //private:
 	// Raw data from the BSP file
-	BSPHeader header;
 	std::vector<BSPEntity> entities; // Lump 0
 	std::vector<BSPTexture> textures; // Lump 1
 	std::vector<BSPPlane> planes; // Lump 2
 	std::vector<BSPNode> nodes; // Lump 3
 	std::vector<BSPLeaf> leafs; // Lump 4
 	std::vector<int> leafFaces; // Lump 5
-	// Lump 6
-	// Lump 7
-	// Lump 8
-	// Lump 9
+    std::vector<int> leafBrushes; // Lump 6
+    std::vector<BSPModel> models; // Lump 7
+    std::vector<BSPBrush> brushes; // Lump 8
+    std::vector<BSPBrushSide> brushSides; // Lump 9
 	std::vector<BSPVertex> vertices; // Lump 10
 	std::vector<int> meshVerts; // Lump 11
 	std::vector<BSPEffect> effects; // Lump 12
 	std::vector<BSPFace> faces; // Lump 13
-	std::vector<BSPLightmap> lightmaps; // Lump 14
+	//std::vector<BSPLightmap> lightmaps; // Lump 14
+    std::vector<std::array<std::array<std::array< char, 3>, 128>, 128>> lightmaps;
 	// Lump 15
 	BSPVisData visData; // Lump 16
 
@@ -315,19 +295,20 @@ public:
 	std::vector<GLuint> textureIDs;
 
 	//Lump 4
-	int findCurrentLeaf(glm::vec3 position); // Finds what leaf the given position is in
-	bool isClusterVisible(int visCluster, int testCluster); // Determines if testCluster is visible from visCluster
+	int findCurrentLeaf(const glm::vec3 position); // Finds what leaf the given position is in
+	bool isClusterVisible(const int visCluster, const int testCluster); // Determines if testCluster is visible from visCluster
 
 	//Lump 13
-	BSPPatch dopatch(BSPFace face);
-	std::vector<int> makeListofVisibleFaces(glm::vec3 position); // Generates a list of faces visible from position
+	BSPPatch dopatch(const BSPFace face);
+	std::vector<int> makeListofVisibleFaces(const glm::vec3 position); // Generates a list of faces visible from position
 	std::vector<std::vector<BSPFace>> facesByTexture; // All of the faces grouped by texture
 	std::vector<BSPPatch> patches; // Contains the tessellated faces
 
+    //Lump 14
 	void bindLightmaps(); // Not working yet
 	std::vector<GLuint> lightmapGLIDS;
 };
 
-GLuint makeVAO(std::vector<BSPVertex> *vertices, std::vector<GLuint> *indices);
+GLuint makeVAO(const std::vector<BSPVertex> *vertices, const std::vector<GLuint> *indices);
 
 #endif

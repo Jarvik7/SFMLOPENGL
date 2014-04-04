@@ -35,14 +35,14 @@ extern GLuint loadTexture(std::string filename);
 
 extern GLuint shaderID;
 
-GLuint makeVAO(std::vector<BSPVertex> *vertices, std::vector<GLuint> *indices) {
+GLuint makeVAO(const std::vector<BSPVertex> *vertices, const std::vector<GLuint> *indices) {
 	GLuint vao;
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 	GLuint bufferID;
 
 	//Indices
-	if (indices != 0) {
+	if (indices != nullptr) {
 		glGenBuffers(1, &bufferID);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferID);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices->size() * sizeof(GLuint), indices->data(), GL_STATIC_DRAW);
@@ -56,22 +56,27 @@ GLuint makeVAO(std::vector<BSPVertex> *vertices, std::vector<GLuint> *indices) {
     //Position
     GLint attribLoc = glGetAttribLocation(shaderID, "position");
     glEnableVertexAttribArray(attribLoc);
-    glVertexAttribPointer(attribLoc, 3, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, position));
+    glVertexAttribPointer(attribLoc, 3, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), reinterpret_cast<GLvoid*>(offsetof(BSPVertex, position)));
 
 	//Texture coordinates
     attribLoc = glGetAttribLocation(shaderID, "texcoord");
     glEnableVertexAttribArray(attribLoc);
-    glVertexAttribPointer(attribLoc, 2, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, texcoord));
+	glVertexAttribPointer(attribLoc, 2, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), reinterpret_cast<GLvoid*>(offsetof(BSPVertex, texcoord)));
+
+    //Lightmap coordinates
+    attribLoc = glGetAttribLocation(shaderID, "lmcoord");
+    glEnableVertexAttribArray(attribLoc);
+	glVertexAttribPointer(attribLoc, 2, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), reinterpret_cast<GLvoid*>(offsetof(BSPVertex, lmcoord)));
 
 	//Normals
     attribLoc = glGetAttribLocation(shaderID, "normal");
     glEnableVertexAttribArray(attribLoc);
-    glVertexAttribPointer(attribLoc, 3, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, normal));
+	glVertexAttribPointer(attribLoc, 3, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), reinterpret_cast<GLvoid*>(offsetof(BSPVertex, normal)));
 
 	//Colors
     attribLoc = glGetAttribLocation(shaderID, "color");
     glEnableVertexAttribArray(attribLoc);
-    glVertexAttribPointer(attribLoc, 4, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(BSPVertex), (GLvoid*)offsetof(BSPVertex, color));
+	glVertexAttribPointer(attribLoc, 4, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(BSPVertex), reinterpret_cast<GLvoid*>(offsetof(BSPVertex, color)));
 
 	//Unbind
 	glBindVertexArray(0);
@@ -82,19 +87,20 @@ GLuint makeVAO(std::vector<BSPVertex> *vertices, std::vector<GLuint> *indices) {
 }
 
 q3BSP::q3BSP(const std::string filename) {
-    std::cout << "Loading " << filename.c_str() << '\n';
+    std::cout << "Loading " << filename << '\n';
 
     // Load file to memory
     std::ifstream file(filename, std::ios::in | std::ios::binary | std::ios::ate);
     if (!file.is_open()) { std::cerr << "Couldn't open file.\n"; return; } // Couldn't open file
-    unsigned size = (unsigned)file.tellg();
+    unsigned size = static_cast<unsigned>(file.tellg());
     file.seekg(0);
 	std::vector<char> memblock;
 	memblock.reserve(size);
     file.read(&memblock[0], size);
     file.close();
-    
+
     // Read and check header
+    BSPHeader header;
     memcpy(&header, &memblock[0], sizeof(BSPHeader));
 	if (std::string(IDENT).compare(0,4,header.magicNumber,4)) { std::cerr << "Invalid format: \n" << header.magicNumber[0] << header.magicNumber[1] << header.magicNumber[2] << header.magicNumber[3] << '\n'; return; }
     if (header.version != IBSP_VERSION) {
@@ -116,7 +122,6 @@ q3BSP::q3BSP(const std::string filename) {
 	memcpy(textures.data(),
 		&memblock[header.direntries[Textures].offset],
 		header.direntries[Textures].length);
-
     for (unsigned i = 0; i < textures.size(); ++i) std::cout << "  " << i << ':' << textures[i].name << '\n';
     
     // Lump 2: Planes
@@ -150,13 +155,38 @@ q3BSP::q3BSP(const std::string filename) {
 	memcpy(leafFaces.data(),
 		&memblock[header.direntries[Leaffaces].offset],
 		header.direntries[Leaffaces].length);
+
     // Lump 6: Leafbrushes
+    numEntries = header.direntries[Leafbrushes].length / sizeof(int);
+	std::cout << "Lump 5: " << numEntries << " leafbrush(es) found.\n";
+	leafBrushes.resize(numEntries);
+	memcpy(leafBrushes.data(),
+           &memblock[header.direntries[Leafbrushes].offset],
+           header.direntries[Leafbrushes].length);
     
     // Lump 7: Models
+    numEntries = header.direntries[Models].length / sizeof(BSPModel);
+	std::cout << "Lump 5: " << numEntries << " model(s) found.\n";
+	models.resize(numEntries);
+	memcpy(models.data(),
+           &memblock[header.direntries[Models].offset],
+           header.direntries[Models].length);
     
     // Lump 8: Brushes
+    numEntries = header.direntries[Brushes].length / sizeof(BSPBrush);
+	std::cout << "Lump 5: " << numEntries << " brush(es) found.\n";
+	brushes.resize(numEntries);
+	memcpy(brushes.data(),
+           &memblock[header.direntries[Brushes].offset],
+           header.direntries[Brushes].length);
     
     // Lump 9: Brushsides
+    numEntries = header.direntries[Brushsides].length / sizeof(BSPBrushSide);
+	std::cout << "Lump 5: " << numEntries << " brushside(s) found.\n";
+	brushSides.resize(numEntries);
+	memcpy(brushSides.data(),
+           &memblock[header.direntries[Brushsides].offset],
+           header.direntries[Brushsides].length);
     
     // Lump 10: Vertexes
     numEntries = header.direntries[Vertexes].length / sizeof(BSPVertex);
@@ -176,7 +206,7 @@ q3BSP::q3BSP(const std::string filename) {
     
     // Lump 12: Effects
 	numEntries = header.direntries[Effects].length / sizeof(BSPEffect);
-	std::cout << "Lump 12: " << numEntries << " effects(s) found.\n";
+	std::cout << "Lump 12: " << numEntries << " effect(s) found.\n";
 	effects.reserve(numEntries);
 	memcpy(effects.data(),
 		&memblock[header.direntries[Effects].offset],
@@ -217,7 +247,7 @@ q3BSP::q3BSP(const std::string filename) {
 	
 	// Load textures into memory and build vector of IDs. Note that at present this loads an empty texture for everything with a shader
 	for (auto& texture : textures) textureIDs.push_back(loadTexture(texture.name));
-
+    // Load lightmaps into memory
 	bindLightmaps();
 }
 
@@ -226,7 +256,7 @@ void q3BSP::bindLightmaps() {
 		GLuint id = 0;
         glGenTextures(1, &id);
         glBindTexture(GL_TEXTURE_2D, id);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 128, 128, 0, GL_RGB, GL_UNSIGNED_BYTE, &lightmap.data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 128, 128, 0, GL_RGB, GL_UNSIGNED_BYTE, lightmap.data());
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		lightmapGLIDS.push_back(id);
@@ -249,15 +279,13 @@ void q3BSP::parseEntities(const std::string *entitystring) {
 	
 	// Convert each clause into a BSPEntity object
 
-	for (unsigned i = 0; i < clauses.size(); ++i) {
-		BSPEntity tempEntity(clauses[i]);
-		// Populate the entities vector
-		entities.push_back(BSPEntity(clauses[i]));
+	for (auto& clause : clauses) {
+		BSPEntity tempEntity(clause);
 		// Parse entities ::TODO:: Push only unhandled entities to vector
-		if (entities[i].pair["classname"] == "info_player_deathmatch") cameraPositions.push_back(camPos(entities[i]));
-		else if (entities[i].pair["classname"] == "worldspawn") worldMusic = entities[i].pair["music"];
-		else if (entities[i].pair["classname"] == "light") lightPositions.push_back(lightPos(entities[i]));
-		else entities.push_back(tempEntity);
+		if (tempEntity.pair["classname"] == "info_player_deathmatch") cameraPositions.push_back(camPos(tempEntity));
+		else if (tempEntity.pair["classname"] == "worldspawn") worldMusic = tempEntity.pair["music"];
+		else if (tempEntity.pair["classname"] == "light") lightPositions.push_back(lightPos(tempEntity));
+		else entities.push_back(tempEntity); // Not handled, so throw it in the vector
 	}
 	std::cout << "  Map music: " << worldMusic << '\n';
 	std::cout << "  " << cameraPositions.size() << " spawn points found.\n";
@@ -265,7 +293,7 @@ void q3BSP::parseEntities(const std::string *entitystring) {
 }
 
 //Tessellation functions
-BSPPatch q3BSP::dopatch(BSPFace face) {
+BSPPatch q3BSP::dopatch(const BSPFace face) {
 	// This code just generates the control points. Actual tessellation is done by another function
 	BSPPatch patch;
 

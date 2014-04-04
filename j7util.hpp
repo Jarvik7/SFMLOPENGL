@@ -49,6 +49,7 @@ inline bool fileExists(const std::string filename) {
     std::ifstream infile(filename);
     return infile.good();
 }
+
 GLuint loadTexture(std::string filename) {
 	//Sanity checking
 	if (filename == "") {
@@ -100,8 +101,6 @@ void getVarSizes() {
     std::cout << "GLubyte: " << sizeof(GLubyte) << '\n';
     std::cout << "GLshort: " << sizeof(GLshort) << '\n';
     std::cout << "Size_t: " << sizeof(size_t) << '\n';
-
-
 }
 
 void showFPS(sf::RenderWindow *window)
@@ -153,7 +152,7 @@ void showFPS(sf::RenderWindow *window)
 
 class j7Model {
 public:
-    void drawVBO(q3BSP *bsp, glm::vec3 position) { 
+    void drawVBO(q3BSP *bsp, const glm::vec3 position) { 
         if (vao != 0) {
 			glBindVertexArray(vao);
 			std::vector<int> visiblefaces = bsp->makeListofVisibleFaces(position); // Find all faces visible from here
@@ -193,6 +192,9 @@ public:
 					else if (bsp->faces[face].type == 2) {
 						for (auto& bezier : bsp->patches[face].bezier) { // For every bezier in patch
                             bezier.render();
+                            //
+                            //glMultiDrawElements(GL_TRIANGLE_STRIP, bezier.trianglesPerRow.data(), GL_UNSIGNED_INT, (const GLvoid**)bezier.rowIndices.data(), (GLsizei)bezier.trianglesPerRow.size());
+
                         }
                         glBindVertexArray(vao);
                     }
@@ -216,6 +218,26 @@ public:
 			}
 			else if (bsp->faces[i].type == 2) { // Patches
 				bsp->patches[i] = bsp->dopatch(bsp->faces[i]);
+                //
+                //GLuint startSize = static_cast<GLuint>(indexes.size());
+               // offsets.push_back(startSize);
+/*
+                for (auto& bezier : bsp->patches[i].bezier) { // For every bezier in patch
+                    GLuint startSize = static_cast<GLuint>(bsp->vertices.size() - 1);
+                    for (const auto& vert : bezier.vertex) {
+                        bsp->vertices.push_back(vert);
+                    }
+                    for (unsigned i = 0; i < bezier.indices.size(); ++i) {
+                     //   std::cout << "Old index: " << bezier.indices[i] << '.';
+                        bezier.indices[i] += startSize;
+                    //    std::cout << " New index: " << bezier.indices[i] << ".\n";
+
+                    }
+                }
+
+               // sizes.push_back(static_cast<GLuint>(indexes.size()) - startSize);
+                //
+ */
 			}
 		}
 		vao = makeVAO(&bsp->vertices, &indexes);
@@ -278,13 +300,13 @@ public:
 		angle.y = 0;
 		move();
 		std::cout << "Teleporting: ";
-		printPos(0);
+		printPos(nullptr);
 	}
 
 	void printPos(q3BSP *bsp) {
 		glm::vec3 pos255 = getCurrentPos();
         std::cout << "Pos: " << pos255.x << ',' << pos255.y << ',' << pos255.z << " Angle: " << angle.x << '\n';
-		if (bsp) std::cout << "Current leaf: " << bsp->leafs[bsp->findCurrentLeaf(pos255)].cluster << ".\n";
+		if (bsp != nullptr) std::cout << "Current leaf: " << bsp->leafs[bsp->findCurrentLeaf(pos255)].cluster << ".\n";
 	}
     glm::vec3 getCurrentPos() {
 		glm::vec4 pos = glm::inverse(modelviewMatrix.top())[3];
