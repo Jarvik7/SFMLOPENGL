@@ -170,6 +170,7 @@ public:
 		temp.position = this->position + a.position;
 		temp.normal = this->normal + a.normal;
 		temp.texcoord = this->texcoord + a.texcoord;
+		temp.lmcoord = this->lmcoord + a.lmcoord;
         temp.color = this->color;
 		return temp;
 	}
@@ -180,6 +181,7 @@ public:
 		temp.position = this->position * a;
 		temp.normal = this->normal * a;
 		temp.texcoord = this->texcoord * a;
+		temp.lmcoord = this->lmcoord * a;
         temp.color = this->color;
 		return temp;
 	}
