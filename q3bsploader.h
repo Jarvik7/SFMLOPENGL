@@ -313,6 +313,9 @@ public:
 	void bindLightmaps(); // Not working yet
 	std::vector<GLuint> lightmapGLIDS;
 	GLuint lmSamplerPos;
+
+	//Shaders
+	void parseShader(const std::string shadername);
 };
 
 GLuint makeVAO(const std::vector<BSPVertex> *vertices, const std::vector<GLuint> *indices);

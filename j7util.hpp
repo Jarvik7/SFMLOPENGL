@@ -179,7 +179,7 @@ public:
 			glUniform1i(bsp->lmSamplerPos, 1);
 			GLuint vertexLightingPos = glGetUniformLocation(shaderID, "vertexLighting");
 			bool vertexLighting = sf::Keyboard::isKeyPressed(sf::Keyboard::BackSpace);
-			
+			int lastlightmap = -1;
             for (auto& face : visiblefaces) {
                 sortedfaces[bsp->faces[face].texture].push_back(face);
             }
@@ -189,9 +189,12 @@ public:
                 glBindTexture(GL_TEXTURE_2D, bsp->textureIDs[bsp->faces[faceset[0]].texture]);
 				glActiveTexture(GL_TEXTURE1);
                 for (auto& face : faceset) {
-					GLuint index = bsp->faces[face].lm_index;
-					if (index > 0) glBindTexture(GL_TEXTURE_2D, bsp->lightmapGLIDS[index]);
-					else vertexLighting = true; // Use vertex lighting for anything without a lightmap
+					int index = bsp->faces[face].lm_index;
+					if (bsp->faces[face].lm_index != lastlightmap) {
+						glBindTexture(GL_TEXTURE_2D, bsp->lightmapGLIDS[bsp->faces[face].lm_index]);
+						lastlightmap = bsp->faces[face].lm_index;
+					}
+
 					glUniform1i(vertexLightingPos, vertexLighting);
 					if (bsp->faces[face].type == 1 || bsp->faces[face].type == 3) {
 						glDrawElements(GL_TRIANGLES, sizes[face], GL_UNSIGNED_INT, reinterpret_cast<const GLvoid*>(offsets[face] * sizeof(GLuint)));
