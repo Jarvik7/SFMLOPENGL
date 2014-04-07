@@ -2,6 +2,7 @@
 
 in vec3 position;
 in vec2 texcoord;
+in vec2 lmcoord;
 in vec3 normal;	// Not presently used
 in vec4 color;
 
@@ -10,6 +11,7 @@ uniform mat4 modelview;
 
 out vec4 outColor;
 out vec2 outTexcoord;
+out vec2 outlmcoord;
 out vec3 outNormal;
 
 void main()
@@ -20,6 +22,7 @@ void main()
 
 	// Pass interpolated data to the frag shader
 	outTexcoord = texcoord;
+    outlmcoord = lmcoord;
 	outNormal = normal;
 	outColor = color;
 }

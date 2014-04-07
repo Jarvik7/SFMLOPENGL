@@ -215,20 +215,23 @@ class j7Bezier {
 public:
 	std::array<BSPVertex,9> controls;
 	void tessellate(int level);
-	void render();
 
 //private:
 	std::vector<BSPVertex> vertex;
 	std::vector<GLuint> indices;
-	std::vector<GLsizei> trianglesPerRow;
-	std::vector<size_t> rowIndices;
-	GLuint vao;
 };
+class q3BSP;
+class BSPPatch {
+public:
 
-typedef struct {
-	std::vector<j7Bezier> bezier;
-	GLuint textureID;
-} BSPPatch;
+    BSPPatch(const q3BSP *bsp, const int face);
+    BSPPatch() {  }
+
+
+    GLuint n_indices, offset, start;
+    std::vector<GLuint> indices;
+    std::vector<BSPVertex> vertices;
+};
 
 typedef struct {
 	char data[128][128][3]; // 128x128 pixels, RGB
@@ -293,13 +296,13 @@ public:
 
 	// Lump 1
 	std::vector<GLuint> textureIDs;
+	GLuint texSamplerPos;
 
 	//Lump 4
 	int findCurrentLeaf(const glm::vec3 position); // Finds what leaf the given position is in
 	bool isClusterVisible(const int visCluster, const int testCluster); // Determines if testCluster is visible from visCluster
 
 	//Lump 13
-	BSPPatch dopatch(const BSPFace face);
 	std::vector<int> makeListofVisibleFaces(const glm::vec3 position); // Generates a list of faces visible from position
 	std::vector<std::vector<BSPFace>> facesByTexture; // All of the faces grouped by texture
 	std::vector<BSPPatch> patches; // Contains the tessellated faces
@@ -307,6 +310,7 @@ public:
     //Lump 14
 	void bindLightmaps(); // Not working yet
 	std::vector<GLuint> lightmapGLIDS;
+	GLuint lmSamplerPos;
 };
 
 GLuint makeVAO(const std::vector<BSPVertex> *vertices, const std::vector<GLuint> *indices);

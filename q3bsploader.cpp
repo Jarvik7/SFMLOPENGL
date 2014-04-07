@@ -56,27 +56,27 @@ GLuint makeVAO(const std::vector<BSPVertex> *vertices, const std::vector<GLuint>
     //Position
     GLint attribLoc = glGetAttribLocation(shaderID, "position");
     glEnableVertexAttribArray(attribLoc);
-    glVertexAttribPointer(attribLoc, 3, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), reinterpret_cast<GLvoid*>(offsetof(BSPVertex, position)));
+    glVertexAttribPointer(attribLoc, 3, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), reinterpret_cast<const GLvoid*>(offsetof(BSPVertex, position)));
 
 	//Texture coordinates
     attribLoc = glGetAttribLocation(shaderID, "texcoord");
     glEnableVertexAttribArray(attribLoc);
-	glVertexAttribPointer(attribLoc, 2, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), reinterpret_cast<GLvoid*>(offsetof(BSPVertex, texcoord)));
+	glVertexAttribPointer(attribLoc, 2, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), reinterpret_cast<const GLvoid*>(offsetof(BSPVertex, texcoord)));
 
     //Lightmap coordinates
     attribLoc = glGetAttribLocation(shaderID, "lmcoord");
     glEnableVertexAttribArray(attribLoc);
-	glVertexAttribPointer(attribLoc, 2, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), reinterpret_cast<GLvoid*>(offsetof(BSPVertex, lmcoord)));
+	glVertexAttribPointer(attribLoc, 2, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), reinterpret_cast<const GLvoid*>(offsetof(BSPVertex, lmcoord)));
 
 	//Normals
     attribLoc = glGetAttribLocation(shaderID, "normal");
     glEnableVertexAttribArray(attribLoc);
-	glVertexAttribPointer(attribLoc, 3, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), reinterpret_cast<GLvoid*>(offsetof(BSPVertex, normal)));
+	glVertexAttribPointer(attribLoc, 3, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), reinterpret_cast<const GLvoid*>(offsetof(BSPVertex, normal)));
 
 	//Colors
     attribLoc = glGetAttribLocation(shaderID, "color");
     glEnableVertexAttribArray(attribLoc);
-	glVertexAttribPointer(attribLoc, 4, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(BSPVertex), reinterpret_cast<GLvoid*>(offsetof(BSPVertex, color)));
+	glVertexAttribPointer(attribLoc, 4, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(BSPVertex), reinterpret_cast<const GLvoid*>(offsetof(BSPVertex, color)));
 
 	//Unbind
 	glBindVertexArray(0);
@@ -92,7 +92,7 @@ q3BSP::q3BSP(const std::string filename) {
     // Load file to memory
     std::ifstream file(filename, std::ios::in | std::ios::binary | std::ios::ate);
     if (!file.is_open()) { std::cerr << "Couldn't open file.\n"; return; } // Couldn't open file
-    unsigned size = static_cast<unsigned>(file.tellg());
+    const unsigned size = static_cast<unsigned>(file.tellg());
     file.seekg(0);
 	std::vector<char> memblock;
 	memblock.reserve(size);
@@ -105,7 +105,10 @@ q3BSP::q3BSP(const std::string filename) {
 	if (std::string(IDENT).compare(0,4,header.magicNumber,4)) { std::cerr << "Invalid format: \n" << header.magicNumber[0] << header.magicNumber[1] << header.magicNumber[2] << header.magicNumber[3] << '\n'; return; }
     if (header.version != IBSP_VERSION) {
         if (header.version == 47) std::cerr << "IBSP v.47: QuakeLive or RTCW map? Will try to load anyways.\n";
-        else { std::cerr << "Invalid BSP version: " << header.version << '\n'; return; }
+        else {
+			std::cerr << "Invalid BSP version: " << header.version << '\n';
+			return;
+		}
     }
     else std::cout << "File format and version appear ok.\n";
     
@@ -113,7 +116,7 @@ q3BSP::q3BSP(const std::string filename) {
     // Lump 0: Entities
 	std::string tempEntityString;
     tempEntityString.insert(0, &memblock[header.direntries[Entities].offset], header.direntries[Entities].length);
-    std::cout << "Lump 0: " << tempEntityString.size() << " characters of entities read. ";
+    std::cout << "Lump 0: " << tempEntityString.size() << " characters of entities read.\n";
     
     // Lump 1: Textures
     unsigned numEntries = header.direntries[Textures].length / sizeof(BSPTexture);
@@ -293,14 +296,13 @@ void q3BSP::parseEntities(const std::string *entitystring) {
 }
 
 //Tessellation functions
-BSPPatch q3BSP::dopatch(const BSPFace face) {
-	// This code just generates the control points. Actual tessellation is done by another function
-	BSPPatch patch;
+BSPPatch::BSPPatch(const q3BSP *bsp, const int face) {
+    std::vector<j7Bezier> bezier;
 
-	patch.textureID = face.texture;
-	int patch_size_x = (face.size[0] - 1) / 2;
-	int patch_size_y = (face.size[1] - 1) / 2;
-	patch.bezier.resize(patch_size_x * patch_size_y);
+    //Setup the control information and tessellate
+	int patch_size_x = (bsp->faces[face].size[0] - 1) / 2;
+	int patch_size_y = (bsp->faces[face].size[1] - 1) / 2;
+	bezier.resize(patch_size_x * patch_size_y);
 
 	int patchIndex =  0;
 	int ii, n, j, nn;
@@ -308,21 +310,34 @@ BSPPatch q3BSP::dopatch(const BSPFace face) {
 	    for (j=0, nn=0; nn < patch_size_y; nn++, j = 2*nn) {
 			int index = 0;
 			for (int ctr = 0; ctr < 3; ++ctr) {
-				int pos = ctr * face.size[0];
-	
-				patch.bezier[patchIndex].controls[index++] = vertices[face.vertex + ii + face.size[0] * j + pos];
-				patch.bezier[patchIndex].controls[index++] = vertices[face.vertex + ii + face.size[0] * j + pos + 1];
-				patch.bezier[patchIndex].controls[index++] = vertices[face.vertex + ii + face.size[0] * j + pos + 2];                                            
-			}      
-			patch.bezier[patchIndex++].tessellate(TESSELLATION_LEVEL);
+				int pos = ctr * bsp->faces[face].size[0];
+
+				bezier[patchIndex].controls[index++] = bsp->vertices[bsp->faces[face].vertex + ii + bsp->faces[face].size[0] * j + pos];
+				bezier[patchIndex].controls[index++] = bsp->vertices[bsp->faces[face].vertex + ii + bsp->faces[face].size[0] * j + pos + 1];
+                bezier[patchIndex].controls[index++] = bsp->vertices[bsp->faces[face].vertex + ii + bsp->faces[face].size[0] * j + pos + 2];
+			}
+			bezier[patchIndex++].tessellate(TESSELLATION_LEVEL);
 		}
 	}
-	return patch;
+    
+    // Collect all the vertices and indices
+    for (auto& grid : bezier) {
+        GLuint offset = static_cast<GLuint>(vertices.size());
+        for (auto& vertex : grid.vertex) {
+            vertices.push_back(vertex);
+        }
+        int counter = 0;
+
+        for (auto& index : grid.indices) {
+            if ((counter++ % ((TESSELLATION_LEVEL + 1) * 2) == 0)) indices.push_back(0xFFFFFFFF);
+            indices.push_back(index + offset);
+        }
+    }
+    n_indices = static_cast<GLuint>(indices.size());
 }
 	
 void j7Bezier::tessellate(const int L) {
 	// Based on info from http://graphics.cs.brown.edu/games/quake/quake3.html, with simplified code and better use of C++
- //   level = L;
 
     // The number of vertices along a side is 1 + num edges
     const int L1 = L + 1;
@@ -331,7 +346,7 @@ void j7Bezier::tessellate(const int L) {
 
     // Compute the vertices
     for (int i = 0; i <= L; ++i) {
-        float a = (float)i / L;
+        float a = static_cast<float>(i) / L;
         float b = 1.0f - a;
 
         vertex[i] =
@@ -341,7 +356,7 @@ void j7Bezier::tessellate(const int L) {
     }
 
     for (int i = 1; i <= L; ++i) {
-        float a = (float)i / L;
+        float a = static_cast<float>(i) / L;
         float b = 1.0f - a;
 
         BSPVertex temp[3];
@@ -355,10 +370,10 @@ void j7Bezier::tessellate(const int L) {
         }
 
         for (int j = 0; j <= L; ++j) {
-            float a = (float)j / L;
+            float a = static_cast<float>(j) / L;
             float b = 1.0f - a;
 
-            vertex[i * L1 + j]=
+            vertex[i * L1 + j] =
                 temp[0] * (b * b) + 
                 temp[1] * (2 * b * a) +
                 temp[2] * (a * a);
@@ -370,28 +385,14 @@ void j7Bezier::tessellate(const int L) {
 
     for (int row = 0; row < L; ++row) {
         for (int col = 0; col <= L; ++col)	{
-            indices[(row * (L + 1) + col) * 2 + 1] = row       * L1 + col;
-            indices[(row * (L + 1) + col) * 2]     = (row + 1) * L1 + col;
+            indices[(row * (L + 1) + col) * 2 + 1] = row * L1 + col;
+            indices[(row * (L + 1) + col) * 2] = (row + 1) * L1 + col;
         }
-    }
-
-    trianglesPerRow.resize(L);
-    rowIndices.resize(L);
-    for (int row = 0; row < L; ++row) {
-        trianglesPerRow[row] = 2 * L1;
-        rowIndices[row] = row * 2 * L1 * sizeof(GLuint);
     }
     //Normalize the normals
 	for (auto& vert : vertex) {
 		vert.normal = glm::normalize(vert.normal);
 	}
-	vao = makeVAO(&vertex, &indices);
-}
-
-void j7Bezier::render() {
-	glBindVertexArray(vao);
-    glMultiDrawElements(GL_TRIANGLE_STRIP, trianglesPerRow.data(), GL_UNSIGNED_INT, (const GLvoid**)rowIndices.data(), (GLsizei)trianglesPerRow.size());
-	glBindVertexArray(0);
 }
 
 // PVS Culling functions

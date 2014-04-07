@@ -1,4 +1,4 @@
-//
+﻿//
 //  j7util.hpp
 //  SFML OGL
 //
@@ -30,7 +30,7 @@
 	#define M_PI 3.14159265358979323846
 #endif
 
-//extern GLuint shaderID;
+extern GLuint shaderID;
 
 const bool DISPLAYDEBUGOUTPUT = true;
 
@@ -41,8 +41,8 @@ const sf::Keyboard::Key key_move_backward = sf::Keyboard::S;
 const sf::Keyboard::Key key_move_right = sf::Keyboard::D;
 const sf::Keyboard::Key key_move_up = sf::Keyboard::Space;
 const sf::Keyboard::Key key_move_down = sf::Keyboard::LControl;
-const sf::Keyboard::Key key_move_CW = sf::Keyboard::E;
-const sf::Keyboard::Key key_move_CCW = sf::Keyboard::Q;
+const sf::Keyboard::Key key_lean_right = sf::Keyboard::E;
+const sf::Keyboard::Key key_lean_left = sf::Keyboard::Q;
 const sf::Keyboard::Key key_move_run = sf::Keyboard::LShift;
 
 inline bool fileExists(const std::string filename) {
@@ -158,13 +158,9 @@ public:
 			std::vector<int> visiblefaces = bsp->makeListofVisibleFaces(position); // Find all faces visible from here
 
             // Sort faces by texture ::TODO:: do the same cluster checking here to prevent resorting these faces, or sort the faces in the list generation function
-            // This can be further optimized by pushing all patch vertices into the mesh vao, preventing context switching.
-            // It might be faster to just do all patches at the end. This increases texture changes but eliminates almost all vao switching.
             // Should check which is better. Also, it might be better to draw in z order overall.
             // Frustrum culling should be added here as well. z-sorting the faces within the faceset might give speedups if a lot of faces use the same texture
-            // GLMultiDrawElements might be faster than looping ourselves. It would still need to be split into triangle and tristrip sets though
-            // Tristrip might not be a good candidate for multidraw as a call would be made for each bezier strip -> no savings over drawelements
-            // Restart primitive might be another candidate
+            // GLMultiDrawElements for each set of faces per texture might be faster than multiple drawelements calls. Not applicable to patches
             // We will need z-sorting at a minimum for transparent faces so we can draw back to front. We'l also need to do the splitting here
             // Only model[0] is currently drawn. Q3 culls the models due to pvs despite not being in the bsp tree. Is it using the entities?
             // Q3 does not cull pickups. we can do better. entity culling must also be done here.
@@ -179,24 +175,26 @@ public:
 
             std::vector<std::vector<int>> sortedfaces;
             sortedfaces.resize(bsp->textures.size());
+			glUniform1i(bsp->texSamplerPos, 0);
+			glUniform1i(bsp->lmSamplerPos, 1);
+			GLuint vertexLightingPos = glGetUniformLocation(shaderID, "vertexLighting");
+			bool vertexLighting = sf::Keyboard::isKeyPressed(sf::Keyboard::BackSpace);
+			glUniform1i(vertexLightingPos, vertexLighting);
             for (auto& face : visiblefaces) {
                 sortedfaces[bsp->faces[face].texture].push_back(face);
             }
             for (auto& faceset : sortedfaces) {
                 if (faceset.size() == 0) continue; // This texture has no visible faces
+				glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, bsp->textureIDs[bsp->faces[faceset[0]].texture]);
+				glActiveTexture(GL_TEXTURE1);
                 for (auto& face : faceset) {
+					glBindTexture(GL_TEXTURE_2D, bsp->lightmapGLIDS[bsp->faces[face].lm_index]);
 					if (bsp->faces[face].type == 1 || bsp->faces[face].type == 3) {
-						glDrawElements(GL_TRIANGLES, sizes[face], GL_UNSIGNED_INT, (const GLvoid*)(offsets[face] * sizeof(GLuint)));
+						glDrawElements(GL_TRIANGLES, sizes[face], GL_UNSIGNED_INT, reinterpret_cast<const GLvoid*>(offsets[face] * sizeof(GLuint)));
                     }
 					else if (bsp->faces[face].type == 2) {
-						for (auto& bezier : bsp->patches[face].bezier) { // For every bezier in patch
-                            bezier.render();
-                            //
-                            //glMultiDrawElements(GL_TRIANGLE_STRIP, bezier.trianglesPerRow.data(), GL_UNSIGNED_INT, (const GLvoid**)bezier.rowIndices.data(), (GLsizei)bezier.trianglesPerRow.size());
-
-                        }
-                        glBindVertexArray(vao);
+                        glDrawElementsBaseVertex(GL_TRIANGLE_STRIP, bsp->patches[face].n_indices, GL_UNSIGNED_INT, reinterpret_cast<const GLvoid*>(bsp->patches[face].start), bsp->patches[face].offset);
                     }
                 }
             }
@@ -217,30 +215,32 @@ public:
 				}
 			}
 			else if (bsp->faces[i].type == 2) { // Patches
-				bsp->patches[i] = bsp->dopatch(bsp->faces[i]);
-                //
-                //GLuint startSize = static_cast<GLuint>(indexes.size());
-               // offsets.push_back(startSize);
-/*
-                for (auto& bezier : bsp->patches[i].bezier) { // For every bezier in patch
-                    GLuint startSize = static_cast<GLuint>(bsp->vertices.size() - 1);
-                    for (const auto& vert : bezier.vertex) {
-                        bsp->vertices.push_back(vert);
-                    }
-                    for (unsigned i = 0; i < bezier.indices.size(); ++i) {
-                     //   std::cout << "Old index: " << bezier.indices[i] << '.';
-                        bezier.indices[i] += startSize;
-                    //    std::cout << " New index: " << bezier.indices[i] << ".\n";
-
-                    }
-                }
-
-               // sizes.push_back(static_cast<GLuint>(indexes.size()) - startSize);
-                //
- */
+				bsp->patches[i] = BSPPatch(bsp, i);
 			}
 		}
+        // Add patch data to the geometry data
+        for (auto& patch : bsp->patches) {
+            if (patch.vertices.size() == 0) continue; // Empty patch
+            
+            //Store offsets
+            patch.offset = static_cast<GLuint>(bsp->vertices.size());
+            patch.start = static_cast<GLuint>(indexes.size() * sizeof(GLuint));
+
+            // Push vertices & indices to the vectors
+            for (auto& vert : patch.vertices) bsp->vertices.push_back(vert);
+            for (auto& index : patch.indices) indexes.push_back(index);
+
+            // Throw away the raw data
+            patch.vertices.resize(0);
+            patch.indices.resize(0);
+        }
 		vao = makeVAO(&bsp->vertices, &indexes);
+
+		//Get texture / lm uniform locations and bind
+		bsp->texSamplerPos = glGetUniformLocation(shaderID, "tex");
+		bsp->lmSamplerPos = glGetUniformLocation(shaderID, "lm");
+
+
 	}
 
 private:
@@ -454,8 +454,5 @@ GLenum loadShader(const std::string filename, const GLenum type) {
     }
     return shader;
 }
-
-
-
 
 #endif

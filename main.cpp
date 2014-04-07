@@ -165,16 +165,20 @@ int main(int argc, const char * argv[])
 	unsigned campos = 1;
 	camera.goTo(test.cameraPositions[campos].origin, test.cameraPositions[campos].angle);
     // Begin game loop
+
+    glPrimitiveRestartIndex(0xFFFFFFFF);
+    glEnable(GL_PRIMITIVE_RESTART);
+    glUseProgram(shaderID);
+
+
     while (!gameover)
     {
         glerror = glGetError();
         if (glerror != GL_NO_ERROR) std::cerr << "OpenGL ERROR: " << glerror << '\n';
         glClear(/*GL_COLOR_BUFFER_BIT | */GL_DEPTH_BUFFER_BIT);
 
-        glUseProgram(shaderID);
 
 		camera.update(&window);
-		//camera.printPos();
 		glm::mat4 view = camera.modelviewMatrix.top() * glm::scale(glm::fvec3(1.0/255, 1.0/255, 1.0/255)); // Scale down the map ::TODO:: can this be done by adjusting our frustrum or something?
 
 		// Send our view matrices to shader
