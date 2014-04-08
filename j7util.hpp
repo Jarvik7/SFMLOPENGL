@@ -152,10 +152,11 @@ void showFPS(sf::RenderWindow *window)
 
 class j7Model {
 public:
-    void drawVBO(q3BSP *bsp, const glm::vec3 position) { 
+    void drawVBO(q3BSP *bsp, const glm::vec3 position, glm::mat4 viewmatrix) { 
         if (vao != 0) {
 			glBindVertexArray(vao);
-			std::vector<int> visiblefaces = bsp->makeListofVisibleFaces(position); // Find all faces visible from here
+
+			std::vector<int> visiblefaces = bsp->makeListofVisibleFaces(position, viewmatrix); // Find all faces visible from here
 
             // Sort faces by texture ::TODO:: do the same cluster checking here to prevent resorting these faces, or sort the faces in the list generation function
             // Should check which is better. Also, it might be better to draw in z order overall.
@@ -460,5 +461,7 @@ GLenum loadShader(const std::string filename, const GLenum type) {
     }
     return shader;
 }
+
+
 
 #endif

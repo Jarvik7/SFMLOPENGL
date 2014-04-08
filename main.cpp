@@ -147,7 +147,7 @@ int main(int argc, const char * argv[])
     }
 
 	//Load our mesh
-    q3BSP test("maps/q3dm1.bsp");
+    q3BSP test("maps/q3dm0.bsp");
 	j7Model quake3(&test);
 
 	if (music.openFromFile(test.worldMusic))
@@ -185,7 +185,7 @@ int main(int argc, const char * argv[])
 		glUniformMatrix4fv(projectionViewLoc, 1, GL_FALSE, &camera.projectionMatrix.top()[0][0]);
 		glUniformMatrix4fv(modelViewLoc, 1, GL_FALSE, &view[0][0]);
 
-		quake3.drawVBO(&test, camera.getCurrentPos()); // Render the BSP
+		quake3.drawVBO(&test, camera.getCurrentPos(), camera.projectionMatrix.top() * view); // Render the BSP
 
         //if (showfps) showFPS(&window); // Display the FPS
 

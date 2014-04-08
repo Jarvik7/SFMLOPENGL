@@ -17,6 +17,7 @@ void main()
     vec4 texColor = texture(tex, outTexcoord); // Get texel for this frag
 	vec4 lmColor = texture(lm, outlmcoord); // Get the lightmap data
 
+    if (lmColor.xyz == vec3(0,0,0)) lmColor = outColor * (1.0/255);
     if (!vertexLighting) fragcolor = 2 * lmColor * texColor; // Multiply texel by lm data and dampen
 	else fragcolor = (outColor * (1.5/255)) * texColor; // Multiply texel by interpolated vertex color and dampen
 

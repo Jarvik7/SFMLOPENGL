@@ -25,6 +25,7 @@ X) Our early exits are leaking the memblock array? Convert to a vector?
 #include <fstream> // std::ifstream
 #include <vector> // std::vector
 #include <map>
+#include <array>
 
 #include <GLEW/glew.h>
 #include <SFML/OpenGL.hpp> // OpenGL datatypes
@@ -399,6 +400,69 @@ void j7Bezier::tessellate(const int L) {
 }
 
 // PVS Culling functions
+typedef struct {
+	glm::fvec4 left, right, top, bottom, nearclip, farclip;
+} frustrum;
+
+frustrum getViewFrustrum(glm::mat4 matrix) {
+	frustrum view;
+
+	view.left = glm::fvec4(
+		matrix[4][1] + matrix[1][1],
+		matrix[4][2] + matrix[1][2],
+		matrix[4][3] + matrix[1][3],
+		matrix[4][4] + matrix[1][4]);
+
+	view.right = glm::fvec4(
+		matrix[4][1] - matrix[1][1],
+		matrix[4][2] - matrix[1][2],
+		matrix[4][3] - matrix[1][3],
+		matrix[4][4] - matrix[1][4]);
+
+	view.top = glm::fvec4(
+		matrix[4][1] - matrix[2][1],
+		matrix[4][2] - matrix[2][2],
+		matrix[4][3] - matrix[2][3],
+		matrix[4][4] - matrix[2][4]);
+
+	view.bottom = glm::fvec4(
+		matrix[4][1] + matrix[2][1],
+		matrix[4][2] + matrix[2][2],
+		matrix[4][3] + matrix[2][3],
+		matrix[4][4] + matrix[2][4]);
+
+	view.nearclip = glm::fvec4(
+		matrix[4][1] + matrix[3][1],
+		matrix[4][2] + matrix[3][2],
+		matrix[4][3] + matrix[3][3],
+		matrix[4][4] + matrix[3][4]);
+
+	view.farclip = glm::fvec4(
+		matrix[4][1] - matrix[3][1],
+		matrix[4][2] - matrix[3][2],
+		matrix[4][3] - matrix[3][3],
+		matrix[4][4] - matrix[3][4]);
+	return view;
+}
+float distanceToPoint(const glm::fvec4 plane, const glm::fvec3 point) {
+	return plane.x * point.x
+		+ plane.y * point.y
+		+ plane.z * point.z
+		+ plane.w;
+}
+bool isInFrustrum(frustrum view, glm::fvec3 point) {
+	if (distanceToPoint(view.left, point) < 0) return false;
+	if (distanceToPoint(view.right, point) < 0) return false;
+	if (distanceToPoint(view.top, point) < 0) return false;
+	if (distanceToPoint(view.bottom, point) < 0) return false;
+	if (distanceToPoint(view.nearclip, point) < 0) return false;
+	if (distanceToPoint(view.farclip, point) < 0) return false;
+	return true;
+}
+
+
+
+
 int q3BSP::findCurrentLeaf(const glm::vec3 position) {
     int index = 0;
     while (index >= 0) {
@@ -422,7 +486,7 @@ bool q3BSP::isClusterVisible(const int testCluster, const int visCluster) {
 
 }
 
-std::vector<int> q3BSP::makeListofVisibleFaces(const glm::vec3 position) {
+std::vector<int> q3BSP::makeListofVisibleFaces(const glm::vec3 position, glm::mat4 viewmatrix) {
     static std::vector<int> visibleFaces;
 	std::vector<bool> alreadyVisible; //Keep track of already added faces
 	alreadyVisible.resize(faces.size());
@@ -430,19 +494,36 @@ std::vector<int> q3BSP::makeListofVisibleFaces(const glm::vec3 position) {
     int currentLeaf = findCurrentLeaf(position);
     if (currentLeaf == prevLeaf) return visibleFaces; // Same cluster as last frame
     visibleFaces.resize(0); // reset
+
+	frustrum viewfrustrum = getViewFrustrum(viewmatrix);
+
+
     for (auto& leaf : leafs) {
-		if (isClusterVisible(leaf.cluster, leafs[currentLeaf].cluster)) { // If this leaf is visible
+		glm::fvec3 min(leaf.mins[0], leaf.mins[1], leaf.mins[2]);
+		glm::fvec3 max(leaf.maxs[0], leaf.maxs[1], leaf.maxs[2]);
+		if (isClusterVisible(leaf.cluster, leafs[currentLeaf].cluster) && !isInFrustrum(viewfrustrum, min) && !isInFrustrum(viewfrustrum, max)) { // If this leaf is visible
 			for (int j = leaf.leafface; j < leaf.leafface + leaf.n_leaffaces; ++j) { // Then push all its faces to vector
 				if (!alreadyVisible[leafFaces[j]]) visibleFaces.push_back(leafFaces[j]);
 				alreadyVisible[leafFaces[j]] = true; // Prevent faces from being added more than once
             }
         }
     }
+
+	for (auto& face : visibleFaces) {
+
+	}
     prevLeaf = currentLeaf;
 	return visibleFaces;
 }
 
+typedef struct {
+    std::string map;
+    glm::fvec2 tcMod_scroll;
+    glm::fvec2 tcMod_scale;
+    bool depthWrite;
+//    std::array<std::string> blendfunc;
 
+} shaderStage;
 
 void q3BSP::parseShader(const std::string shadername) {
 	// This is just a test to get the sky rendering, it doesn't parse all shader files yet.
@@ -458,17 +539,23 @@ void q3BSP::parseShader(const std::string shadername) {
 	unsigned long open = shaderSource.find(shadername, 0);
 	std::cout << shadername << " found at position " << open << '\n';
 	open += shadername.length(); // skip to after the shader name
-	open = shaderSource.find_first_of('\n{', open);
+	open = shaderSource.find_first_of("\n{", open) + 1;
 	unsigned long close = shaderSource.find("\n}", open); // Closing brace that isn't preceeded by a tab
 	std::cout << "Shader length: " << (close - open) << '\n';
 	std::cout << "Got shader: \n" << shaderSource.substr(open, close - open + 2) << '\n';
 	std::map<std::string, std::string> linepair;
+
+
 	while (open < close) {
 		std::string line;
 		std::vector<std::string> tokens;
 		open = shaderSource.find('\t', open) + 1; // Find the first item
 		int endline = shaderSource.find('\n', open); // Find the end of the line
 		line =  shaderSource.substr(open, endline - open);
+        if (line.at(0) == '/') { // Comment
+            open = shaderSource.find('\n',open);
+            continue;
+        }
 		int tokenOffset = 0;
 		while (tokenOffset != std::string::npos) {
 			tokenOffset = line.find(' ', tokenOffset);
@@ -479,14 +566,17 @@ void q3BSP::parseShader(const std::string shadername) {
 		}
 		tokens.push_back(line);
 		std::cout << "Num of tokens: " << tokens.size() << '\n';
+        if (tokens[0] == "qer_editorimage") continue; // Only used for editor
+
+
 		/*std::cout << "Token:" << line.substr(0, tokenOffset) << "::\n";
 		tokens.push_back(line.substr(0, tokenend));
 		int token2 = line.find(' ', tokenend + 1);
 		if (token2 == std::string::npos) std::cout << "No more tokens.\n";*/
 		
+		open = shaderSource.find('\n',open);
 		
-		
-		open = close;
+		//open = close;
 
 	}
 
