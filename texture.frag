@@ -4,20 +4,20 @@ in vec4 outColor;
 in vec2 outTexcoord;
 in vec2 outlmcoord;
 in vec3 outNormal;
-in uint lightmapindex;
 
 
 uniform sampler2D tex;
 uniform sampler2DArray lm;
 
 uniform bool vertexLighting;
+uniform int lightmapArrayOffset;
 
 out vec4 fragcolor;
 
 void main()
 {
     vec4 texColor = texture(tex, outTexcoord); // Get texel for this frag
-	vec4 lmColor = texture2DArray(lm, vec3(outlmcoord, lightmapindex)); // Get the lightmap data
+	vec4 lmColor = texture(lm, vec3(outlmcoord, lightmapArrayOffset)); // Get the lightmap data
 
     if (lmColor.xyz == vec3(0,0,0)) lmColor = outColor * (1.0/255);
     if (!vertexLighting) fragcolor = 2 * lmColor * texColor; // Multiply texel by lm data and dampen

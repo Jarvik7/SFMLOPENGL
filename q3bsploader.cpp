@@ -530,13 +530,13 @@ std::vector<int> q3BSP::makeListofVisibleFaces(const glm::vec3 position, glm::ma
     if (currentLeaf == prevLeaf) return visibleFaces; // Same cluster as last frame
     visibleFaces.resize(0); // reset
 
-	frustrum viewfrustrum = getViewFrustrum(viewmatrix);
+	//frustrum viewfrustrum = getViewFrustrum(viewmatrix);
 
 
     for (auto& leaf : leafs) {
 		glm::fvec3 min(leaf.mins[0], leaf.mins[1], leaf.mins[2]);
 		glm::fvec3 max(leaf.maxs[0], leaf.maxs[1], leaf.maxs[2]);
-		if (isClusterVisible(leaf.cluster, leafs[currentLeaf].cluster) && !isInFrustrum(viewfrustrum, min) && !isInFrustrum(viewfrustrum, max)) { // If this leaf is visible
+		if (isClusterVisible(leaf.cluster, leafs[currentLeaf].cluster) /*&& !isInFrustrum(viewfrustrum, min) && !isInFrustrum(viewfrustrum, max)*/) { // If this leaf is visible
 			for (int j = leaf.leafface; j < leaf.leafface + leaf.n_leaffaces; ++j) { // Then push all its faces to vector
 				if (!alreadyVisible[leafFaces[j]]) visibleFaces.push_back(leafFaces[j]);
 				alreadyVisible[leafFaces[j]] = true; // Prevent faces from being added more than once
