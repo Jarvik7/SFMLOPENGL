@@ -37,13 +37,13 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\a01155\Documents\Includes\glm;C:\Users\a01155\Documents\Includes\Assimp\include;C:\Users\a01155\Documents\Includes\glew-1.10.0\include;C:\Users\a01155\Documents\Includes\SFML-2.1\include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\a01155\Documents\Includes\glm;C:\Users\a01155\Documents\Includes\Assimp\include;C:\Users\a01155\Documents\Includes\glew-1.12.0\include;C:\Users\a01155\Documents\Includes\SFML-2.1\include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Users\a01155\Documents\Includes\Assimp\lib\x86;C:\Users\a01155\Documents\Includes\glew-1.10.0\lib\Release\Win32;C:\Users\a01155\Documents\Includes\SFML-2.1\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\a01155\Documents\Includes\glm;C:\Users\a01155\Documents\Includes\Assimp\include;C:\Users\a01155\Documents\Includes\glew-1.10.0\include;C:\Users\a01155\Documents\Includes\SFML-2.1\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\a01155\Documents\Includes\Assimp\lib\assimp_release-dll_win32;C:\Users\a01155\Documents\Includes\glew-1.10.0\lib\Release\Win32;C:\Users\a01155\Documents\Includes\SFML-2.1\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Users\a01155\Documents\Includes\glm;C:\Users\a01155\Documents\Includes\Assimp\include;C:\Users\a01155\Documents\Includes\glew-1.12.0\include;C:\Users\a01155\Documents\Includes\SFML-2.1\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\a01155\Documents\Includes\Assimp\lib\assimp_release-dll_win32;C:\Users\a01155\Documents\Includes\glew-1.12.0\lib\Release\Win32;C:\Users\a01155\Documents\Includes\SFML-2.1\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

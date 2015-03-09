@@ -50,7 +50,7 @@ inline bool fileExists(const std::string filename) {
     return infile.good();
 }
 
-GLuint loadTexture(std::string filename) {
+GLuint loadTexture(std::string filename, int offset) {
 	//Sanity checking
 	if (filename == "") {
 		std::cerr << "Texture name is null\n";
@@ -76,13 +76,14 @@ GLuint loadTexture(std::string filename) {
 	GLuint id = 0;
 	glGenTextures(1, &id);
 	glBindTexture(GL_TEXTURE_2D, id);
-
+	
 	// Enable anisotropic filtering
 	GLfloat largest_aniso;
 	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &largest_aniso);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, largest_aniso);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texture.getSize().x, texture.getSize().y, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.getPixelsPtr());
-	
+glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texture.getSize().x, texture.getSize().y, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.getPixelsPtr());
+	//glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, offset, texture.getSize().x, texture.getSize().y, 1, GL_RGBA, GL_UNSIGNED_BYTE, texture.getPixelsPtr());
+
 	// Enable mipmapping
 	glGenerateMipmap(GL_TEXTURE_2D);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -150,6 +151,23 @@ void showFPS(sf::RenderWindow *window)
 	}
 }
 
+void textFPS() {
+	static sf::Clock timer; // Times 1 second
+	static int frame = 0;	// Holds number of frames this second
+	static int fps = 0; // Holds fps
+
+	//Calculate FPS
+	frame++;
+	if (timer.getElapsedTime().asSeconds() >= 1) // If 1 second has passed, tally frames and reset timer
+	{
+		fps = frame;
+		frame = 0;
+		timer.restart();
+		std::cout << "FPS: " << fps << std::endl;
+	}
+}
+
+
 class j7Model {
 public:
     void drawVBO(q3BSP *bsp, const glm::vec3 position, glm::mat4 viewmatrix) { 
@@ -167,7 +185,7 @@ public:
             // Q3 does not cull pickups. we can do better. entity culling must also be done here.
             /*
              1) Determine PVS faces. DONE
-             2) Frustrum cull
+             2) Frustrum cull. DONE but disabled. Appears to be faster to leave it up to the GPU
              3) Split into opaque/transparent
              4) Op1: qsort both. Op2: qsort transparent, texture sort opaque.
              
@@ -175,28 +193,34 @@ public:
              */
 
             std::vector<std::vector<int>> sortedfaces;
-            sortedfaces.resize(bsp->textures.size());
+
+			//Send texture unit assignments to shader
 			glUniform1i(bsp->texSamplerPos, 0);
 			glUniform1i(bsp->lmSamplerPos, 1);
+
+			//Toggle lightmaps vs vertex lighting
 			GLuint vertexLightingPos = glGetUniformLocation(shaderID, "vertexLighting");
 			bool vertexLighting = sf::Keyboard::isKeyPressed(sf::Keyboard::BackSpace);
-			int lastlightmap = -1;
+			glUniform1i(vertexLightingPos, vertexLighting);
+
+			//Group faces into sets by texture
+			sortedfaces.resize(bsp->textures.size());
             for (auto& face : visiblefaces) {
                 sortedfaces[bsp->faces[face].texture].push_back(face);
             }
-            for (auto& faceset : sortedfaces) {
-                if (faceset.size() == 0) continue; // This texture has no visible faces
-				glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, bsp->textureIDs[bsp->faces[faceset[0]].texture]);
-				glActiveTexture(GL_TEXTURE1);
-                for (auto& face : faceset) {
-					int index = bsp->faces[face].lm_index;
-					if (bsp->faces[face].lm_index != lastlightmap) {
-						glBindTexture(GL_TEXTURE_2D, bsp->lightmapGLIDS[bsp->faces[face].lm_index]);
-						lastlightmap = bsp->faces[face].lm_index;
-					}
 
-					glUniform1i(vertexLightingPos, vertexLighting);
+			glActiveTexture(GL_TEXTURE0);
+
+            for (auto& faceset : sortedfaces) {
+                if (faceset.size() == 0) continue; // This texture has no visible faces, skip to next
+
+				//Bind this faceset's texture
+                glBindTexture(GL_TEXTURE_2D, bsp->textureIDs[bsp->faces[faceset[0]].texture]);
+				//glUniform1i(bsp->textureArrayOffsetPos, bsp->faces[faceset[0]].texture);
+				for (auto& face : faceset) {
+					glUniform1i(bsp->lmapindexpos, bsp->faces[face].lm_index); // Lightmap array offset
+
+					//Draw
 					if (bsp->faces[face].type == 1 || bsp->faces[face].type == 3) {
 						glDrawElements(GL_TRIANGLES, sizes[face], GL_UNSIGNED_INT, reinterpret_cast<const GLvoid*>(offsets[face] * sizeof(GLuint)));
                     }

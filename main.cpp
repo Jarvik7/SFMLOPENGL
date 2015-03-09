@@ -169,7 +169,7 @@ int main(int argc, const char * argv[])
     glPrimitiveRestartIndex(0xFFFFFFFF);
     glEnable(GL_PRIMITIVE_RESTART);
     glUseProgram(shaderID);
-
+	glHint(GL_CLIP_VOLUME_CLIPPING_HINT_EXT, GL_FASTEST); // Disable HW frustrum culling (software is about 10 fps faster as it culls at earlier stage in pipeline)
 
     while (!gameover)
     {
@@ -188,6 +188,7 @@ int main(int argc, const char * argv[])
 		quake3.drawVBO(&test, camera.getCurrentPos(), camera.projectionMatrix.top() * view); // Render the BSP
 
         //if (showfps) showFPS(&window); // Display the FPS
+		textFPS();
 
         window.display();
 

@@ -13,6 +13,7 @@
 #define IBSP_VERSION 46
 #define TESSELLATION_LEVEL 12
 #define HEADER_LUMPS 17
+#define LIGHTMAP_RESOLUTION 128 // square
 
 typedef struct {
 	int offset;
@@ -299,6 +300,9 @@ public:
 	// Lump 1
 	std::vector<GLuint> textureIDs;
 	GLuint texSamplerPos;
+	GLuint textureID;
+	void bindTextures();
+	GLuint textureArrayOffsetPos;
 
 	//Lump 4
 	int findCurrentLeaf(const glm::vec3 position); // Finds what leaf the given position is in
@@ -313,6 +317,10 @@ public:
 	void bindLightmaps(); // Not working yet
 	std::vector<GLuint> lightmapGLIDS;
 	GLuint lmSamplerPos;
+
+	//Testing texture array
+	GLuint lmapindexpos;
+	GLuint lmapID;
 
 	//Shaders
 	void parseShader(const std::string shadername);

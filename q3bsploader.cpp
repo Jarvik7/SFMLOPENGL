@@ -18,7 +18,7 @@ X) Our early exits are leaking the memblock array? Convert to a vector?
 ?) Add Doom3 BSP support
 ?) Add Quake1/2/etc BSP support
 ?) Open source and publish
-?) Install MSVC2013 Express on work computer, switch to range based forloops and other C++11 stuff
+X) Install MSVC2013 Express on work computer, switch to range based forloops and other C++11 stuff
 */
 
 #include <iostream> // std::cout, std::cerr
@@ -33,7 +33,7 @@ X) Our early exits are leaking the memblock array? Convert to a vector?
 
 #include "q3bsploader.h"
 
-extern GLuint loadTexture(std::string filename);
+extern GLuint loadTexture(std::string filename, int offset);
 
 extern GLuint shaderID;
 
@@ -251,24 +251,62 @@ q3BSP::q3BSP(const std::string filename) {
 	parseEntities(&tempEntityString); // Parse entity string and populate vector of entities. Only spawnpoints, lights and music are read right now
 	
 	// Load textures into memory and build vector of IDs. Note that at present this loads an empty texture for everything with a shader
-	for (auto& texture : textures) textureIDs.push_back(loadTexture(texture.name));
+	for (auto& texture : textures) textureIDs.push_back(loadTexture(texture.name, 0));
     // Load lightmaps into memory
+	//bindTextures();
 	bindLightmaps();
 
 	parseShader("textures/skies/tim_hell");
 }
 
-void q3BSP::bindLightmaps() {
-	for (auto& lightmap : lightmaps) {
-		GLuint id = 0;
-        glGenTextures(1, &id);
-        glBindTexture(GL_TEXTURE_2D, id);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 128, 128, 0, GL_RGB, GL_UNSIGNED_BYTE, lightmap.data());
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		lightmapGLIDS.push_back(id);
+void q3BSP::bindTextures() {
+	//glActiveTexture(GL_TEXTURE0);
+	//Initialize data structures
+	glGenTextures(1, &textureID);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, textureID);
+	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, LIGHTMAP_RESOLUTION, LIGHTMAP_RESOLUTION, textures.size(), 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	textureArrayOffsetPos = glGetUniformLocation(shaderID, "textureArrayOffset");
+
+	//Load in the textures
+	int offset = 0;
+	for (auto& texture : textures) {
+		loadTexture(texture.name, offset);
+		++offset;
 	}
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, textureID);
 }
+
+void q3BSP::bindLightmaps() {
+	//Loads all lightmaps into a texture array
+	//All lightmaps are 128x128 RGB8 format
+	//TODO:: Combine with normal textures into a single array? (only possible if they have same resolution as lightmaps)
+	//TODO:: Determine if adding anisotropic filtering is useful, and conversely, if we can get away with nearest neighbor filtering
+
+	//Initialize data structures
+//	glActiveTexture(GL_TEXTURE1);
+	glGenTextures(1, &lmapID);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, lmapID);
+	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGB8, LIGHTMAP_RESOLUTION, LIGHTMAP_RESOLUTION, lightmaps.size(), 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	lmapindexpos = glGetUniformLocation(shaderID, "lightmapArrayOffset");
+
+	//Load in the lightmap textures
+	int offset = 0;
+	for (auto& lightmap : lightmaps) {
+		glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, offset, 128, 128, 1, GL_RGB, GL_UNSIGNED_BYTE, lightmap.data());
+		++offset;
+	}
+
+	//Set texture attributes
+	glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
+	glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	//Rebind to texture unit 1
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, lmapID); 
+}
+
 
 void q3BSP::parseEntities(const std::string *entitystring) {
 	std::cout << "Parsing entities...\n";
@@ -459,9 +497,6 @@ bool isInFrustrum(frustrum view, glm::fvec3 point) {
 	if (distanceToPoint(view.farclip, point) < 0) return false;
 	return true;
 }
-
-
-
 
 int q3BSP::findCurrentLeaf(const glm::vec3 position) {
     int index = 0;
