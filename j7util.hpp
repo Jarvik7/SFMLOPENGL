@@ -50,7 +50,7 @@ inline bool fileExists(const std::string filename) {
     return infile.good();
 }
 
-GLuint loadTexture(std::string filename, int offset) {
+GLuint loadTexture(std::string filename) {
 	//Sanity checking
 	if (filename == "") {
 		std::cerr << "Texture name is null\n";

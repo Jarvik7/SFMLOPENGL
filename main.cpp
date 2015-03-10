@@ -281,6 +281,7 @@ int main(int argc, const char * argv[])
 							if(glIsEnabled(GL_DEPTH_TEST)) {
 								glDisable(GL_DEPTH_TEST);
 								glEnable(GL_BLEND);
+								glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 							}
 							else {
 								glDisable(GL_BLEND);

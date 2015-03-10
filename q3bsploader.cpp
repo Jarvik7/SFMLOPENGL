@@ -33,7 +33,7 @@ X) Install MSVC2013 Express on work computer, switch to range based forloops and
 
 #include "q3bsploader.h"
 
-extern GLuint loadTexture(std::string filename, int offset);
+extern GLuint loadTexture(std::string filename);
 
 extern GLuint shaderID;
 
@@ -129,7 +129,7 @@ q3BSP::q3BSP(const std::string filename) {
 		header.direntries[Textures].length);
     for (unsigned i = 0; i < textures.size(); ++i) std::cout << "  " << i << ':' << textures[i].name << '\n';
 	// Load textures into memory and build vector of IDs. Note that at present this loads an empty texture for everything with a shader
-	for (auto& texture : textures) textureIDs.push_back(loadTexture(texture.name, 0));
+	for (auto& texture : textures) textureIDs.push_back(loadTexture(texture.name));
     
     // Lump 2: Planes
 	numEntries = header.direntries[Planes].length / sizeof(BSPPlane);

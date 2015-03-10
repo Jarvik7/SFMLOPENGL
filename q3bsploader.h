@@ -13,7 +13,7 @@
 #define IBSP_VERSION 46
 #define TESSELLATION_LEVEL 12
 #define HEADER_LUMPS 17
-#define LIGHTMAP_RESOLUTION 128 // square
+#define LIGHTMAP_RESOLUTION 128 // RTCW might use larger lightmaps?
 
 typedef struct {
 	int offset;
@@ -152,7 +152,7 @@ typedef struct {
     int texture; //	Texture index.
 } BSPBrushSide; // Lump 9
 
-//Lump 10
+// Lump 10
 class BSPVertex
 {
 public:
@@ -186,7 +186,7 @@ public:
         temp.color = this->color;
 		return temp;
 	}
-};
+}; 
 
 // Lump 11: MeshVerts (standard data type)
 
@@ -238,7 +238,7 @@ public:
 
 typedef struct {
 	char data[128][128][3]; // 128x128 pixels, RGB
-} BSPLightmap;
+} BSPLightmap; // Lump 14
 
 typedef struct {
 	int n_vecs;
