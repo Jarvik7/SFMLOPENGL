@@ -287,7 +287,7 @@ void q3BSP::bindLightmaps() {
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, lmapID); 
 	
-	lightmaps.resize(0); // No need to retain
+	lightmaps.clear(); // No need to retain
 }
 
 

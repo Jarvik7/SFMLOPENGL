@@ -264,8 +264,8 @@ public:
             for (auto& index : patch.indices) indexes.push_back(index);
 
             // Throw away the raw data
-            patch.vertices.resize(0);
-            patch.indices.resize(0);
+            patch.vertices.clear();
+            patch.indices.clear();
         }
 		vao = makeVAO(&bsp->vertices, &indexes);
 
