@@ -234,8 +234,11 @@ public:
 
 	j7Model(q3BSP *bsp) { // Load from a BSP object
 		// Push the indices into a single array. Also populate arrays for offsets and number of indices of each face
+		//TODO:: face type 1 is actually a triangle fan without the meshvert stuff? Maybe faster to render that way
 		std::vector<GLuint> indexes;
-		bsp->patches.resize(bsp->faces.size()); // messy hack
+		
+		bsp->patches.resize(bsp->faces.size()); // Messy, TODO:: Change to only allocate patches as needed (map?)
+		
 		for (unsigned i = 0; i < bsp->faces.size(); ++i) {
 			offsets.push_back(static_cast<GLuint>(indexes.size()));
 			sizes.push_back(bsp->faces[i].n_meshverts);
