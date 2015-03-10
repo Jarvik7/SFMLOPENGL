@@ -81,8 +81,7 @@ GLuint loadTexture(std::string filename, int offset) {
 	GLfloat largest_aniso;
 	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &largest_aniso);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, largest_aniso);
-glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texture.getSize().x, texture.getSize().y, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.getPixelsPtr());
-	//glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, offset, texture.getSize().x, texture.getSize().y, 1, GL_RGBA, GL_UNSIGNED_BYTE, texture.getPixelsPtr());
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texture.getSize().x, texture.getSize().y, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.getPixelsPtr());
 
 	// Enable mipmapping
 	glGenerateMipmap(GL_TEXTURE_2D);

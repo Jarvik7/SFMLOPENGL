@@ -300,9 +300,6 @@ public:
 	// Lump 1
 	std::vector<GLuint> textureIDs;
 	GLuint texSamplerPos;
-	GLuint textureID;
-	void bindTextures();
-	GLuint textureArrayOffsetPos;
 
 	//Lump 4
 	int findCurrentLeaf(const glm::vec3 position); // Finds what leaf the given position is in
@@ -314,11 +311,8 @@ public:
 	std::vector<BSPPatch> patches; // Contains the tessellated faces
 
     //Lump 14
-	void bindLightmaps(); // Not working yet
-	std::vector<GLuint> lightmapGLIDS;
+	void bindLightmaps();
 	GLuint lmSamplerPos;
-
-	//Testing texture array
 	GLuint lmapindexpos;
 	GLuint lmapID;
 

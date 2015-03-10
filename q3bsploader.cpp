@@ -128,6 +128,8 @@ q3BSP::q3BSP(const std::string filename) {
 		&memblock[header.direntries[Textures].offset],
 		header.direntries[Textures].length);
     for (unsigned i = 0; i < textures.size(); ++i) std::cout << "  " << i << ':' << textures[i].name << '\n';
+	// Load textures into memory and build vector of IDs. Note that at present this loads an empty texture for everything with a shader
+	for (auto& texture : textures) textureIDs.push_back(loadTexture(texture.name, 0));
     
     // Lump 2: Planes
 	numEntries = header.direntries[Planes].length / sizeof(BSPPlane);
@@ -232,7 +234,8 @@ q3BSP::q3BSP(const std::string filename) {
 	memcpy(lightmaps.data(),
 		&memblock[header.direntries[Lightmaps].offset],
 		header.direntries[Lightmaps].length);
-    
+	bindLightmaps();
+
 	// Lump 15: Lightvols
     
     // Lump 16: Visdata
@@ -250,31 +253,9 @@ q3BSP::q3BSP(const std::string filename) {
 	// Lump 0
 	parseEntities(&tempEntityString); // Parse entity string and populate vector of entities. Only spawnpoints, lights and music are read right now
 	
-	// Load textures into memory and build vector of IDs. Note that at present this loads an empty texture for everything with a shader
-	for (auto& texture : textures) textureIDs.push_back(loadTexture(texture.name, 0));
-    // Load lightmaps into memory
-	//bindTextures();
-	bindLightmaps();
+
 
 	parseShader("textures/skies/tim_hell");
-}
-
-void q3BSP::bindTextures() {
-	//glActiveTexture(GL_TEXTURE0);
-	//Initialize data structures
-	glGenTextures(1, &textureID);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, textureID);
-	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, LIGHTMAP_RESOLUTION, LIGHTMAP_RESOLUTION, textures.size(), 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-	textureArrayOffsetPos = glGetUniformLocation(shaderID, "textureArrayOffset");
-
-	//Load in the textures
-	int offset = 0;
-	for (auto& texture : textures) {
-		loadTexture(texture.name, offset);
-		++offset;
-	}
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, textureID);
 }
 
 void q3BSP::bindLightmaps() {
@@ -442,6 +423,7 @@ typedef struct {
 	glm::fvec4 left, right, top, bottom, nearclip, farclip;
 } frustrum;
 
+//TODO::Check if frustrum stuff actually works, and if it offers a performance improvement over hardware culling
 frustrum getViewFrustrum(glm::mat4 matrix) {
 	frustrum view;
 
@@ -518,36 +500,34 @@ bool q3BSP::isClusterVisible(const int testCluster, const int visCluster) {
 
 	if (visData.vecs[(testCluster >> 3) + (visCluster * visData.sz_vecs)] & (1 << (testCluster & 7))) return true;
 	return false;
-
 }
 
 std::vector<int> q3BSP::makeListofVisibleFaces(const glm::vec3 position, glm::mat4 viewmatrix) {
     static std::vector<int> visibleFaces;
+
+	//Check if we are in same leaf as last frame, early exit if so
+	static int prevLeaf = -1;
+	int currentLeaf = findCurrentLeaf(position);
+	if (currentLeaf == prevLeaf) return visibleFaces;
+	prevLeaf = currentLeaf;
+
 	std::vector<bool> alreadyVisible; //Keep track of already added faces
 	alreadyVisible.resize(faces.size());
-    static int prevLeaf = -1;
-    int currentLeaf = findCurrentLeaf(position);
-    if (currentLeaf == prevLeaf) return visibleFaces; // Same cluster as last frame
+
     visibleFaces.resize(0); // reset
 
-	//frustrum viewfrustrum = getViewFrustrum(viewmatrix);
-
+	frustrum viewfrustrum = getViewFrustrum(viewmatrix);
 
     for (auto& leaf : leafs) {
 		glm::fvec3 min(leaf.mins[0], leaf.mins[1], leaf.mins[2]);
 		glm::fvec3 max(leaf.maxs[0], leaf.maxs[1], leaf.maxs[2]);
-		if (isClusterVisible(leaf.cluster, leafs[currentLeaf].cluster) /*&& !isInFrustrum(viewfrustrum, min) && !isInFrustrum(viewfrustrum, max)*/) { // If this leaf is visible
+		if (isClusterVisible(leaf.cluster, leafs[currentLeaf].cluster) && !isInFrustrum(viewfrustrum, min) && !isInFrustrum(viewfrustrum, max)) { // If this leaf is visible
 			for (int j = leaf.leafface; j < leaf.leafface + leaf.n_leaffaces; ++j) { // Then push all its faces to vector
 				if (!alreadyVisible[leafFaces[j]]) visibleFaces.push_back(leafFaces[j]);
 				alreadyVisible[leafFaces[j]] = true; // Prevent faces from being added more than once
             }
         }
     }
-
-	for (auto& face : visibleFaces) {
-
-	}
-    prevLeaf = currentLeaf;
 	return visibleFaces;
 }
 
