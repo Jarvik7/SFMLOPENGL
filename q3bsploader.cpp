@@ -267,7 +267,7 @@ void q3BSP::bindLightmaps() {
 	//Initialize data structures
 	glGenTextures(1, &lightmapGLID);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, lightmapGLID);
-	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGB8, LIGHTMAP_RESOLUTION, LIGHTMAP_RESOLUTION, lightmaps.size(), 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGB8, LIGHTMAP_RESOLUTION, LIGHTMAP_RESOLUTION, static_cast<GLsizei>(lightmaps.size()), 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 	lightmapIndexUniformPosition = glGetUniformLocation(shaderID, "lightmapArrayOffset");
 
 	//Load in the lightmap textures
@@ -571,13 +571,13 @@ void q3BSP::parseShader(const std::string shadername) {
 		std::string line;
 		std::vector<std::string> tokens;
 		open = shaderSource.find('\t', open) + 1; // Find the first item
-		int endline = shaderSource.find('\n', open); // Find the end of the line
+		size_t endline = shaderSource.find('\n', open); // Find the end of the line
 		line =  shaderSource.substr(open, endline - open);
         if (line.at(0) == '/') { // Comment
             open = shaderSource.find('\n',open);
             continue;
         }
-		int tokenOffset = 0;
+		size_t tokenOffset = 0;
 		while (tokenOffset != std::string::npos) {
 			tokenOffset = line.find(' ', tokenOffset);
 			if (tokenOffset == std::string::npos) continue;
