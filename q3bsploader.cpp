@@ -265,10 +265,10 @@ void q3BSP::bindLightmaps() {
 	//TODO:: Determine if adding anisotropic filtering is useful, and conversely, if we can get away with nearest neighbor filtering
 
 	//Initialize data structures
-	glGenTextures(1, &lmapID);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, lmapID);
+	glGenTextures(1, &lightmapGLID);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, lightmapGLID);
 	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGB8, LIGHTMAP_RESOLUTION, LIGHTMAP_RESOLUTION, lightmaps.size(), 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-	lmapindexpos = glGetUniformLocation(shaderID, "lightmapArrayOffset");
+	lightmapIndexUniformPosition = glGetUniformLocation(shaderID, "lightmapArrayOffset");
 
 	//Load in the lightmap textures
 	int offset = 0;
@@ -289,7 +289,7 @@ void q3BSP::bindLightmaps() {
 	
 	//Rebind to texture unit 1
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, lmapID); 
+	glBindTexture(GL_TEXTURE_2D_ARRAY, lightmapGLID);
 	
 	lightmaps.clear(); // No need to retain
 }

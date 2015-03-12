@@ -185,14 +185,12 @@ public:
             // Q3 does not cull pickups. we can do better. entity culling must also be done here.
             /*
              1) Determine PVS faces. DONE
-             2) Frustrum cull. DONE but disabled. Appears to be faster to leave it up to the GPU
+             2) Frustrum cull. disabled. Appears to be faster to leave it up to the GPU
              3) Split into opaque/transparent
              4) Op1: qsort both. Op2: qsort transparent, texture sort opaque.
              
              
              */
-
-            std::vector<std::vector<int>> sortedfaces;
 
 			//Send texture unit assignments to shader
 			glUniform1i(bsp->texSamplerPos, 0);
@@ -204,6 +202,7 @@ public:
 			glUniform1i(vertexLightingPos, vertexLighting);
 
 			//Group faces into sets by texture
+			std::vector<std::vector<int>> sortedfaces;
 			sortedfaces.resize(bsp->textures.size());
             for (auto& face : visiblefaces) {
                 sortedfaces[bsp->faces[face].texture].push_back(face);
@@ -214,17 +213,16 @@ public:
             for (auto& faceset : sortedfaces) {
                 if (faceset.size() == 0) continue; // This texture has no visible faces, skip to next
 
-				//Bind this faceset's texture
-                glBindTexture(GL_TEXTURE_2D, bsp->textureIDs[bsp->faces[faceset[0]].texture]);
-				//glUniform1i(bsp->textureArrayOffsetPos, bsp->faces[faceset[0]].texture);
+				glBindTexture(GL_TEXTURE_2D, bsp->textureIDs[bsp->faces[faceset[0]].texture]); //Bind this faceset's texture
+
 				for (auto& face : faceset) {
-					glUniform1i(bsp->lmapindexpos, bsp->faces[face].lm_index); // Lightmap array offset
+					glUniform1i(bsp->lightmapIndexUniformPosition, bsp->faces[face].lm_index); // Lightmap array offset
 
 					//Draw
-					if (bsp->faces[face].type == 1 || bsp->faces[face].type == 3) {
+					if (bsp->faces[face].type == bsp->SURF_POLY || bsp->faces[face].type == bsp->SURF_MODEL) {
 						glDrawElements(GL_TRIANGLES, sizes[face], GL_UNSIGNED_INT, reinterpret_cast<const GLvoid*>(offsets[face] * sizeof(GLuint)));
                     }
-					else if (bsp->faces[face].type == 2) {
+					else if (bsp->faces[face].type == bsp->SURF_PATCH) {
                         glDrawElementsBaseVertex(GL_TRIANGLE_STRIP, bsp->patches[face].n_indices, GL_UNSIGNED_INT, reinterpret_cast<const GLvoid*>(bsp->patches[face].start), bsp->patches[face].offset);
                     }
                 }
@@ -270,7 +268,7 @@ public:
         }
 		vao = makeVAO(&bsp->vertices, &indexes);
 
-		//Get texture / lm uniform locations and bind
+		//Get texture / lm uniform locations
 		bsp->texSamplerPos = glGetUniformLocation(shaderID, "tex");
 		bsp->lmSamplerPos = glGetUniformLocation(shaderID, "lm");
 

@@ -267,7 +267,12 @@ public:
 		Lightvols,		//LUMP_LIGHTGRID
 		Visdata			//LUMP_VISIBILITY
 	};
-
+	enum SURFACETYPES {
+		SURF_BAD=0,
+		SURF_POLY,
+		SURF_PATCH,
+		SURF_MODEL
+	};
 	q3BSP(std::string filename);
 //private:
 	// Raw data from the BSP file
@@ -313,8 +318,8 @@ public:
     //Lump 14
 	void bindLightmaps();
 	GLuint lmSamplerPos;
-	GLuint lmapindexpos;
-	GLuint lmapID;
+	GLuint lightmapIndexUniformPosition;
+	GLuint lightmapGLID;
 
 	//Shaders
 	void parseShader(const std::string shadername);
