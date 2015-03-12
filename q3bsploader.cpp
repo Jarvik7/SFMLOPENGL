@@ -265,7 +265,6 @@ void q3BSP::bindLightmaps() {
 	//TODO:: Determine if adding anisotropic filtering is useful, and conversely, if we can get away with nearest neighbor filtering
 
 	//Initialize data structures
-//	glActiveTexture(GL_TEXTURE1);
 	glGenTextures(1, &lmapID);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, lmapID);
 	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGB8, LIGHTMAP_RESOLUTION, LIGHTMAP_RESOLUTION, lightmaps.size(), 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
@@ -274,15 +273,20 @@ void q3BSP::bindLightmaps() {
 	//Load in the lightmap textures
 	int offset = 0;
 	for (auto& lightmap : lightmaps) {
-		glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, offset, 128, 128, 1, GL_RGB, GL_UNSIGNED_BYTE, lightmap.data());
+		glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, offset, LIGHTMAP_RESOLUTION, LIGHTMAP_RESOLUTION, 1, GL_RGB, GL_UNSIGNED_BYTE, lightmap.data());
 		++offset;
 	}
 
-	//Set texture attributes
+	//Enable anisotropic filtering
+	GLfloat largest_aniso;
+	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &largest_aniso);
+	glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY_EXT, largest_aniso);
+
+	//Enable mipmapping & linear filtering
 	glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
 	glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
+	
 	//Rebind to texture unit 1
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, lmapID); 
