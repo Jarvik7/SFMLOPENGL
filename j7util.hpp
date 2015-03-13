@@ -431,7 +431,7 @@ private:
 			else if (angle.y <= -1.57) angle.y = -1.57f;
 
 			// Cap horizotal angle to +/- 360 degrees to avoid possible overflow
-            float fullcircle = glm::radians(360.0f);
+            const float fullcircle = glm::radians(360.0f);
 			if (angle.x >= fullcircle) angle.x -= fullcircle;
 			else if (angle.x <= -fullcircle) angle.x += fullcircle;
 

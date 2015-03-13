@@ -553,7 +553,7 @@ typedef struct {
 void q3BSP::parseShader(const std::string shadername) {
 	// This is just a test to get the sky rendering, it doesn't parse all shader files yet.
 	std::cout << "Parsing shader...\n";
-	std::string filename = "scripts/sky.shader";
+	const std::string filename = "scripts/sky.shader";
 	std::ifstream file(filename);
 	if (!file.is_open()) return;
 	std::string shaderSource;
@@ -563,11 +563,11 @@ void q3BSP::parseShader(const std::string shadername) {
 	//Find the beginning of the shader
 	size_t open = shaderSource.find(shadername, 0);
 	std::cout << shadername << " found at position " << open << '\n';
-	open += shadername.length(); // skip to after the shader name
-	open = shaderSource.find_first_of("\n{", open) + 1;
-	size_t close = shaderSource.find("\n}", open); // Closing brace that isn't preceeded by a tab
+	//open += shadername.length(); // skip to after the shader name // this appears unnecessary
+	open = shaderSource.find_first_of("\n{", open) + 1; // Opening brace on a newline, 1 = skip the newline but keep the brace
+	size_t close = shaderSource.find("\n}", open) + 2; // Closing brace on a newline, 2 = keep the newline and brace
 	std::cout << "Shader length: " << (close - open) << '\n';
-	std::cout << "Got shader: \n" << shaderSource.substr(open, close - open + 2) << '\n';
+	std::cout << "Got shader:\n" << shaderSource.substr(open, close - open) << '\n';
 	std::map<std::string, std::string> linepair;
 
 
@@ -575,9 +575,9 @@ void q3BSP::parseShader(const std::string shadername) {
 		std::string line;
 		std::vector<std::string> tokens;
 		open = shaderSource.find('\t', open) + 1; // Find the first item
-		size_t endline = shaderSource.find('\n', open); // Find the end of the line
-		line =  shaderSource.substr(open, endline - open);
-        if (line.at(0) == '/') { // Comment
+		const size_t endline = shaderSource.find('\n', open); // Find the end of the line
+		line = shaderSource.substr(open, endline - open);
+        if (line.at(0) == '/') { // This line is a comment, skip
             open = shaderSource.find('\n',open);
             continue;
         }
@@ -585,7 +585,7 @@ void q3BSP::parseShader(const std::string shadername) {
 		while (tokenOffset != std::string::npos) {
 			tokenOffset = line.find(' ', tokenOffset);
 			if (tokenOffset == std::string::npos) continue;
-			std::string token = line.substr(0, tokenOffset);
+			const std::string token = line.substr(0, tokenOffset);
 			line = line.substr(tokenOffset + 1, line.length() - token.length());
 			tokens.push_back(token);
 		}

@@ -70,7 +70,7 @@ bool initGL()
 	return true;
 }
 
-int main(int argc, const char * argv[])
+int main(const int argc, const char * argv[])
 {
     //Initialize the render window
     sf::ContextSettings windowsettings(24); // 24-bit depth buffer
