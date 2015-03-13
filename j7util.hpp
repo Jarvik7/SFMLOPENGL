@@ -387,9 +387,9 @@ private:
 
 	void move() {
 		//Calculate mouselook
-		center.x = eye.x + sin(angle.x) * cos(angle.y);
-		center.y = eye.y + sin(angle.y);
-		center.z = eye.z + cos(angle.x) * cos(angle.y);
+		center.x = eye.x + sinf(angle.x) * cosf(angle.y);
+		center.y = eye.y + sinf(angle.y);
+		center.z = eye.z + cosf(angle.x) * cosf(angle.y);
 
 		//Update the modelview matrix
         modelviewMatrix.pop();
