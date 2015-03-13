@@ -94,7 +94,7 @@ q3BSP::q3BSP(const std::string filename) {
     // Load file to memory
     std::ifstream file(filename, std::ios::in | std::ios::binary | std::ios::ate);
     if (!file.is_open()) { std::cerr << "Couldn't open file.\n"; return; } // Couldn't open file
-    const unsigned size = static_cast<unsigned>(file.tellg());
+    const size_t size = static_cast<unsigned>(file.tellg());
     file.seekg(0);
 	std::vector<char> memblock;
 	memblock.reserve(size);
@@ -127,9 +127,13 @@ q3BSP::q3BSP(const std::string filename) {
 	memcpy(textures.data(),
 		&memblock[header.direntries[Textures].offset],
 		header.direntries[Textures].length);
-    for (unsigned i = 0; i < textures.size(); ++i) std::cout << "  " << i << ':' << textures[i].name << '\n';
 	// Load textures into memory and build vector of IDs. Note that at present this loads an empty texture for everything with a shader
-	for (auto& texture : textures) textureIDs.push_back(loadTexture(texture.name));
+	unsigned i = 0;
+	for (auto& texture : textures) {
+		std::cout << "  " << i << ':' << texture.name << '\n';
+		++i;
+		textureIDs.push_back(loadTexture(texture.name));
+	}
     
     // Lump 2: Planes
 	numEntries = header.direntries[Planes].length / sizeof(BSPPlane);
@@ -271,7 +275,7 @@ void q3BSP::bindLightmaps() {
 	lightmapIndexUniformPosition = glGetUniformLocation(shaderID, "lightmapArrayOffset");
 
 	//Load in the lightmap textures
-	int offset = 0;
+	unsigned offset = 0;
 	for (auto& lightmap : lightmaps) {
 		glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, offset, LIGHTMAP_RESOLUTION, LIGHTMAP_RESOLUTION, 1, GL_RGB, GL_UNSIGNED_BYTE, lightmap.data());
 		++offset;
@@ -297,8 +301,8 @@ void q3BSP::bindLightmaps() {
 
 void q3BSP::parseEntities(const std::string *entitystring) {
 	std::cout << "Parsing entities...\n";
-	unsigned long open = entitystring->find_first_of('{', 0);
-	unsigned long close = 0;
+	size_t open = entitystring->find_first_of('{', 0);
+	size_t close = 0;
 
 	// Split into vector of each clause
 	std::vector<std::string> clauses;
@@ -351,7 +355,7 @@ BSPPatch::BSPPatch(const q3BSP *bsp, const int face) {
     
     // Collect all the vertices and indices
     for (auto& grid : bezier) {
-        GLuint offset = static_cast<GLuint>(vertices.size());
+        const GLuint offset = static_cast<GLuint>(vertices.size());
         for (auto& vertex : grid.vertex) {
             vertices.push_back(vertex);
         }
@@ -427,11 +431,11 @@ void j7Bezier::tessellate(const int L) {
 // PVS Culling functions
 typedef struct {
 	glm::fvec4 left, right, top, bottom, nearclip, farclip;
-} frustrum;
+} frustum;
 
-//TODO::Check if frustrum stuff actually works, and if it offers a performance improvement over hardware culling
-frustrum getViewFrustrum(glm::mat4 matrix) {
-	frustrum view;
+//TODO::Check if frustum stuff actually works, and if it offers a performance improvement over hardware culling
+frustum getViewFrustum(const glm::mat4 matrix) {
+	frustum view;
 
 	view.left = glm::fvec4(
 		matrix[3][0] + matrix[0][0],
@@ -476,7 +480,7 @@ float distanceToPoint(const glm::fvec4 plane, const glm::fvec3 point) {
 		+ plane.z * point.z
 		+ plane.w;
 }
-bool isInFrustrum(frustrum view, glm::fvec3 point) {
+bool isInFrustum(const frustum view, const glm::fvec3 point) {
 	if (distanceToPoint(view.left, point) < 0) return false;
 	if (distanceToPoint(view.right, point) < 0) return false;
 	if (distanceToPoint(view.top, point) < 0) return false;
@@ -513,7 +517,7 @@ std::vector<int> q3BSP::makeListofVisibleFaces(const glm::vec3 position, glm::ma
 
 	//Check if we are in same leaf as last frame, early exit if so
 	static int prevLeaf = -1;
-	int currentLeaf = findCurrentLeaf(position);
+	const int currentLeaf = findCurrentLeaf(position);
 	if (currentLeaf == prevLeaf) return visibleFaces;
 	prevLeaf = currentLeaf;
 
@@ -522,12 +526,12 @@ std::vector<int> q3BSP::makeListofVisibleFaces(const glm::vec3 position, glm::ma
 
     visibleFaces.resize(0); // reset
 
-	frustrum viewfrustrum = getViewFrustrum(viewmatrix);
+	const frustum viewfrustum = getViewFrustum(viewmatrix);
 
     for (auto& leaf : leafs) {
 		glm::fvec3 min(leaf.mins[0], leaf.mins[1], leaf.mins[2]);
 		glm::fvec3 max(leaf.maxs[0], leaf.maxs[1], leaf.maxs[2]);
-		if (isClusterVisible(leaf.cluster, leafs[currentLeaf].cluster) && isInFrustrum(viewfrustrum, min) && isInFrustrum(viewfrustrum, max)) { // If this leaf is visible
+		if (isClusterVisible(leaf.cluster, leafs[currentLeaf].cluster) && isInFrustum(viewfrustum, min) && isInFrustum(viewfrustum, max)) { // If this leaf is visible
 			for (int j = leaf.leafface; j < leaf.leafface + leaf.n_leaffaces; ++j) { // Then push all its faces to vector
 				if (!alreadyVisible[leafFaces[j]]) visibleFaces.push_back(leafFaces[j]);
 				alreadyVisible[leafFaces[j]] = true; // Prevent faces from being added more than once
@@ -557,11 +561,11 @@ void q3BSP::parseShader(const std::string shadername) {
 	file.close();
 
 	//Find the beginning of the shader
-	unsigned long open = shaderSource.find(shadername, 0);
+	size_t open = shaderSource.find(shadername, 0);
 	std::cout << shadername << " found at position " << open << '\n';
 	open += shadername.length(); // skip to after the shader name
 	open = shaderSource.find_first_of("\n{", open) + 1;
-	unsigned long close = shaderSource.find("\n}", open); // Closing brace that isn't preceeded by a tab
+	size_t close = shaderSource.find("\n}", open); // Closing brace that isn't preceeded by a tab
 	std::cout << "Shader length: " << (close - open) << '\n';
 	std::cout << "Got shader: \n" << shaderSource.substr(open, close - open + 2) << '\n';
 	std::map<std::string, std::string> linepair;

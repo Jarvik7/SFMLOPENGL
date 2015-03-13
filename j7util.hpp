@@ -46,7 +46,7 @@ const sf::Keyboard::Key key_lean_left = sf::Keyboard::Q;
 const sf::Keyboard::Key key_move_run = sf::Keyboard::LShift;
 
 inline bool fileExists(const std::string filename) {
-    std::ifstream infile(filename);
+    const std::ifstream infile(filename);
     return infile.good();
 }
 
@@ -157,7 +157,7 @@ void textFPS() {
 	static int fps = 0; // Holds fps
 
 	//Calculate FPS
-	frame++;
+	++frame;
 	if (timer.getElapsedTime().asSeconds() >= 1) // If 1 second has passed, tally frames and reset timer
 	{
 		fps = frame;
@@ -170,11 +170,11 @@ void textFPS() {
 
 class j7Model {
 public:
-    void drawVBO(q3BSP *bsp, const glm::vec3 position, glm::mat4 viewmatrix) { 
+    void drawVBO(q3BSP *bsp, const glm::vec3 position, const glm::mat4 viewmatrix) { 
         if (vao != 0) {
 			glBindVertexArray(vao);
 
-			std::vector<int> visiblefaces = bsp->makeListofVisibleFaces(position, viewmatrix); // Find all faces visible from here
+			const std::vector<int> visiblefaces = bsp->makeListofVisibleFaces(position, viewmatrix); // Find all faces visible from here
 
             // Sort faces by texture ::TODO:: do the same cluster checking here to prevent resorting these faces, or sort the faces in the list generation function
             // Should check which is better. Also, it might be better to draw in z order overall.
@@ -197,8 +197,8 @@ public:
 			glUniform1i(bsp->lmSamplerPos, 1);
 
 			//Toggle lightmaps vs vertex lighting
-			GLuint vertexLightingPos = glGetUniformLocation(shaderID, "vertexLighting");
-			bool vertexLighting = sf::Keyboard::isKeyPressed(sf::Keyboard::BackSpace);
+			const GLuint vertexLightingPos = glGetUniformLocation(shaderID, "vertexLighting");
+			const bool vertexLighting = sf::Keyboard::isKeyPressed(sf::Keyboard::BackSpace);
 			glUniform1i(vertexLightingPos, vertexLighting);
 
 			//Group faces into sets by texture
@@ -241,12 +241,12 @@ public:
 		for (unsigned i = 0; i < bsp->faces.size(); ++i) {
 			offsets.push_back(static_cast<GLuint>(indexes.size()));
 			sizes.push_back(bsp->faces[i].n_meshverts);
-			if (bsp->faces[i].type == 1 || bsp->faces[i].type == 3) { // Meshes and polys
+			if (bsp->faces[i].type == bsp->SURF_MODEL || bsp->faces[i].type == bsp->SURF_POLY) { // Meshes and polys
 				for (int j = 0; j < bsp->faces[i].n_meshverts; ++j) {
 					indexes.push_back(bsp->faces[i].vertex + bsp->meshVerts[j + bsp->faces[i].meshvert]);
 				}
 			}
-			else if (bsp->faces[i].type == 2) { // Patches
+			else if (bsp->faces[i].type == bsp->SURF_PATCH) { // Patches
 				bsp->patches[i] = BSPPatch(bsp, i);
 			}
 		}
@@ -336,12 +336,12 @@ public:
 	}
 
 	void printPos(q3BSP *bsp) {
-		glm::vec3 pos255 = getCurrentPos();
+		const glm::vec3 pos255 = getCurrentPos();
         std::cout << "Pos: " << pos255.x << ',' << pos255.y << ',' << pos255.z << " Angle: " << angle.x << '\n';
 		if (bsp != nullptr) std::cout << "Current leaf: " << bsp->leafs[bsp->findCurrentLeaf(pos255)].cluster << ".\n";
 	}
     glm::vec3 getCurrentPos() {
-		glm::vec4 pos = glm::inverse(modelviewMatrix.top())[3];
+		const glm::vec4 pos = glm::inverse(modelviewMatrix.top())[3];
 		return glm::vec3(pos.x * 255, pos.z * -255, pos.y * 255); // Return de-swizzled position
     }
 
@@ -417,7 +417,7 @@ private:
 
 	void updateAngle(const sf::RenderWindow *window) {
 		if (mouseLock && hasFocus) {
-			sf::Vector2u windowsize = window->getSize();
+			const sf::Vector2u windowsize = window->getSize();
 			sf::Vector2i mouseOffset = sf::Mouse::getPosition(*window);
 
 			mouseOffset.x -= (windowsize.x / 2);
