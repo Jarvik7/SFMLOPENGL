@@ -57,8 +57,7 @@ public:
 		std::string token = pair[type];
         if (token == "") return temp;
 
-        float normalizer = 255.0f;
-        if (type == "_color") normalizer = 1.0f;
+		const float normalizer = (type == "_color") ? 1.0f : 255.0f;
 
 		std::string::size_type offset = 0;
 		for (unsigned i = 0; i < 3; ++i) {
