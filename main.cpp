@@ -130,8 +130,8 @@ int main(int argc, const char * argv[])
 
 
     shaderID = glCreateProgram();
-    GLenum vertshader = loadShader("texture.vert", GL_VERTEX_SHADER);
-    GLenum fragshader = loadShader("texture.frag", GL_FRAGMENT_SHADER);
+    const GLenum vertshader = loadShader("texture.vert", GL_VERTEX_SHADER);
+    const GLenum fragshader = loadShader("texture.frag", GL_FRAGMENT_SHADER);
     if (vertshader != 0 && fragshader != 0) {
         glAttachShader(shaderID, vertshader);
         glAttachShader(shaderID, fragshader);
@@ -159,8 +159,8 @@ int main(int argc, const char * argv[])
 	else std::cerr << "Could not open music file: " << test.worldMusic << ".\n";
 
     GLenum glerror = GL_NO_ERROR;
-	GLint projectionViewLoc = glGetUniformLocation(shaderID, "projectionview");
-	GLint modelViewLoc = glGetUniformLocation(shaderID, "modelview");
+	const GLint projectionViewLoc = glGetUniformLocation(shaderID, "projectionview");
+	const GLint modelViewLoc = glGetUniformLocation(shaderID, "modelview");
 
 	unsigned campos = 1;
 	camera.goTo(test.cameraPositions[campos].origin, test.cameraPositions[campos].angle);
@@ -179,7 +179,7 @@ int main(int argc, const char * argv[])
 
 
 		camera.update(&window);
-		glm::mat4 view = camera.modelviewMatrix.top() * glm::scale(glm::fvec3(1.0/255, 1.0/255, 1.0/255)); // Scale down the map ::TODO:: can this be done by adjusting our frustrum or something?
+		const glm::mat4 view = camera.modelviewMatrix.top() * glm::scale(glm::fvec3(1.0/255, 1.0/255, 1.0/255)); // Scale down the map ::TODO:: can this be done by adjusting our frustrum or something?
 
 		// Send our view matrices to shader
 		glUniformMatrix4fv(projectionViewLoc, 1, GL_FALSE, &camera.projectionMatrix.top()[0][0]);
@@ -214,7 +214,7 @@ int main(int argc, const char * argv[])
                     break;
 
                 case sf::Event::KeyPressed:
-                    if(hasFocus) switch (event.key.code)
+                    if (hasFocus) switch (event.key.code)
                     {
                         case key_quit:
                             gameover = true;
@@ -336,7 +336,7 @@ int main(int argc, const char * argv[])
                     break;
 
                 case sf::Event::MouseWheelMoved: // Zoom
-					if(hasFocus) {
+					if (hasFocus) {
 						fov -= event.mouseWheel.delta * 1.5f;
 						camera.adjustPerspective(windowsize, fov);
 					}
