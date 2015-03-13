@@ -37,12 +37,13 @@ public:
 		std::string type, value;
 
 		while (open != std::string::npos) {
-			close = clause.find_first_of('"', open + 1); // First match is type
-			type = clause.substr(open + 1, close - open - 1);
+			open += 1; // Skip past the opening quotation mark. Cannot do during assignment as it borks the if(npos) check
+			close = clause.find_first_of('"', open); // First match is type
+			type = clause.substr(open, close - open);
 
-			open = clause.find_first_of('"', close + 1);;
-			close = clause.find_first_of('"', open + 1); // Second match is value
-			value = clause.substr(open + 1, close - open - 1);
+			open = clause.find_first_of('"', close + 1) + 1;
+			close = clause.find_first_of('"', open); // Second match is value
+			value = clause.substr(open, close - open);
 
 			pair[type] = value;
 			
