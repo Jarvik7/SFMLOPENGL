@@ -60,8 +60,6 @@ bool initGL()
 		return false;
 	}
 
-
-
 	if (DISPLAYDEBUGOUTPUT) {
 		if (GLEW_ARB_compatibility) std::cout << "Compatibility mode supported\n";
 		if (GLEW_VERSION_1_1) std::cout << "OpenGL ver >= 1.1: Vertex arrays supported!\n";
@@ -95,10 +93,8 @@ int main(const int argc, const char * argv[])
 	j7Cam camera;
 	camera.adjustPerspective(windowsize);
 
-
     // Initialize the OpenGL state
     if (!initGL()) return EXIT_FAILURE; // Exit, GLew failed.
-
 
     //Display debug info about graphics
     if (DISPLAYDEBUGOUTPUT) {
@@ -127,8 +123,6 @@ int main(const int argc, const char * argv[])
     bool showfps = true;
 	short modelno=0;
 	
-
-
     shaderID = glCreateProgram();
     const GLenum vertshader = loadShader("texture.vert", GL_VERTEX_SHADER);
     const GLenum fragshader = loadShader("texture.frag", GL_FRAGMENT_SHADER);
@@ -179,7 +173,7 @@ int main(const int argc, const char * argv[])
 
 
 		camera.update(&window);
-		const glm::mat4 view = camera.modelviewMatrix.top() * glm::scale(glm::fvec3(1.0/255, 1.0/255, 1.0/255)); // Scale down the map ::TODO:: can this be done by adjusting our frustrum or something?
+		const glm::mat4 view = camera.modelviewMatrix.top() * glm::scale(glm::fvec3(1.0/255, 1.0/255, 1.0/255)); // Scale down the map ::TODO:: can this be done by adjusting our frustum or something?
 
 		// Send our view matrices to shader
 		glUniformMatrix4fv(projectionViewLoc, 1, GL_FALSE, &camera.projectionMatrix.top()[0][0]);
@@ -222,7 +216,7 @@ int main(const int argc, const char * argv[])
 
 						case key_respawn:
 							++campos;
-							if (campos > test.cameraPositions.size()-1) campos=0;
+							if (campos > test.cameraPositions.size() - 1) campos = 0;
 							camera.goTo(test.cameraPositions[campos].origin, test.cameraPositions[campos].angle);
 							break;
 
