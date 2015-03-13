@@ -56,7 +56,7 @@ GLuint makeVAO(const std::vector<BSPVertex> *vertices, const std::vector<GLuint>
     glBufferData(GL_ARRAY_BUFFER, vertices->size() * sizeof(BSPVertex), vertices->data(), GL_STATIC_DRAW);
 
     //Position
-    GLint attribLoc = glGetAttribLocation(shaderID, "position");
+    GLuint attribLoc = glGetAttribLocation(shaderID, "position");
     glEnableVertexAttribArray(attribLoc);
     glVertexAttribPointer(attribLoc, 3, GL_FLOAT, GL_FALSE, sizeof(BSPVertex), reinterpret_cast<const GLvoid*>(offsetof(BSPVertex, position)));
 
@@ -94,7 +94,7 @@ q3BSP::q3BSP(const std::string filename) {
     // Load file to memory
     std::ifstream file(filename, std::ios::in | std::ios::binary | std::ios::ate);
     if (!file.is_open()) { std::cerr << "Couldn't open file.\n"; return; } // Couldn't open file
-    const size_t size = static_cast<unsigned>(file.tellg());
+    const std::streamsize size = static_cast<std::streamsize>(file.tellg());
     file.seekg(0);
 	std::vector<char> memblock;
 	memblock.reserve(size);
@@ -275,7 +275,7 @@ void q3BSP::bindLightmaps() {
 	lightmapIndexUniformPosition = glGetUniformLocation(shaderID, "lightmapArrayOffset");
 
 	//Load in the lightmap textures
-	unsigned offset = 0;
+	GLint offset = 0;
 	for (auto& lightmap : lightmaps) {
 		glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, offset, LIGHTMAP_RESOLUTION, LIGHTMAP_RESOLUTION, 1, GL_RGB, GL_UNSIGNED_BYTE, lightmap.data());
 		++offset;
@@ -329,7 +329,7 @@ void q3BSP::parseEntities(const std::string *entitystring) {
 }
 
 //Tessellation functions
-BSPPatch::BSPPatch(const q3BSP *bsp, const int face) {
+BSPPatch::BSPPatch(const q3BSP *bsp, const unsigned face) {
     std::vector<j7Bezier> bezier;
 
     //Setup the control information and tessellate
@@ -366,7 +366,7 @@ BSPPatch::BSPPatch(const q3BSP *bsp, const int face) {
             indices.push_back(index + offset);
         }
     }
-    n_indices = static_cast<GLuint>(indices.size());
+    n_indices = static_cast<GLsizei>(indices.size());
 }
 	
 void j7Bezier::tessellate(const int L) {

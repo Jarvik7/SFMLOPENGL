@@ -253,6 +253,7 @@
 		2701D66618DB0C7D009CF5BC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_WARN_IMPLICIT_SIGN_CONVERSION = YES;
 				CLANG_WARN_SUSPICIOUS_IMPLICIT_CONVERSION = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -272,6 +273,7 @@
 		2701D66718DB0C7D009CF5BC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_WARN_IMPLICIT_SIGN_CONVERSION = YES;
 				CLANG_WARN_SUSPICIOUS_IMPLICIT_CONVERSION = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",

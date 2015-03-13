@@ -197,7 +197,7 @@ public:
 			glUniform1i(bsp->lmSamplerPos, 1);
 
 			//Toggle lightmaps vs vertex lighting
-			const GLuint vertexLightingPos = glGetUniformLocation(shaderID, "vertexLighting");
+			const GLint vertexLightingPos = glGetUniformLocation(shaderID, "vertexLighting");
 			const bool vertexLighting = sf::Keyboard::isKeyPressed(sf::Keyboard::BackSpace);
 			glUniform1i(vertexLightingPos, vertexLighting);
 
@@ -280,7 +280,7 @@ private:
 	GLuint vao; // Our vertexes and indexes are here
 	//List of index offsets and counts for each face (index = face number)
 	std::vector<GLuint> offsets;
-	std::vector<GLuint> sizes;
+	std::vector<GLsizei> sizes;
 };
 
 class j7Cam {

@@ -227,11 +227,12 @@ class q3BSP;
 class BSPPatch {
 public:
 
-    BSPPatch(const q3BSP *bsp, const int face);
+    BSPPatch(const q3BSP *bsp, const unsigned face);
     BSPPatch() {  }
 
-
-    GLuint n_indices, offset, start;
+    GLsizei n_indices;
+    GLint offset;
+    GLuint start;
     std::vector<GLuint> indices;
     std::vector<BSPVertex> vertices;
 };
@@ -304,7 +305,7 @@ public:
 
 	// Lump 1
 	std::vector<GLuint> textureIDs;
-	GLuint texSamplerPos;
+	GLint texSamplerPos;
 
 	//Lump 4
 	int findCurrentLeaf(const glm::vec3 position) const; // Finds what leaf the given position is in
@@ -317,8 +318,8 @@ public:
 
     //Lump 14
 	void bindLightmaps();
-	GLuint lmSamplerPos;
-	GLuint lightmapIndexUniformPosition;
+	GLint lmSamplerPos;
+	GLint lightmapIndexUniformPosition;
 	GLuint lightmapGLID;
 
 	//Shaders
