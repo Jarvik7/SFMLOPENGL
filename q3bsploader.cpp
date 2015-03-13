@@ -301,15 +301,15 @@ void q3BSP::bindLightmaps() {
 
 void q3BSP::parseEntities(const std::string *entitystring) {
 	std::cout << "Parsing entities...\n";
-	size_t open = entitystring->find_first_of('{', 0);
+	size_t open = entitystring->find_first_of('{', 0) + 1; // Set start position to location after first opening brace
 	size_t close = 0;
 
 	// Split into vector of each clause
 	std::vector<std::string> clauses;
 	while(open != std::string::npos) {
-			close = entitystring->find_first_of('}', open + 1); // Find closing brace starting at last opening brace
-			clauses.push_back(entitystring->substr(open, close - open)); // Push, minus open & close braces & newlines
-			open = entitystring->find_first_of('{', close + 1); // Set next start location to after closing brace
+			close = entitystring->find_first_of('}', open); // Find the next closing brace
+			clauses.push_back(entitystring->substr(open, close - open)); // Push the string to vector, outer braces
+			open = entitystring->find_first_of('{', close + 1); // Find the next opening brace (1 = start from next char after closing brace
 	}
 	std::cout << clauses.size() << " clauses found.\n";
 	
