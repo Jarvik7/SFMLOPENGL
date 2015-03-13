@@ -115,27 +115,27 @@ void showFPS(sf::RenderWindow *window)
 	// This only works in a compatibility profile due to SFML being out of date
 
 	static sf::Font font;
-	static bool fontloaded=false;
-    static bool triedloadingfont=false;
+	static bool fontloaded = false;
+    static bool triedloadingfont = false;
 
     if (!fontloaded && triedloadingfont) return; // Early exit. We've tried and failed to load a font already.
 	//Load the font
 	if (!fontloaded) {
-        triedloadingfont=true;
+        triedloadingfont = true;
 #if defined(SFML_SYSTEM_WINDOWS) 
-        if (font.loadFromFile("c:\\Windows\\Fonts\\Arial.ttf")) fontloaded=true;
+        if (font.loadFromFile("c:\\Windows\\Fonts\\Arial.ttf")) fontloaded = true;
 #elif defined(SFML_SYSTEM_MACOS)
-        if (font.loadFromFile("/Library/Fonts/Arial.ttf")) fontloaded=true;
+        if (font.loadFromFile("/Library/Fonts/Arial.ttf")) fontloaded = true;
 #endif
         if (!fontloaded) return; // Early exit. Failed to load a font.
 	}
 
     static sf::Clock timer; // Times 1 second
-	static int frame=0;	// Holds number of frames this second
-	static int fps=0; // Holds fps
+	static int frame = 0;	// Holds number of frames this second
+	static int fps = 0; // Holds fps
 
 	//Calculate FPS
-	frame++;
+	++frame;
 	if(timer.getElapsedTime().asSeconds() >= 1) // If 1 second has passed, tally frames and reset timer
 	{
 		fps = frame;
@@ -170,7 +170,7 @@ void textFPS() {
 
 class j7Model {
 public:
-    void drawVBO(q3BSP *bsp, const glm::vec3 position, const glm::mat4 viewmatrix) { 
+    void drawVBO(const q3BSP *bsp, const glm::vec3 position, const glm::mat4 viewmatrix) {
         if (vao != 0) {
 			glBindVertexArray(vao);
 
@@ -335,7 +335,7 @@ public:
 		printPos(nullptr);
 	}
 
-	void printPos(q3BSP *bsp) {
+	void printPos(const q3BSP *bsp) {
 		const glm::vec3 pos255 = getCurrentPos();
         std::cout << "Pos: " << pos255.x << ',' << pos255.y << ',' << pos255.z << " Angle: " << angle.x << '\n';
 		if (bsp != nullptr) std::cout << "Current leaf: " << bsp->leafs[bsp->findCurrentLeaf(pos255)].cluster << ".\n";

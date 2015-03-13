@@ -294,7 +294,7 @@ int main(const int argc, const char * argv[])
 
                         case key_toggle_music:
                         {
-                            sf::SoundSource::Status musicstatus = music.getStatus();
+                            const sf::SoundSource::Status musicstatus = music.getStatus();
                             if (musicstatus == sf::SoundSource::Paused) music.play();
                             else if (musicstatus == sf::SoundSource::Playing) music.pause();
                             // The music should never be stopped unless it failed to load

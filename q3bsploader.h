@@ -307,11 +307,11 @@ public:
 	GLuint texSamplerPos;
 
 	//Lump 4
-	int findCurrentLeaf(const glm::vec3 position); // Finds what leaf the given position is in
-	bool isClusterVisible(const int visCluster, const int testCluster); // Determines if testCluster is visible from visCluster
+	int findCurrentLeaf(const glm::vec3 position) const; // Finds what leaf the given position is in
+	bool isClusterVisible(const int visCluster, const int testCluster) const; // Determines if testCluster is visible from visCluster
 
 	//Lump 13
-	std::vector<int> makeListofVisibleFaces(const glm::vec3 position, glm::mat4 viewmatrix); // Generates a list of faces visible from position
+	std::vector<int> makeListofVisibleFaces(const glm::vec3 position, const glm::mat4 viewmatrix) const; // Generates a list of faces visible from position
 	std::vector<std::vector<BSPFace>> facesByTexture; // All of the faces grouped by texture
 	std::vector<BSPPatch> patches; // Contains the tessellated faces
 

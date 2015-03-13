@@ -490,7 +490,7 @@ bool isInFrustum(const frustum view, const glm::fvec3 point) {
 	return true;
 }
 
-int q3BSP::findCurrentLeaf(const glm::vec3 position) {
+int q3BSP::findCurrentLeaf(const glm::vec3 position) const {
     int index = 0;
     while (index >= 0) {
         const BSPNode& node = nodes[index];
@@ -504,7 +504,7 @@ int q3BSP::findCurrentLeaf(const glm::vec3 position) {
     return -index - 1;
 }
 
-bool q3BSP::isClusterVisible(const int testCluster, const int visCluster) {
+bool q3BSP::isClusterVisible(const int testCluster, const int visCluster) const {
 	//Sanity check
     if ((visData.vecs.size() == 0) || (visCluster < 0)) return true; // Show all faces when outside map or there is no visdata
 
@@ -512,7 +512,7 @@ bool q3BSP::isClusterVisible(const int testCluster, const int visCluster) {
 	return false;
 }
 
-std::vector<int> q3BSP::makeListofVisibleFaces(const glm::vec3 position, glm::mat4 viewmatrix) {
+std::vector<int> q3BSP::makeListofVisibleFaces(const glm::vec3 position, const glm::mat4 viewmatrix) const {
     static std::vector<int> visibleFaces;
 
 	//Check if we are in same leaf as last frame, early exit if so
