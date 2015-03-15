@@ -29,6 +29,7 @@ X) Install MSVC2013 Express on work computer, switch to range based forloops and
 
 #include <GLEW/glew.h>
 #include <SFML/OpenGL.hpp> // OpenGL datatypes
+#include <SFML/Graphics.hpp>
 #include <glm/glm.hpp>
 
 #include "q3bsploader.h"
@@ -90,7 +91,7 @@ GLuint makeVAO(const std::vector<BSPVertex> *vertices, const std::vector<GLuint>
 
 q3BSP::q3BSP(const std::string filename) {
     std::cout << "Loading " << filename << '\n';
-
+    sf::Clock timer;
     // Load file to memory
     std::ifstream file(filename, std::ios::in | std::ios::binary | std::ios::ate);
     if (!file.is_open()) { std::cerr << "Couldn't open file.\n"; return; } // Couldn't open file
@@ -257,7 +258,7 @@ q3BSP::q3BSP(const std::string filename) {
 	// Lump 0
 	parseEntities(&tempEntityString); // Parse entity string and populate vector of entities. Only spawnpoints, lights and music are read right now
 	
-
+    std::cout << "Finished importing bsp in " << timer.getElapsedTime().asSeconds() << " seconds" << std::endl;
 
 	parseShader("textures/skies/tim_hell");
 }
