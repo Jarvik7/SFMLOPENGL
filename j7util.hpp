@@ -56,11 +56,10 @@ GLuint loadTexture(std::string filename) {
 		std::cerr << "Texture name is null\n";
 		return 0;
 	}
-	if (fileExists(filename)) filename = filename;
 	// Try some common filetypes (Quake 3 etc don't specify extension in BSP)
-	else if (fileExists(filename + ".jpg")) filename += ".jpg";
-	else if (fileExists(filename + ".tga")) filename += ".tga";
-	else if (fileExists(filename + ".png")) filename += ".png";
+	if (fileExists(filename + ".jpg")) filename += ".jpg";
+	else if (fileExists(filename + ".tga")) filename += ".tga"; // Has alpha channel
+	else if (fileExists(filename + ".png")) filename += ".png"; // QuakeLive etc.
 	else {
 		std::cerr << "Unable to find texture file: " << filename << '\n';
 		return 0;
@@ -136,7 +135,7 @@ void showFPS(sf::RenderWindow *window)
 
 	//Calculate FPS
 	++frame;
-	if(timer.getElapsedTime().asSeconds() >= 1) // If 1 second has passed, tally frames and reset timer
+	if (timer.getElapsedTime().asSeconds() >= 1) // If 1 second has passed, tally frames and reset timer
 	{
 		fps = frame;
 		frame = 0;
@@ -144,7 +143,7 @@ void showFPS(sf::RenderWindow *window)
 	}
 
 	//Draw on screen, skip first second as it doesn't have a sample to calculate from yet
-	if(fps > 0)	{
+	if (fps > 0)	{
 		window->pushGLStates();
         window->draw(sf::Text(std::to_string(fps) + " fps", font, 20));
 		window->popGLStates();
@@ -154,16 +153,14 @@ void showFPS(sf::RenderWindow *window)
 void textFPS() {
 	static sf::Clock timer; // Times 1 second
 	static int frame = 0;	// Holds number of frames this second
-	static int fps = 0; // Holds fps
 
 	//Calculate FPS
 	++frame;
 	if (timer.getElapsedTime().asSeconds() >= 1) // If 1 second has passed, tally frames and reset timer
 	{
-		fps = frame;
-		frame = 0;
 		timer.restart();
-		std::cout << "FPS: " << fps << std::endl;
+		std::cout << "FPS: " << frame << std::endl;
+        frame = 0;
 	}
 }
 
@@ -255,7 +252,7 @@ public:
             if (patch.vertices.size() == 0) continue; // Empty patch
             
             //Store offsets
-            patch.offset = static_cast<GLuint>(bsp->vertices.size());
+            patch.offset = static_cast<GLint>(bsp->vertices.size());
             patch.start = static_cast<GLuint>(indexes.size() * sizeof(GLuint));
 
             // Push vertices & indices to the vectors
@@ -335,12 +332,12 @@ public:
 		printPos(nullptr);
 	}
 
-	void printPos(const q3BSP *bsp) {
-		const glm::vec3 pos255 = getCurrentPos();
-        std::cout << "Pos: " << pos255.x << ',' << pos255.y << ',' << pos255.z << " Angle: " << angle.x << '\n';
-		if (bsp != nullptr) std::cout << "Current leaf: " << bsp->leafs[bsp->findCurrentLeaf(pos255)].cluster << ".\n";
+	void printPos(const q3BSP *bsp) const {
+		const glm::vec3 pos = getCurrentPos();
+        std::cout << "Pos: " << pos.x << ',' << pos.y << ',' << pos.z << " Angle: " << angle.x << '\n';
+		if (bsp != nullptr) std::cout << "Current leaf: " << bsp->leafs[bsp->findCurrentLeaf(pos)].cluster << ".\n";
 	}
-    glm::vec3 getCurrentPos() {
+    glm::vec3 getCurrentPos() const {
 		const glm::vec4 pos = glm::inverse(modelviewMatrix.top())[3];
 		return glm::vec3(pos.x * 255, pos.z * -255, pos.y * 255); // Return de-swizzled position
     }
@@ -353,10 +350,7 @@ public:
 #if defined(SFML_SYSTEM_WINDOWS) // Windows allows window height of 0, prevent div/0
 		if (windowsize.y == 0) ++windowsize.y;
 #endif
-		if (DISPLAYDEBUGOUTPUT)
-		{
-			std::cout << "Window resized to " << windowsize.x << "x" << windowsize.y << '\n';
-		}
+		if (DISPLAYDEBUGOUTPUT)	std::cout << "Window resized to " << windowsize.x << "x" << windowsize.y << '\n';
 
 		glViewport(0, 0, windowsize.x, windowsize.y);
 
@@ -453,10 +447,12 @@ GLenum loadShader(const std::string filename, const GLenum type) {
     }
 
     // Read in shader source
-    std::ifstream file(filename);
 	std::string shaderSource;
+
+    std::ifstream file(filename);
     shaderSource.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     file.close();
+
     const GLchar* shaderStringPointer = shaderSource.c_str();
 
     // Load it into OpenGL

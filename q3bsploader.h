@@ -60,7 +60,7 @@ public:
 		const float normalizer = (type == "_color") ? 1.0f : 255.0f;
 
 		std::string::size_type offset = 0;
-		for (unsigned i = 0; i < 3; ++i) {
+		for (int i = 0; i < 3; ++i) {
 			temp[i] = std::stof(token, &offset) / normalizer;
 			token = token.substr(offset);
 		}
