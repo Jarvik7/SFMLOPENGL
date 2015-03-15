@@ -483,6 +483,4 @@ GLenum loadShader(const std::string filename, const GLenum type) {
     return shader;
 }
 
-
-
 #endif
