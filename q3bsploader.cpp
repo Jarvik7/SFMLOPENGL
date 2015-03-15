@@ -528,9 +528,9 @@ std::vector<int> q3BSP::makeListofVisibleFaces(const glm::vec3 position, const g
 	const frustum viewfrustum = getViewFrustum(viewmatrix);
 
     for (auto& leaf : leafs) {
-		glm::fvec3 min(leaf.mins[0], leaf.mins[1], leaf.mins[2]);
-		glm::fvec3 max(leaf.maxs[0], leaf.maxs[1], leaf.maxs[2]);
-		if (isClusterVisible(leaf.cluster, leafs[currentLeaf].cluster) /*&& isInFrustum(viewfrustum, min) && isInFrustum(viewfrustum, max)*/) { // Frustum culling is borking part of the floor in q3dm0
+		const glm::fvec3 min(leaf.mins[0], leaf.mins[1], leaf.mins[2]);
+		const glm::fvec3 max(leaf.maxs[0], leaf.maxs[1], leaf.maxs[2]);
+		if (isClusterVisible(leaf.cluster, leafs[currentLeaf].cluster) /*&& isInFrustum(viewfrustum, min) && isInFrustum(viewfrustum, max)*/) { // Frustum culling is culling some visible elements
 			for (int j = leaf.leafface; j < leaf.leafface + leaf.n_leaffaces; ++j) { // Then push all its faces to vector
 				if (!alreadyVisible[leafFaces[j]]) visibleFaces.push_back(leafFaces[j]);
 				alreadyVisible[leafFaces[j]] = true; // Prevent faces from being added more than once
