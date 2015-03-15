@@ -333,14 +333,14 @@ BSPPatch::BSPPatch(const q3BSP *bsp, const unsigned face) {
     std::vector<j7Bezier> bezier;
 
     //Setup the control information and tessellate
-	int patch_size_x = (bsp->faces[face].size[0] - 1) / 2;
-	int patch_size_y = (bsp->faces[face].size[1] - 1) / 2;
+	const int patch_size_x = (bsp->faces[face].size[0] - 1) / 2;
+	const int patch_size_y = (bsp->faces[face].size[1] - 1) / 2;
 	bezier.resize(patch_size_x * patch_size_y);
 
 	int patchIndex =  0;
 	int ii, n, j, nn;
-	for (ii = 0, n = 0; n < patch_size_x; n++, ii = 2*n) {
-	    for (j=0, nn=0; nn < patch_size_y; nn++, j = 2*nn) {
+	for (ii = 0, n = 0; n < patch_size_x; ++n, ii = 2 * n) {
+	    for (j = 0, nn = 0; nn < patch_size_y; ++nn, j = 2 * nn) {
 			int index = 0;
 			for (int ctr = 0; ctr < 3; ++ctr) {
 				int pos = ctr * bsp->faces[face].size[0];
@@ -498,8 +498,7 @@ int q3BSP::findCurrentLeaf(const glm::vec3 position) const {
         // Distance from point to a plane
         const double distance = glm::dot(position, plane.normal) - plane.distance;
 
-        if (distance >= 0)  index = node.children[0];
-        else index = node.children[1];
+        index = (distance >= 0) ? node.children[0] : node.children[1];
     }
     return -index - 1;
 }
