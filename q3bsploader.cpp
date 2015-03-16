@@ -104,7 +104,8 @@ q3BSP::q3BSP(const std::string filename) {
 
     // Read and check header
     BSPHeader header;
-    memcpy(&header, &memblock[0], sizeof(BSPHeader));
+	std::copy(&memblock[0], &memblock[0] + sizeof(BSPHeader), reinterpret_cast<char*>(&header));
+    //memcpy(&header, &memblock[0], sizeof(BSPHeader));
 	if (std::string(IDENT).compare(0,4,header.magicNumber,4)) { std::cerr << "Invalid format: \n" << header.magicNumber[0] << header.magicNumber[1] << header.magicNumber[2] << header.magicNumber[3] << '\n'; return; }
     if (header.version != IBSP_VERSION) {
         if (header.version == 47) std::cerr << "IBSP v.47: QuakeLive or RTCW map? Will try to load anyways.\n";
@@ -258,7 +259,7 @@ q3BSP::q3BSP(const std::string filename) {
 	// Lump 0
 	parseEntities(&tempEntityString); // Parse entity string and populate vector of entities. Only spawnpoints, lights and music are read right now
 	
-    std::cout << "Finished importing bsp in " << timer.getElapsedTime().asSeconds() << " seconds" << std::endl;
+    std::cout << "Finished importing bsp in " << timer.getElapsedTime().asSeconds() << " seconds\n";
 
 	parseShader("textures/skies/tim_hell");
 }
@@ -344,7 +345,7 @@ BSPPatch::BSPPatch(const q3BSP *bsp, const unsigned face) {
 	    for (j = 0, nn = 0; nn < patch_size_y; ++nn, j = 2 * nn) {
 			int index = 0;
 			for (int ctr = 0; ctr < 3; ++ctr) {
-				int pos = ctr * bsp->faces[face].size[0];
+				const int pos = ctr * bsp->faces[face].size[0];
 
 				bezier[patchIndex].controls[index++] = bsp->vertices[bsp->faces[face].vertex + ii + bsp->faces[face].size[0] * j + pos];
 				bezier[patchIndex].controls[index++] = bsp->vertices[bsp->faces[face].vertex + ii + bsp->faces[face].size[0] * j + pos + 1];
@@ -380,8 +381,8 @@ void j7Bezier::tessellate(const int L) {
 
     // Compute the vertices
     for (int i = 0; i <= L; ++i) {
-        float a = static_cast<float>(i) / L;
-        float b = 1.0f - a;
+        const float a = static_cast<float>(i) / L;
+        const float b = 1.0f - a;
 
         vertex[i] =
             controls[0] * (b * b) + 
@@ -390,13 +391,13 @@ void j7Bezier::tessellate(const int L) {
     }
 
     for (int i = 1; i <= L; ++i) {
-        float a = static_cast<float>(i) / L;
-        float b = 1.0f - a;
+        const float a = static_cast<float>(i) / L;
+        const float b = 1.0f - a;
 
         BSPVertex temp[3];
 
         for (int j = 0; j < 3; ++j) {
-            int k = 3 * j;
+            const int k = 3 * j;
             temp[j] =
                 controls[k + 0] * (b * b) + 
                 controls[k + 1] * (2 * b * a) +
@@ -404,8 +405,8 @@ void j7Bezier::tessellate(const int L) {
         }
 
         for (int j = 0; j <= L; ++j) {
-            float a = static_cast<float>(j) / L;
-            float b = 1.0f - a;
+            const float a = static_cast<float>(j) / L;
+            const float b = 1.0f - a;
 
             vertex[i * L1 + j] =
                 temp[0] * (b * b) + 
@@ -578,7 +579,7 @@ void q3BSP::parseShader(const std::string shadername) {
 		const size_t endline = shaderSource.find('\n', open); // Find the end of the line
 		line = shaderSource.substr(open, endline - open);
         if (line.at(0) == '/') { // This line is a comment, skip
-            open = shaderSource.find('\n',open);
+            open = shaderSource.find('\n',open) + 1;
             continue;
         }
 		size_t tokenOffset = 0;

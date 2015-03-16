@@ -159,7 +159,7 @@ void textFPS() {
 	if (timer.getElapsedTime().asSeconds() >= 1) // If 1 second has passed, tally frames and reset timer
 	{
 		timer.restart();
-		std::cout << "FPS: " << frame << std::endl;
+		std::cout << "FPS: " << frame << '\n';
         frame = 0;
 	}
 }
