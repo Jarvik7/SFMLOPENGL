@@ -106,7 +106,7 @@ q3BSP::q3BSP(const std::string filename) {
     BSPHeader header;
 	std::copy(&memblock[0], &memblock[0] + sizeof(BSPHeader), reinterpret_cast<char*>(&header));
     //memcpy(&header, &memblock[0], sizeof(BSPHeader));
-	if (std::string(IDENT).compare(0,4,header.magicNumber,4)) { std::cerr << "Invalid format: \n" << header.magicNumber[0] << header.magicNumber[1] << header.magicNumber[2] << header.magicNumber[3] << '\n'; return; }
+	if (std::string(IDENT).compare(0,4,header.magicNumber,4)) { std::cerr << "Invalid format: " << header.magicNumber[0] << header.magicNumber[1] << header.magicNumber[2] << header.magicNumber[3] << '\n'; return; }
     if (header.version != IBSP_VERSION) {
         if (header.version == 47) std::cerr << "IBSP v.47: QuakeLive or RTCW map? Will try to load anyways.\n";
         else {
@@ -267,7 +267,6 @@ q3BSP::q3BSP(const std::string filename) {
 void q3BSP::bindLightmaps() {
 	//Loads all lightmaps into a texture array
 	//All lightmaps are 128x128 RGB8 format
-	//TODO:: Combine with normal textures into a single array? (only possible if they have same resolution as lightmaps)
 	//TODO:: Determine if adding anisotropic filtering is useful, and conversely, if we can get away with nearest neighbor filtering
 
 	//Initialize data structures
@@ -299,7 +298,6 @@ void q3BSP::bindLightmaps() {
 	
 	lightmaps.clear(); // No need to retain
 }
-
 
 void q3BSP::parseEntities(const std::string *entitystring) {
 	std::cout << "Parsing entities...\n";
