@@ -24,8 +24,6 @@
 
 // Define our key mapping ::TODO:: make this remappable in-game
 const sf::Keyboard::Key key_quit = sf::Keyboard::Escape;
-const sf::Keyboard::Key key_toggle_rotate = sf::Keyboard::R;
-const sf::Keyboard::Key key_reset_rotate = sf::Keyboard::H;
 const sf::Keyboard::Key key_toggle_music = sf::Keyboard::M;
 const sf::Keyboard::Key key_toggle_fullscreen = sf::Keyboard::F;
 const sf::Keyboard::Key key_toggle_vsync = sf::Keyboard::V;
@@ -48,19 +46,20 @@ GLuint shaderID;
 bool initGL()
 {
 	//Setup OpenGL backface culling
-	glEnable(GL_CULL_FACE);
 	glFrontFace(GL_CW); // Quake3 uses CW for frontface
-	//glClearColor(0.5f, 0.5f, 0.5f, 1.0f); // Clear color (not used?)
-    
+	glCullFace(GL_BACK);
+	glEnable(GL_CULL_FACE);
+
 	//Setup OpenGL depth buffer
-	glClearDepth(1.0f); // Depth Buffer Setup
-    glEnable(GL_DEPTH_TEST); // Enables Depth Testing
-    glDepthFunc(GL_LEQUAL); // The Type Of Depth Testing To Do
+	glClearDepth(1.0f);
+    glDepthFunc(GL_LEQUAL);
+	glEnable(GL_DEPTH_TEST);
 
 	//OpenGL quality hinting
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 	glHint(GL_GENERATE_MIPMAP_HINT, GL_NICEST);
 	glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
+	glHint(GL_CLIP_VOLUME_CLIPPING_HINT_EXT, GL_FASTEST); // Disable HW frustrum culling (software is about 10 fps faster as it culls at earlier stage in pipeline)
 
     glewExperimental = true; // Needed for OSX to build?
 
@@ -75,7 +74,7 @@ int main(const int argc, const char * argv[])
 {
     //Initialize the render window
     sf::ContextSettings windowsettings(24); // 24-bit depth buffer
-    windowsettings.antialiasingLevel = 12;
+    windowsettings.antialiasingLevel = 12; // SFML finds closest supporting value, which is 8 at work
     sf::RenderWindow window(sf::VideoMode(800, 600, 32), windowTitle, sf::Style::Default, windowsettings);
     if (!window.isOpen())
     {
@@ -83,21 +82,26 @@ int main(const int argc, const char * argv[])
         return EXIT_FAILURE;
     }
 
+	// Initialize the OpenGL state
+	if (!initGL()) return EXIT_FAILURE; // Exit, GLew failed.
+
+	//Setup Vsync (always ON on OSX)
+	bool vsync = true;
+	window.setVerticalSyncEnabled(vsync);
+
+	//Window settings
+	sf::Vector2u windowsize = window.getSize();
     bool fullscreen = false;
-    bool vsync = true;
+
+	//Mouse settings
 	bool hasFocus = true;
 	bool mouseWasLocked = false;
-
-    window.setVerticalSyncEnabled(vsync);
-
-    sf::Vector2u windowsize = window.getSize();
 	bool mouseLock = false;
 	if (mouseLock) sf::Mouse::setPosition(sf::Vector2i(windowsize.x / 2, windowsize.y / 2), window);
+
+	//Setup camera
 	j7Cam camera;
 	camera.adjustPerspective(windowsize);
-
-    // Initialize the OpenGL state
-    if (!initGL()) return EXIT_FAILURE; // Exit, GLew failed.
 
     //Display debug info about graphics
     if (DISPLAYDEBUGOUTPUT) {
@@ -115,17 +119,13 @@ int main(const int argc, const char * argv[])
 
     sf::Music music;
 
-    // Game loop control vars
-    bool gameover = false;
-    sf::Event event;
+    sf::Event event; //SFML event handler
 
     // Animation control vars
-    bool rotation = false;
-    float rquad = 0;
 	float fov=75.0f;
     bool showfps = true;
-	short modelno=0;
 	
+	//Setup the vertex & fragment shaders
     shaderID = glCreateProgram();
     const GLenum vertshader = loadShader("texture.vert", GL_VERTEX_SHADER);
     const GLenum fragshader = loadShader("texture.frag", GL_FRAGMENT_SHADER);
@@ -142,6 +142,8 @@ int main(const int argc, const char * argv[])
             shaderID = 0;
         }
     }
+	else shaderID = 0;
+	glUseProgram(shaderID);
 
 	//Load our mesh
     q3BSP test("maps/q3dm0.bsp");
@@ -165,14 +167,14 @@ int main(const int argc, const char * argv[])
 
     glPrimitiveRestartIndex(0xFFFFFFFF);
     glEnable(GL_PRIMITIVE_RESTART);
-    glUseProgram(shaderID);
-	glHint(GL_CLIP_VOLUME_CLIPPING_HINT_EXT, GL_FASTEST); // Disable HW frustrum culling (software is about 10 fps faster as it culls at earlier stage in pipeline)
 
+
+	bool gameover = false;
     while (!gameover)
     {
         glerror = glGetError();
         if (glerror != GL_NO_ERROR) std::cerr << "OpenGL ERROR: " << glerror << '\n';
-        glClear(/*GL_COLOR_BUFFER_BIT | */GL_DEPTH_BUFFER_BIT);
+        glClear(/*GL_COLOR_BUFFER_BIT | */GL_DEPTH_BUFFER_BIT); // Clear depth buffer (color buffer clearing disabled = faster but smears when outside of map)
 
 
 		camera.update(&window);
@@ -238,10 +240,6 @@ int main(const int argc, const char * argv[])
 								break;
 							}
 
-						case key_toggle_model:
-							modelno = (modelno + 1) % 3;
-							break;
-
 						case key_toggle_culling:
 							if (!glIsEnabled(GL_CULL_FACE)) glEnable(GL_CULL_FACE);
 							else glDisable(GL_CULL_FACE);
@@ -255,14 +253,6 @@ int main(const int argc, const char * argv[])
 						case key_toggle_lighting:
 							if(!glIsEnabled(GL_LIGHTING)) glEnable(GL_LIGHTING);
 							else glDisable(GL_LIGHTING);
-							break;
-
-                        case key_toggle_rotate:
-                            rotation = !rotation;
-                            break;
-
-						case key_reset_rotate:
-							rquad = 0;
 							break;
 
 						case key_toggle_wireframe:
