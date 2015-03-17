@@ -12,7 +12,6 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
-#include <stack>
 
 #include <GLEW/glew.h>	// For OpenGL Extensions
 #include <SFML/OpenGL.hpp>
@@ -52,7 +51,7 @@ inline bool fileExists(const std::string filename) {
 
 GLuint loadTexture(std::string filename) {
 	//Sanity checking
-	if (filename == "") {
+	if (filename.size() == 0) {
 		std::cerr << "Texture name is null\n";
 		return 0;
 	}
@@ -72,6 +71,7 @@ GLuint loadTexture(std::string filename) {
 		return 0;
 	}
 
+	//Load texture into OpenGL memory
 	GLuint id = 0;
 	glGenTextures(1, &id);
 	glBindTexture(GL_TEXTURE_2D, id);
@@ -87,6 +87,7 @@ GLuint loadTexture(std::string filename) {
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
+	glBindTexture(GL_TEXTURE_2D, 0);
 	return id;
 }
 

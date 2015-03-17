@@ -47,23 +47,26 @@ GLuint shaderID;
 
 bool initGL()
 {
+	//Setup OpenGL backface culling
 	glEnable(GL_CULL_FACE);
-    glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
-    glClearDepth(1.0f);                         // Depth Buffer Setup
-    glEnable(GL_DEPTH_TEST);                        // Enables Depth Testing
-    glDepthFunc(GL_LEQUAL);                         // The Type Of Depth Testing To Do
-	glFrontFace(GL_CW);							// Quake3 uses CW for frontface
+	glFrontFace(GL_CW); // Quake3 uses CW for frontface
+	//glClearColor(0.5f, 0.5f, 0.5f, 1.0f); // Clear color (not used?)
+    
+	//Setup OpenGL depth buffer
+	glClearDepth(1.0f); // Depth Buffer Setup
+    glEnable(GL_DEPTH_TEST); // Enables Depth Testing
+    glDepthFunc(GL_LEQUAL); // The Type Of Depth Testing To Do
+
+	//OpenGL quality hinting
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-    glewExperimental = true;
+	glHint(GL_GENERATE_MIPMAP_HINT, GL_NICEST);
+	glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
+
+    glewExperimental = true; // Needed for OSX to build?
+
 	if (glewInit()) {
 		std::cerr << "Error: Couldn't initialize GLEW.\n";
 		return false;
-	}
-
-	if (DISPLAYDEBUGOUTPUT) {
-		if (GLEW_ARB_compatibility) std::cout << "Compatibility mode supported\n";
-		if (GLEW_VERSION_1_1) std::cout << "OpenGL ver >= 1.1: Vertex arrays supported!\n";
-		if (GLEW_ARB_vertex_buffer_object) std::cout << "VBO supported!\n";
 	}
 	return true;
 }
