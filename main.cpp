@@ -55,7 +55,7 @@ bool initGL()
 
 	//Enable multisampling AA
 	glEnable(GL_MULTISAMPLE_ARB);
-	//glHint(GL_MULTISAMPLE_FILTER_HINT_NV, GL_NICEST); // Causes a GLERROR on win32
+	//glHint(GL_MULTISAMPLE_FILTER_HINT_NV, GL_NICEST); // Causes a GLERROR on win32. Obsolete according to Apple
 
 	//OpenGL quality hinting
     //glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST); // Immediate mode only?
@@ -75,7 +75,7 @@ int main(const int argc, const char * argv[])
 {
     //Initialize the render window
 	const std::string windowTitle = "Q3 Map Viewer";
-    sf::ContextSettings windowsettings(24, 0, 12); // 24-bit depth buffer, 0-bit stencil, 12x antialiasing, default GL version
+    sf::ContextSettings windowsettings(24, 0, 16); // 24-bit depth buffer, 0-bit stencil, 16x MSAA, default GL version
 	sf::RenderWindow window(sf::VideoMode(800, 600, 32), windowTitle, sf::Style::Default, windowsettings);
     if (!window.isOpen())
     {
