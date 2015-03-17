@@ -39,7 +39,6 @@ const sf::Keyboard::Key key_lock_mouse = sf::Keyboard::L;
 const sf::Keyboard::Key key_respawn = sf::Keyboard::T;
 const sf::Keyboard::Key key_printloc = sf::Keyboard::Y;
 
-const std::string windowTitle = "SFML OpenGL";
 
 GLuint shaderID;
 
@@ -73,9 +72,9 @@ bool initGL()
 int main(const int argc, const char * argv[])
 {
     //Initialize the render window
-    sf::ContextSettings windowsettings(24); // 24-bit depth buffer
-    windowsettings.antialiasingLevel = 12; // SFML finds closest supporting value, which is 8 at work
-    sf::RenderWindow window(sf::VideoMode(800, 600, 32), windowTitle, sf::Style::Default, windowsettings);
+	const std::string windowTitle = "Q3 Map Viewer";
+    sf::ContextSettings windowsettings(24, 0, 12); // 24-bit depth buffer, 0-bit stencil, 12x antialiasing, default GL version
+	sf::RenderWindow window(sf::VideoMode(800, 600, 32), windowTitle, sf::Style::Default, windowsettings);
     if (!window.isOpen())
     {
         std::cerr << "Error: Couldn't create RenderWindow\n";
@@ -100,13 +99,14 @@ int main(const int argc, const char * argv[])
 	if (mouseLock) sf::Mouse::setPosition(sf::Vector2i(windowsize.x / 2, windowsize.y / 2), window);
 
 	//Setup camera
+	float fov = 75.0f;
 	j7Cam camera;
-	camera.adjustPerspective(windowsize);
+	camera.adjustPerspective(windowsize, fov);
 
     //Display debug info about graphics
     if (DISPLAYDEBUGOUTPUT) {
-        windowsettings = window.getSettings();
-        sf::Vector2i windowpos = window.getPosition();
+		windowsettings = window.getSettings();
+        const sf::Vector2i windowpos = window.getPosition();
 
         std::cout << windowsize.x << "x" << windowsize.y << " window created at " << windowpos.x << "x" << windowpos.y << '\n';
         std::cout << "OpenGL version: " << windowsettings.majorVersion << "." << windowsettings.minorVersion << '\n';
@@ -122,7 +122,6 @@ int main(const int argc, const char * argv[])
     sf::Event event; //SFML event handler
 
     // Animation control vars
-	float fov=75.0f;
     bool showfps = true;
 	
 	//Setup the vertex & fragment shaders
@@ -307,7 +306,7 @@ int main(const int argc, const char * argv[])
                             else window.create(sf::VideoMode(oldwindowsize.x, oldwindowsize.y), windowTitle, sf::Style::Default, windowsettings);
                             initGL();
                             windowsize = window.getSize();
-                            camera.adjustPerspective(windowsize);
+                            camera.adjustPerspective(windowsize, fov);
                             window.setVerticalSyncEnabled(vsync);
                             break;
                         }
