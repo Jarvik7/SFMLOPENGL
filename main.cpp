@@ -34,7 +34,6 @@ const sf::Keyboard::Key key_toggle_culling = sf::Keyboard::C;
 const sf::Keyboard::Key key_toggle_wireframe = sf::Keyboard::Num1;
 const sf::Keyboard::Key key_toggle_texturing = sf::Keyboard::Num2;
 const sf::Keyboard::Key key_toggle_lighting = sf::Keyboard::Num3;
-const sf::Keyboard::Key key_toggle_model = sf::Keyboard::O;
 const sf::Keyboard::Key key_lock_mouse = sf::Keyboard::L;
 const sf::Keyboard::Key key_respawn = sf::Keyboard::T;
 const sf::Keyboard::Key key_printloc = sf::Keyboard::Y;
@@ -54,11 +53,14 @@ bool initGL()
     glDepthFunc(GL_LEQUAL);
 	glEnable(GL_DEPTH_TEST);
 
+	//Enable multisampling AA
+	glEnable(GL_MULTISAMPLE_ARB);
+	//glHint(GL_MULTISAMPLE_FILTER_HINT_NV, GL_NICEST); // Causes a GLERROR on win32
+
 	//OpenGL quality hinting
-    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+    //glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST); // Immediate mode only?
 	glHint(GL_GENERATE_MIPMAP_HINT, GL_NICEST);
-	glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
-	glHint(GL_CLIP_VOLUME_CLIPPING_HINT_EXT, GL_FASTEST); // Disable HW frustrum culling (software is about 10 fps faster as it culls at earlier stage in pipeline)
+	//glHint(GL_CLIP_VOLUME_CLIPPING_HINT_EXT, GL_FASTEST); // Disable HW frustrum culling as it should be faster in software (appears to have no effect?)
 
     glewExperimental = true; // Needed for OSX to build?
 
@@ -83,6 +85,9 @@ int main(const int argc, const char * argv[])
 
 	// Initialize the OpenGL state
 	if (!initGL()) return EXIT_FAILURE; // Exit, GLew failed.
+	//Used for drawing tessellated surfaces
+	glPrimitiveRestartIndex(0xFFFFFFFF);
+	glEnable(GL_PRIMITIVE_RESTART);
 
 	//Setup Vsync (always ON on OSX)
 	bool vsync = true;
@@ -97,11 +102,6 @@ int main(const int argc, const char * argv[])
 	bool mouseWasLocked = false;
 	bool mouseLock = false;
 	if (mouseLock) sf::Mouse::setPosition(sf::Vector2i(windowsize.x / 2, windowsize.y / 2), window);
-
-	//Setup camera
-	float fov = 75.0f;
-	j7Cam camera;
-	camera.adjustPerspective(windowsize, fov);
 
     //Display debug info about graphics
     if (DISPLAYDEBUGOUTPUT) {
@@ -142,6 +142,9 @@ int main(const int argc, const char * argv[])
 	else shaderID = 0;
 	glUseProgram(shaderID);
 
+	const GLint projectionViewLoc = glGetUniformLocation(shaderID, "projectionview");
+	const GLint modelViewLoc = glGetUniformLocation(shaderID, "modelview");
+
 	//Load map
     q3BSP test("maps/q3dm0.bsp");
 	j7Model quake3(&test);
@@ -156,18 +159,14 @@ int main(const int argc, const char * argv[])
     }
 	else std::cerr << "Could not open music file: " << test.worldMusic << ".\n";
 
-	const GLint projectionViewLoc = glGetUniformLocation(shaderID, "projectionview");
-	const GLint modelViewLoc = glGetUniformLocation(shaderID, "modelview");
-
-	//Move camera to spawn point
+	//Setup camera
+	float fov = 75.0f;
+	j7Cam camera;
+	camera.adjustPerspective(windowsize, fov);
 	unsigned campos = 1;
 	camera.goTo(test.cameraPositions[campos].origin, test.cameraPositions[campos].angle); // FIXME: This is causing a breakpoint in debug for invalid index
 
-    //Used for drawing tessellated surfaces
-	glPrimitiveRestartIndex(0xFFFFFFFF);
-    glEnable(GL_PRIMITIVE_RESTART);
-
-	// Begin game loop
+	//Begin game loop
 	GLenum glerror = GL_NO_ERROR;
 	bool gameover = false;
     while (!gameover)
@@ -175,7 +174,6 @@ int main(const int argc, const char * argv[])
         glerror = glGetError();
         if (glerror != GL_NO_ERROR) std::cerr << "OpenGL ERROR: " << glerror << '\n';
         glClear(/*GL_COLOR_BUFFER_BIT | */GL_DEPTH_BUFFER_BIT); // Clear depth buffer (color buffer clearing disabled = faster but smears when outside of map)
-
 
 		camera.update(&window);
 		const glm::mat4 view = camera.modelviewMatrix.top() * glm::scale(glm::fvec3(1.0/255, 1.0/255, 1.0/255)); // Scale down the map ::TODO:: can this be done by adjusting our frustum or something?
@@ -186,7 +184,7 @@ int main(const int argc, const char * argv[])
 
 		quake3.drawVBO(&test, camera.getCurrentPos(), camera.projectionMatrix.top() * view); // Render the BSP
 
-        //if (showfps) showFPS(&window); // Display the FPS
+        //if (showfps) showFPS(&window); // Display the FPS, only works in compatibility profile
 		textFPS();
 
         window.display();
@@ -235,7 +233,6 @@ int main(const int argc, const char * argv[])
 							{
 								mouseLock = !mouseLock;
 								mouseWasLocked = mouseLock;	
-								// Inform camera
 								camera.setMouseLock(mouseLock, &window);
 								break;
 							}
@@ -244,8 +241,8 @@ int main(const int argc, const char * argv[])
 							if (!glIsEnabled(GL_CULL_FACE)) glEnable(GL_CULL_FACE);
 							else glDisable(GL_CULL_FACE);
 							break;
-
-						case key_toggle_texturing:
+					// These only work in fixed function OpenGL. Need to replace with a bool uniform sent to shader to turn on/off
+					/*	case key_toggle_texturing:
 							if(!glIsEnabled(GL_TEXTURE_2D))	glEnable(GL_TEXTURE_2D);
 							else glDisable(GL_TEXTURE_2D);
 							break;
@@ -253,14 +250,14 @@ int main(const int argc, const char * argv[])
 						case key_toggle_lighting:
 							if(!glIsEnabled(GL_LIGHTING)) glEnable(GL_LIGHTING);
 							else glDisable(GL_LIGHTING);
-							break;
+							break;*/
 
 						case key_toggle_wireframe:
-							GLint temp;
-							glGetIntegerv(GL_POLYGON_MODE, &temp);
+							GLint polygonMode;
+							glGetIntegerv(GL_POLYGON_MODE, &polygonMode);
 
-							if (temp == GL_FILL) glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
-							else glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+							if (polygonMode == GL_FILL) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+							else glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 							break;
 
@@ -334,23 +331,6 @@ int main(const int argc, const char * argv[])
                     camera.adjustPerspective(windowsize, fov);
                     break;
 
-			/*	case sf::Event::MenuitemSelected:
-					if (event.menuAction.identifier == 0) break; // It wasn't a menu event??
-					else if (event.menuAction.identifier == j7MenuIdentifier("Wireframe")) {
-						wireframe=!wireframe;
-						if (wireframe) {
-							glPolygonMode(GL_FRONT,GL_LINE);
-							glPolygonMode(GL_BACK,GL_LINE);
-						}
-						else {
-							glPolygonMode(GL_FRONT,GL_FILL);
-							glPolygonMode(GL_BACK,GL_FILL);
-						}
-						break;
-					}
-					else if (event.menuAction.identifier == j7MenuIdentifier("Exit")) gameover=true;
-					break;
-                    */
                 default:
 					//std::cerr << "Unknown event type: " << event.type << std::endl;
                     break;
