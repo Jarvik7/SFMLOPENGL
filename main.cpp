@@ -117,8 +117,6 @@ int main(const int argc, const char * argv[])
         std::cout << "Antialiasing level: " << windowsettings.antialiasingLevel << '\n';
     }
 
-    sf::Music music;
-
     sf::Event event; //SFML event handler
 
     // Animation control vars
@@ -144,10 +142,12 @@ int main(const int argc, const char * argv[])
 	else shaderID = 0;
 	glUseProgram(shaderID);
 
-	//Load our mesh
+	//Load map
     q3BSP test("maps/q3dm0.bsp");
 	j7Model quake3(&test);
-
+	
+	//Load map music
+	sf::Music music;
 	if (music.openFromFile(test.worldMusic))
     {
         music.setLoop(true);
@@ -156,18 +156,19 @@ int main(const int argc, const char * argv[])
     }
 	else std::cerr << "Could not open music file: " << test.worldMusic << ".\n";
 
-    GLenum glerror = GL_NO_ERROR;
 	const GLint projectionViewLoc = glGetUniformLocation(shaderID, "projectionview");
 	const GLint modelViewLoc = glGetUniformLocation(shaderID, "modelview");
 
+	//Move camera to spawn point
 	unsigned campos = 1;
-	camera.goTo(test.cameraPositions[campos].origin, test.cameraPositions[campos].angle);
-    // Begin game loop
+	camera.goTo(test.cameraPositions[campos].origin, test.cameraPositions[campos].angle); // FIXME: This is causing a breakpoint in debug for invalid index
 
-    glPrimitiveRestartIndex(0xFFFFFFFF);
+    //Used for drawing tessellated surfaces
+	glPrimitiveRestartIndex(0xFFFFFFFF);
     glEnable(GL_PRIMITIVE_RESTART);
 
-
+	// Begin game loop
+	GLenum glerror = GL_NO_ERROR;
 	bool gameover = false;
     while (!gameover)
     {
