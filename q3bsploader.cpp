@@ -564,7 +564,7 @@ void q3BSP::parseShader(const std::string shadername) {
 	//Walk file line by line, delete comments and newlines
 	size_t start, end = 0;
 	std::string cleansource;
-	while (start != std::string::npos) {
+	while (0){//start != std::string::npos) {
 		if (shaderSource.compare(start, 2, "//") == 0) {  // C++-style comment
 			shaderSource.erase(start, shaderSource.find('\n', start) + 1); // Delete until end of line
 			continue;
@@ -581,6 +581,7 @@ void q3BSP::parseShader(const std::string shadername) {
 		start += shaderSource.find('\n', start);
 		if (start != std::string::npos) ++start;
 	}
+	
 
 	//Find the beginning of the shader
 	size_t open = shaderSource.find(shadername, 0);
