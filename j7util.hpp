@@ -347,6 +347,7 @@ public:
 	{
 		//Adjust drawing area & perspective on window resize
 		//::TODO:: This currently runs many times for one resize as the window border is dragged. Add throttling?
+		//TODO:: Support 16:9 etc without stretching
 
 #if defined(SFML_SYSTEM_WINDOWS) // Windows allows window height of 0, prevent div/0
 		if (windowsize.y == 0) ++windowsize.y;

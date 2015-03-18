@@ -49,8 +49,10 @@ bool initGL()
 	glEnable(GL_CULL_FACE);
 
 	//Setup OpenGL depth buffer
+	glDepthRange(0, 1);
 	glClearDepth(1.0f);
-    glDepthFunc(GL_LEQUAL);
+	glDepthMask(GL_TRUE);
+    glDepthFunc(GL_LEQUAL); // FIXME: Any reason not to use GL_LESS?
 	glEnable(GL_DEPTH_TEST);
 
 	//Enable multisampling AA
