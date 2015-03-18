@@ -355,12 +355,8 @@ public:
 
 		glViewport(0, 0, windowsize.x, windowsize.y);
 
-		glMatrixMode(GL_PROJECTION);
 		projectionMatrix.pop();
 		projectionMatrix.push(glm::perspective<float>(glm::radians(fovy), static_cast<float>(windowsize.x) / windowsize.y, zNear, zFar));
-
-		glMatrixMode(GL_MODELVIEW);
-		// Don't need to change anything?
 	}
 
 private:

@@ -166,9 +166,14 @@ int main(const int argc, const char * argv[])
 	unsigned campos = 1;
 	camera.goTo(test.cameraPositions[campos].origin, test.cameraPositions[campos].angle); // FIXME: This is causing a breakpoint in debug for invalid index
 
+	//Setup modelview matrix
+	const glm::mat4 view = camera.modelviewMatrix.top() * glm::scale(glm::fvec3(1.0 / 255, 1.0 / 255, 1.0 / 255)); // Scale down the map ::TODO:: can this be done by adjusting our frustum or something?
+	glUniformMatrix4fv(modelViewLoc, 1, GL_FALSE, &view[0][0]);
+
 	//Begin game loop
 	GLenum glerror = GL_NO_ERROR;
 	bool gameover = false;
+
     while (!gameover)
     {
         glerror = glGetError();
@@ -176,11 +181,9 @@ int main(const int argc, const char * argv[])
         glClear(/*GL_COLOR_BUFFER_BIT | */GL_DEPTH_BUFFER_BIT); // Clear depth buffer (color buffer clearing disabled = faster but smears when outside of map)
 
 		camera.update(&window);
-		const glm::mat4 view = camera.modelviewMatrix.top() * glm::scale(glm::fvec3(1.0/255, 1.0/255, 1.0/255)); // Scale down the map ::TODO:: can this be done by adjusting our frustum or something?
 
-		// Send our view matrices to shader
+		// Send our view matrix to shader
 		glUniformMatrix4fv(projectionViewLoc, 1, GL_FALSE, &camera.projectionMatrix.top()[0][0]);
-		glUniformMatrix4fv(modelViewLoc, 1, GL_FALSE, &view[0][0]);
 
 		quake3.drawVBO(&test, camera.getCurrentPos(), camera.projectionMatrix.top() * view); // Render the BSP
 
