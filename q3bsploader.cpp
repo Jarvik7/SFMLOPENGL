@@ -555,31 +555,32 @@ void q3BSP::parseShader(const std::string shadername) {
 	const std::string filename = "scripts/all.shader"; // FIXME: Should scan the scripts directory and load each shader. Manually grouped them into one blob for now
 	std::ifstream file(filename);
 	if (!file.is_open()) return;
-	std::string shaderSource;
+	static std::string shaderSource;
 	shaderSource.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 	file.close();
 
 
 
 	//Walk file line by line, delete comments and newlines
-	size_t start, end = 0;
-	std::string cleansource;
-	while (0){//start != std::string::npos) {
-		if (shaderSource.compare(start, 2, "//") == 0) {  // C++-style comment
+	size_t start = 0, end = 0;
+	while (start != std::string::npos) {
+		if (shaderSource.compare(start, 1, "/") == 0) {  // C++-style comment
 			shaderSource.erase(start, shaderSource.find('\n', start) + 1); // Delete until end of line
 			continue;
 		}
-		if (shaderSource.compare(0, 2, "/*") == 0) { // C-style comment (does not appear to be used in current shaders but Q3 supports this)
-			shaderSource.erase(start, shaderSource.find("*/", start + 2) + 2);
-			continue;
-		}
-		if (shaderSource.compare(start, 1, "\n") == 0) { // Empty line
+		//if (shaderSource.compare(0, 2, "/*") == 0) { // C-style comment (does not appear to be used in current shaders but Q3 supports this)
+		//	shaderSource.erase(start, shaderSource.find("*/", start + 2) + 2);
+		//	continue;
+		//}
+		if ((shaderSource.compare(start, 1, "\n") == 0)
+            || (shaderSource.compare(start, 1, "\r") == 0))
+        { // Empty line
 			shaderSource.erase(start, 1); //Delete newline
 			continue;
 		}
 		//If we get here, this line has content, skip to next line
-		start += shaderSource.find('\n', start);
-		if (start != std::string::npos) ++start;
+		start = shaderSource.find('\n', start);
+		if (start < shaderSource.length()) ++start;
 	}
 	
 
