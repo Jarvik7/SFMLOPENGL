@@ -552,21 +552,43 @@ typedef struct {
 void q3BSP::parseShader(const std::string shadername) {
 	// This is just a test to get the sky rendering, it doesn't parse all shader files yet.
 	std::cout << "Parsing shader...\n";
-	const std::string filename = "scripts/sky.shader";
+	const std::string filename = "scripts/all.shader"; // FIXME: Should scan the scripts directory and load each shader. Manually grouped them into one blob for now
 	std::ifstream file(filename);
 	if (!file.is_open()) return;
 	std::string shaderSource;
 	shaderSource.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 	file.close();
 
+
+
+	//Walk file line by line, delete comments and newlines
+	size_t start, end = 0;
+	std::string cleansource;
+	while (start != std::string::npos) {
+		if (shaderSource.compare(start, 2, "//") == 0) {  // C++-style comment
+			shaderSource.erase(start, shaderSource.find('\n', start) + 1); // Delete until end of line
+			continue;
+		}
+		if (shaderSource.compare(0, 2, "/*") == 0) { // C-style comment (does not appear to be used in current shaders but Q3 supports this)
+			shaderSource.erase(start, shaderSource.find("*/", start + 2) + 2);
+			continue;
+		}
+		if (shaderSource.compare(start, 1, "\n") == 0) { // Empty line
+			shaderSource.erase(start, 1); //Delete newline
+			continue;
+		}
+		//If we get here, this line has content, skip to next line
+		start += shaderSource.find('\n', start);
+		if (start != std::string::npos) ++start;
+	}
+
 	//Find the beginning of the shader
 	size_t open = shaderSource.find(shadername, 0);
 	std::cout << shadername << " found at position " << open << '\n';
-	//open += shadername.length(); // skip to after the shader name // this appears unnecessary
-	open = shaderSource.find_first_of("\n{", open) + 1; // Opening brace on a newline, 1 = skip the newline but keep the brace
+	open = shaderSource.find("\n{", open) + 1; // Opening brace on a newline, 1 = skip the newline but keep the brace
 	size_t close = shaderSource.find("\n}", open) + 2; // Closing brace on a newline, 2 = keep the newline and brace
 	std::cout << "Shader length: " << (close - open) << '\n';
-	std::cout << "Got shader:\n" << shaderSource.substr(open, close - open) << '\n';
+	std::cout << "Content:\n" << shaderSource.substr(open, close - open) << '\n';
 	std::map<std::string, std::string> linepair;
 
 
