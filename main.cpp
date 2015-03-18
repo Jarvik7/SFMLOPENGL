@@ -19,6 +19,8 @@
 #include "q3bsploader.h" // My BSP loader
 #include "j7util.hpp" // My helper utility
 
+#include <glm/gtc/type_ptr.hpp> 
+
 // Enable to display debug output ::TODO:: change this to read project build settings?
 //const bool DISPLAYDEBUGOUTPUT = true;
 
@@ -184,8 +186,8 @@ int main(const int argc, const char * argv[])
 
 		//Setup view matrices
 		const glm::mat4 view = camera.modelviewMatrix.top() * glm::scale(glm::fvec3(1.0 / 255, 1.0 / 255, 1.0 / 255)); // Scale down the map ::TODO:: can this be done by adjusting our frustum or something?
-		glUniformMatrix4fv(modelViewLoc, 1, GL_FALSE, &view[0][0]);
-		glUniformMatrix4fv(projectionViewLoc, 1, GL_FALSE, &camera.projectionMatrix.top()[0][0]);
+		glUniformMatrix4fv(modelViewLoc, 1, GL_FALSE, glm::value_ptr(view));
+		glUniformMatrix4fv(projectionViewLoc, 1, GL_FALSE, glm::value_ptr(camera.projectionMatrix.top()));
 
 		quake3.drawVBO(&test, camera.getCurrentPos(), camera.projectionMatrix.top() * view); // Render the BSP
 
