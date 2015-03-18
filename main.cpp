@@ -168,7 +168,7 @@ int main(const int argc, const char * argv[])
 	j7Cam camera;
 	camera.adjustPerspective(windowsize, fov);
 	unsigned campos = 1;
-	//camera.goTo(test.cameraPositions[campos].origin, test.cameraPositions[campos].angle); // FIXME: This is causing a breakpoint in debug for invalid index
+	camera.goTo(test.cameraPositions[campos].origin, test.cameraPositions[campos].angle); // FIXME: This is causing a breakpoint in debug for invalid index
 
 
 
