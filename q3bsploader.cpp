@@ -549,18 +549,20 @@ typedef struct {
 
 } shaderStage;
 
-std::string trimWhiteSpace(const std::string input) {
-    const size_t start = input.find_first_not_of(" \t"); // Delete leading spaces and tabs
-    const size_t end = input.find_last_not_of(" \t\r\n") + 1; // Delete trailing spaces, tabs, returns, newlines
+std::string trimWhiteSpace(const std::string input) { // Deletes leading/trailing spaces, tabs, returns, newlines
+	if (input.empty()) return "";
+    const size_t start = input.find_first_not_of(" \t\r\n");
+    const size_t end = input.find_last_not_of(" \t\r\n") + 1; 
+	if (start > end) return ""; // Line with only whitespace
     return input.substr(start, end - start);
 }
-std::vector<std::string> tokenize(const std::string input, const char token) {
+std::vector<std::string> tokenize(const std::string input, const std::string tokens) {
     std::vector<std::string> output;
     if (input == "") return output;
     size_t start = 0, end = 0;
 
     while (end != std::string::npos) {
-        end = input.find(token, start);
+        end = input.find_first_of(tokens, start);
         output.push_back(input.substr(start, end - start));
         start = end + 1;
     }
@@ -587,7 +589,7 @@ void q3BSP::parseShader( std::string shadername) {
         // Get next line
         end = shaderSource.find('\n', start);
         std::string line = trimWhiteSpace(shaderSource.substr(start, end - start));
-
+		std::cout << line << "<EOL>\n";
         if ( (line.empty()) || (line.front() == '/') ); // Blank line or comment, do nothing
         else if (line == "{") ++clauseDepth; // Opening clause
         else if (line == "}") --clauseDepth; // Closing clause
@@ -595,89 +597,12 @@ void q3BSP::parseShader( std::string shadername) {
             shaderNames.push_back(line);
         }
         else { // Shader operation
-            std::vector<std::string> tokens = tokenize(line, ' ');
-            //std::cout << tokens.size() << " tokens found\n";
+            std::vector<std::string> tokens = tokenize(line, " \t");
+            std::cout << tokens.size() << " tokens found\n";
         }
         start = end + 1;
     }
     std::cout << "Number of shaders found: " << shaderNames.size() << '\n';
-
-
-	shadername = "textures/base/redgoal";
-    std::cout << "New shader text:\n" << shaderSource << '\n';
-	//Find the beginning of the shader
-	size_t open = shaderSource.find(shadername, 0);
-	std::cout << shadername << " found at position " << open << '\n';
-	open = shaderSource.find("\n", open) + 1;
-
-
-
-    size_t close = shaderSource.find("\n}", open) + 2;
-	std::cout << "Shader length: " << (close - open) << '\n';
-	std::cout << "Content:\n" << shaderSource.substr(open, close - open) << '\n';
-	std::map<std::string, std::string> linepair;
-
-
-	while (open < close) {
-		std::string line;
-		std::vector<std::string> tokens;
-		open = shaderSource.find('\t', open) + 1; // Find the first item
-		const size_t endline = shaderSource.find('\n', open); // Find the end of the line
-		line = shaderSource.substr(open, endline - open);
-        if (line.at(0) == '/') { // This line is a comment, skip
-            open = shaderSource.find('\n',open) + 1;
-            continue;
-        }
-		size_t tokenOffset = 0;
-		while (tokenOffset != std::string::npos) {
-			tokenOffset = line.find(' ', tokenOffset);
-			if (tokenOffset == std::string::npos) continue;
-			const std::string token = line.substr(0, tokenOffset);
-			line = line.substr(tokenOffset + 1, line.length() - token.length());
-			tokens.push_back(token);
-		}
-		tokens.push_back(line);
-		std::cout << "Num of tokens: " << tokens.size() << '\n';
-        if (tokens[0] == "qer_editorimage") continue; // Only used for editor
-
-
-		/*std::cout << "Token:" << line.substr(0, tokenOffset) << "::\n";
-		tokens.push_back(line.substr(0, tokenend));
-		int token2 = line.find(' ', tokenend + 1);
-		if (token2 == std::string::npos) std::cout << "No more tokens.\n";*/
-		
-		open = shaderSource.find('\n',open);
-		
-		//open = close;
-
-	}
-
-
-	int depth = 1; // We start within one clause
-
-	/*
-	// Split into vector of each clause
-	std::vector<std::string> clauses;
-	while (open != std::string::npos) {
-		close = entitystring->find_first_of('}', open + 1); // Find closing brace starting at last opening brace
-		clauses.push_back(entitystring->substr(open, close - open)); // Push, minus open & close braces & newlines
-		open = entitystring->find_first_of('{', close + 1); // Set next start location to after closing brace
-	}
-	std::cout << clauses.size() << " clauses found.\n";
-
-	// Convert each clause into a BSPEntity object
-
-	for (auto& clause : clauses) {
-		BSPEntity tempEntity(clause);
-		// Parse entities ::TODO:: Push only unhandled entities to vector
-		if (tempEntity.pair["classname"] == "info_player_deathmatch") cameraPositions.push_back(camPos(tempEntity));
-		else if (tempEntity.pair["classname"] == "worldspawn") worldMusic = tempEntity.pair["music"];
-		else if (tempEntity.pair["classname"] == "light") lightPositions.push_back(lightPos(tempEntity));
-		else entities.push_back(tempEntity); // Not handled, so throw it in the vector
-	}
-	std::cout << "  Map music: " << worldMusic << '\n';
-	std::cout << "  " << cameraPositions.size() << " spawn points found.\n";
-	std::cout << "  " << lightPositions.size() << " lights found.\n";*/
 }
 
 
