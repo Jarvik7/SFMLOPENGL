@@ -57,14 +57,13 @@ public:
 		std::string token = pair[type];
         if (token == "") return temp;
 
-		const float normalizer = (type == "_color") ? 1.0f : 255.0f;
+		const float normalizer = (type == "_color") ? 1.0f : 255.0f; // colors need to be normalized
 
-		std::string::size_type offset = 0;
+		size_t offset = 0;
 		for (int i = 0; i < 3; ++i) {
 			temp[i] = std::stof(token, &offset) / normalizer;
 			token = token.substr(offset);
 		}
-
 		return temp;
 	}
 };
@@ -78,7 +77,7 @@ public:
 		if (input.pair["classname"] != "info_player_deathmatch") return; // Not a spawnpoint
 
 		origin = input.getVector("origin");
-		angle = static_cast<float>(glm::radians(std::stof(input.pair["angle"]) + 90)); // Why 90 (or -270)? is it because of swizzling?
+		angle = glm::radians(std::stof(input.pair["angle"]) + 90); // Why 90 (or -270)? is it because of swizzling?
 	}
 };
 
