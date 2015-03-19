@@ -4,7 +4,7 @@
 #include <string> // std::string
 #include <array> // std::array
 #include <vector> // std::vector
-#include <map> // std::map
+#include <unordered_map> // std::map
 
 #include <SFML/OpenGL.hpp> // OpenGL datatypes
 #include <glm/glm.hpp> // glm::fvec3, glm::mat2, normalize, rotate, transform, scale
@@ -29,7 +29,7 @@ typedef struct {
 // Lump 0
 class BSPEntity {
 public:
-	std::map<std::string, std::string> pair;
+	std::unordered_map<std::string, std::string> pair;
 
 	BSPEntity(std::string clause) { // Takes a single clause (within {} braces) and populates a vector of type/value pairs
 		unsigned long open = clause.find_first_of('"', 0);

@@ -24,7 +24,7 @@ X) Install MSVC2013 Express on work computer, switch to range based forloops and
 #include <iostream> // std::cout, std::cerr
 #include <fstream> // std::ifstream
 #include <vector> // std::vector
-#include <map>
+#include <unordered_map>
 #include <array>
 
 #include <GLEW/glew.h>
@@ -261,7 +261,7 @@ q3BSP::q3BSP(const std::string filename) {
 	
     std::cout << "Finished importing bsp in " << timer.getElapsedTime().asSeconds() << " seconds\n";
 
-	parseShader("textures/skies/tim_hell");
+	//parseShader("textures/skies/tim_hell");
 }
 
 void q3BSP::bindLightmaps() {
@@ -301,15 +301,15 @@ void q3BSP::bindLightmaps() {
 
 void q3BSP::parseEntities(const std::string *entitystring) {
 	std::cout << "Parsing entities...\n";
-	size_t open = entitystring->find_first_of('{', 0) + 1; // Set start position to location after first opening brace
+	size_t open = entitystring->find('{', 0) + 1; // Set start position to location after first opening brace
 	size_t close = 0;
 
 	// Split into vector of each clause
 	std::vector<std::string> clauses;
 	while(open != std::string::npos) {
-			close = entitystring->find_first_of('}', open); // Find the next closing brace
+			close = entitystring->find('}', open); // Find the next closing brace
 			clauses.push_back(entitystring->substr(open, close - open)); // Push the string to vector, outer braces
-			open = entitystring->find_first_of('{', close + 1); // Find the next opening brace (1 = start from next char after closing brace
+			open = entitystring->find('{', close + 1); // Find the next opening brace (1 = start from next char after closing brace
 	}
 	std::cout << clauses.size() << " clauses found.\n";
 	
@@ -540,15 +540,6 @@ std::vector<int> q3BSP::makeListofVisibleFaces(const glm::vec3 position, const g
 	return visibleFaces;
 }
 
-typedef struct {
-    std::string map;
-    glm::fvec2 tcMod_scroll;
-    glm::fvec2 tcMod_scale;
-    bool depthWrite;
-//    std::array<std::string> blendfunc;
-
-} shaderStage;
-
 std::string trimWhiteSpace(const std::string input) { // Deletes leading/trailing spaces, tabs, returns, newlines
 	if (input.empty()) return "";
     const size_t start = input.find_first_not_of(" \t\r\n");
@@ -556,6 +547,7 @@ std::string trimWhiteSpace(const std::string input) { // Deletes leading/trailin
 	if (start > end) return ""; // Line with only whitespace
     return input.substr(start, end - start);
 }
+
 std::vector<std::string> tokenize(const std::string input, const std::string tokens) {
     std::vector<std::string> output;
     if (input == "") return output;
@@ -570,7 +562,26 @@ std::vector<std::string> tokenize(const std::string input, const std::string tok
     return output;
 }
 
+typedef struct {
+	std::string map;
+	glm::fvec2 tcMod_scroll;
+	glm::fvec2 tcMod_scale;
+	bool depthWrite;
+	std::string blendSrc, blendDst;
+} shaderStage;
 
+class Q3ShaderStage {
+public:
+	std::unordered_map<std::string, std::string> bleh;
+};
+
+class Q3shader {
+public:
+	std::vector<std::string> surfaceparms;
+	std::vector<std::string> skyparms;
+	std::vector<shaderStage> stages;
+	std::unordered_map<std::string, std::string> keywords;
+};
 void q3BSP::parseShader( std::string shadername) {
 	// This is just a test to get the sky rendering, it doesn't parse all shader files yet.
 	std::cout << "Parsing shader...\n";
@@ -583,27 +594,49 @@ void q3BSP::parseShader( std::string shadername) {
 
 	size_t start = 0, end = 0;
     //Walk and parse
-    std::vector<std::string> shaderNames;
+   // std::vector<std::string> shaderNames;
     int clauseDepth = 0;
+	shaderStage tempStage;
+
+	std::unordered_map<std::string, Q3shader> Q3Shaders; // Map the shader name to the actual shader
+
     while (end != std::string::npos) {
+		std::string name;
         // Get next line
         end = shaderSource.find('\n', start);
         std::string line = trimWhiteSpace(shaderSource.substr(start, end - start));
-		std::cout << line << "<EOL>\n";
-        if ( (line.empty()) || (line.front() == '/') ); // Blank line or comment, do nothing
-        else if (line == "{") ++clauseDepth; // Opening clause
-        else if (line == "}") --clauseDepth; // Closing clause
-        else if (clauseDepth == 0) { // Shader name
-            shaderNames.push_back(line);
-        }
+
+		if ( (line.empty()) || (line.front() == '/') ); // Blank line or comment, do nothing
+        else if (line == "{") ++clauseDepth; // Opening clause -> new stage
+		else if (line == "}") {// Closing clause -> end stage or shader
+			--clauseDepth;
+			if (clauseDepth == 1) Q3Shaders[name].stages.push_back(tempStage); //Push stage into shader
+		}
+		else if (clauseDepth == 0) name = line; // Start a new shader
+
         else { // Shader operation
             std::vector<std::string> tokens = tokenize(line, " \t");
-            std::cout << tokens.size() << " tokens found\n";
+			if (clauseDepth == 1) { // Not in a stage
+				if (tokens[0] == "surfaceparm") Q3Shaders[name].surfaceparms.push_back(tokens[1]);
+				else if (tokens[0] == "skyparms") {
+					Q3Shaders[name].skyparms.push_back(tokens[1]); //farbox
+					Q3Shaders[name].skyparms.push_back(tokens[2]); //cloudheight
+					Q3Shaders[name].skyparms.push_back(tokens[3]); //nearbox, always - (null)
+				}
+				else Q3Shaders[name].keywords[tokens[0]] = tokens[1]; // All other global keywords should be unique and only have a single value
+			}
+			else if (clauseDepth == 0) { // In a stage
+
+			}
         }
         start = end + 1;
     }
-    std::cout << "Number of shaders found: " << shaderNames.size() << '\n';
+   // std::cout << "Number of shaders found: " << shaderNames.size() << '\n';
 }
+
+
+
+
 
 
 
