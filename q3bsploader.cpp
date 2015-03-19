@@ -549,7 +549,27 @@ typedef struct {
 
 } shaderStage;
 
-void q3BSP::parseShader(const std::string shadername) {
+std::string trimWhiteSpace(const std::string input) {
+    const size_t start = input.find_first_not_of(" \t"); // Delete leading spaces and tabs
+    const size_t end = input.find_last_not_of(" \t\r\n") + 1; // Delete trailing spaces, tabs, returns, newlines
+    return input.substr(start, end - start);
+}
+std::vector<std::string> tokenize(const std::string input, const char token) {
+    std::vector<std::string> output;
+    if (input == "") return output;
+    size_t start = 0, end = 0;
+
+    while (end != std::string::npos) {
+        end = input.find(token, start);
+        output.push_back(input.substr(start, end - start));
+        start = end + 1;
+    }
+
+    return output;
+}
+
+
+void q3BSP::parseShader( std::string shadername) {
 	// This is just a test to get the sky rendering, it doesn't parse all shader files yet.
 	std::cout << "Parsing shader...\n";
 	const std::string filename = "scripts/all.shader"; // FIXME: Should scan the scripts directory and load each shader. Manually grouped them into one blob for now
@@ -559,36 +579,40 @@ void q3BSP::parseShader(const std::string shadername) {
 	shaderSource.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 	file.close();
 
-
-
-	//Walk file line by line, delete comments and newlines
 	size_t start = 0, end = 0;
-	while (start != std::string::npos) {
-		if (shaderSource.compare(start, 1, "/") == 0) {  // C++-style comment
-			shaderSource.erase(start, shaderSource.find('\n', start) + 1); // Delete until end of line
-			continue;
-		}
-		//if (shaderSource.compare(0, 2, "/*") == 0) { // C-style comment (does not appear to be used in current shaders but Q3 supports this)
-		//	shaderSource.erase(start, shaderSource.find("*/", start + 2) + 2);
-		//	continue;
-		//}
-		if ((shaderSource.compare(start, 1, "\n") == 0)
-            || (shaderSource.compare(start, 1, "\r") == 0))
-        { // Empty line
-			shaderSource.erase(start, 1); //Delete newline
-			continue;
-		}
-		//If we get here, this line has content, skip to next line
-		start = shaderSource.find('\n', start);
-		if (start < shaderSource.length()) ++start;
-	}
-	
+    //Walk and parse
+    std::vector<std::string> shaderNames;
+    int clauseDepth = 0;
+    while (end != std::string::npos) {
+        // Get next line
+        end = shaderSource.find('\n', start);
+        std::string line = trimWhiteSpace(shaderSource.substr(start, end - start));
 
+        if ( (line.empty()) || (line.front() == '/') ); // Blank line or comment, do nothing
+        else if (line == "{") ++clauseDepth; // Opening clause
+        else if (line == "}") --clauseDepth; // Closing clause
+        else if (clauseDepth == 0) { // Shader name
+            shaderNames.push_back(line);
+        }
+        else { // Shader operation
+            std::vector<std::string> tokens = tokenize(line, ' ');
+            //std::cout << tokens.size() << " tokens found\n";
+        }
+        start = end + 1;
+    }
+    std::cout << "Number of shaders found: " << shaderNames.size() << '\n';
+
+
+	shadername = "textures/base/redgoal";
+    std::cout << "New shader text:\n" << shaderSource << '\n';
 	//Find the beginning of the shader
 	size_t open = shaderSource.find(shadername, 0);
 	std::cout << shadername << " found at position " << open << '\n';
-	open = shaderSource.find("\n{", open) + 1; // Opening brace on a newline, 1 = skip the newline but keep the brace
-	size_t close = shaderSource.find("\n}", open) + 2; // Closing brace on a newline, 2 = keep the newline and brace
+	open = shaderSource.find("\n", open) + 1;
+
+
+
+    size_t close = shaderSource.find("\n}", open) + 2;
 	std::cout << "Shader length: " << (close - open) << '\n';
 	std::cout << "Content:\n" << shaderSource.substr(open, close - open) << '\n';
 	std::map<std::string, std::string> linepair;
