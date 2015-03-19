@@ -309,7 +309,7 @@ void q3BSP::parseEntities(const std::string *entitystring) {
 	while(open != std::string::npos) {
 			close = entitystring->find('}', open); // Find the next closing brace
 			clauses.push_back(entitystring->substr(open, close - open)); // Push the string to vector, outer braces
-			open = entitystring->find('{', close + 1); // Find the next opening brace (1 = start from next char after closing brace
+			open = entitystring->find('{', close + 1); // Find the next opening brace
 	}
 	std::cout << clauses.size() << " clauses found.\n";
 	
@@ -317,7 +317,6 @@ void q3BSP::parseEntities(const std::string *entitystring) {
 
 	for (auto& clause : clauses) {
 		BSPEntity tempEntity(clause);
-		// Parse entities ::TODO:: Push only unhandled entities to vector
 		if (tempEntity.pair["classname"] == "info_player_deathmatch") cameraPositions.push_back(camPos(tempEntity));
 		else if (tempEntity.pair["classname"] == "worldspawn") worldMusic = tempEntity.pair["music"];
 		else if (tempEntity.pair["classname"] == "light") lightPositions.push_back(lightPos(tempEntity));

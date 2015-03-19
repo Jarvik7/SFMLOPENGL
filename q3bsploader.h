@@ -32,17 +32,17 @@ public:
 	std::unordered_map<std::string, std::string> pair;
 
 	BSPEntity(std::string clause) { // Takes a single clause (within {} braces) and populates a vector of type/value pairs
-		unsigned long open = clause.find_first_of('"', 0);
-		unsigned long close = 0;
+		size_t open = clause.find_first_of('"', 0);
+		size_t close = 0;
 		std::string type, value;
 
 		while (open != std::string::npos) {
-			open += 1; // Skip past the opening quotation mark. Cannot do during assignment as it borks the if(npos) check
-			close = clause.find_first_of('"', open); // First match is type
+			++open; // Skip past the opening quotation mark. Cannot do during assignment as it borks the if(npos) check
+			close = clause.find('"', open); // First match is type
 			type = clause.substr(open, close - open);
 
-			open = clause.find_first_of('"', close + 1) + 1;
-			close = clause.find_first_of('"', open); // Second match is value
+			open = clause.find('"', close + 1) + 1;
+			close = clause.find('"', open); // Second match is value
 			value = clause.substr(open, close - open);
 
 			pair[type] = value;
