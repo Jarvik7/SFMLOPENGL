@@ -14,7 +14,7 @@ X) Add functions to feed j7Model (to be done with #1?)
 X) Our early exits are leaking the memblock array? Convert to a vector?
 6) Add shader support to j7Model to enable lighting
 7) Figure out collision detection
-?) Replace memcpy with a c++ equivalent?
+X) Replace memcpy with a c++ equivalent?
 ?) Add Doom3 BSP support
 ?) Add Quake1/2/etc BSP support
 ?) Open source and publish
@@ -96,7 +96,7 @@ q3BSP::q3BSP(const std::string filename) {
     // Load file to memory
     std::ifstream file(filename, std::ios::in | std::ios::binary | std::ios::ate);
     if (!file.is_open()) { std::cerr << "Couldn't open file.\n"; return; } // Couldn't open file
-    const std::streamsize size = static_cast<std::streamsize>(file.tellg());
+    const size_t size = static_cast<size_t>(file.tellg());
     file.seekg(0);
 	std::vector<char> memblock;
 	memblock.reserve(size);
@@ -106,8 +106,8 @@ q3BSP::q3BSP(const std::string filename) {
     // Read and check header
     BSPHeader header;
 	std::copy(memblock.data(),
-		memblock.data() + sizeof(BSPHeader),
-		reinterpret_cast<char*>(&header));
+		      memblock.data() + sizeof(BSPHeader),
+		      reinterpret_cast<char*>(&header));
 	if (std::string(header.magicNumber, 4) != IDENT) { std::cerr << "Invalid format: " << std::string(header.magicNumber, 4) << '\n'; return; }
     if (header.version != IBSP_VERSION) {
         if (header.version == 47) std::cerr << "IBSP v.47: QuakeLive or RTCW map? Will try to load anyways.\n";
@@ -128,9 +128,10 @@ q3BSP::q3BSP(const std::string filename) {
     unsigned numEntries = header.direntries[Textures].length / sizeof(BSPTexture);
     std::cout << "Lump 1: " << numEntries << " texture(s) found.\n";
     textures.resize(numEntries);
-	memcpy(textures.data(),
-		memblock.data() + header.direntries[Textures].offset,
-		header.direntries[Textures].length);
+	std::copy(memblock.data() + header.direntries[Textures].offset,
+		      memblock.data() + header.direntries[Textures].offset + header.direntries[Textures].length,
+		      reinterpret_cast<char*>(textures.data()));
+
 	// Load textures into memory and build vector of IDs. Note that at present this loads an empty texture for everything with a shader
 	unsigned i = 0;
 	for (auto& texture : textures) {
@@ -143,117 +144,118 @@ q3BSP::q3BSP(const std::string filename) {
 	numEntries = header.direntries[Planes].length / sizeof(BSPPlane);
     std::cout << "Lump 2: " << numEntries << " plane(s) found.\n";
     planes.resize(numEntries);
-	memcpy(planes.data(),
-		memblock.data() + header.direntries[Planes].offset,
-		header.direntries[Planes].length);
- 
+	std::copy(memblock.data() + header.direntries[Planes].offset,
+		memblock.data() + header.direntries[Planes].offset + header.direntries[Planes].length,
+		reinterpret_cast<char*>(planes.data()));
+
     // Lump 3: Nodes
     numEntries = header.direntries[Nodes].length / sizeof(BSPNode);
     std::cout << "Lump 3: " << numEntries << " node(s) found.\n";
     nodes.resize(numEntries);
-    memcpy(nodes.data(),
-		memblock.data() + header.direntries[Nodes].offset,
-		header.direntries[Nodes].length);
+	std::copy(memblock.data() + header.direntries[Nodes].offset,
+		      memblock.data() + header.direntries[Nodes].offset + header.direntries[Nodes].length,
+		      reinterpret_cast<char*>(nodes.data()));
   
     // Lump 4: Leafs
 	numEntries = header.direntries[Leafs].length / sizeof(BSPLeaf);
 	std::cout << "Lump 4: " << numEntries << " leaf(s) found.\n";
 	leafs.resize(numEntries);
-	memcpy(leafs.data(),
-		memblock.data() + header.direntries[Leafs].offset,
-		header.direntries[Leafs].length);
+	std::copy(memblock.data() + header.direntries[Leafs].offset,
+		memblock.data() + header.direntries[Leafs].offset + header.direntries[Leafs].length,
+		reinterpret_cast<char*>(leafs.data()));
 
     // Lump 5: Leaffaces
 	numEntries = header.direntries[Leaffaces].length / sizeof(int);
 	std::cout << "Lump 5: " << numEntries << " leafface(s) found.\n";
 	leafFaces.resize(numEntries);
-	memcpy(leafFaces.data(),
-		memblock.data() + header.direntries[Leaffaces].offset,
-		header.direntries[Leaffaces].length);
+	std::copy(memblock.data() + header.direntries[Leaffaces].offset,
+		      memblock.data() + header.direntries[Leaffaces].offset + header.direntries[Leaffaces].length,
+		      reinterpret_cast<char*>(leafFaces.data()));
 
     // Lump 6: Leafbrushes
     numEntries = header.direntries[Leafbrushes].length / sizeof(int);
 	std::cout << "Lump 5: " << numEntries << " leafbrush(es) found.\n";
 	leafBrushes.resize(numEntries);
-	memcpy(leafBrushes.data(),
-		memblock.data() + header.direntries[Leafbrushes].offset,
-           header.direntries[Leafbrushes].length);
+	std::copy(memblock.data() + header.direntries[Leafbrushes].offset,
+		      memblock.data() + header.direntries[Leafbrushes].offset + header.direntries[Leafbrushes].length,
+		      reinterpret_cast<char*>(leafBrushes.data()));
     
     // Lump 7: Models
     numEntries = header.direntries[Models].length / sizeof(BSPModel);
 	std::cout << "Lump 5: " << numEntries << " model(s) found.\n";
 	models.resize(numEntries);
-	memcpy(models.data(),
-		memblock.data() + header.direntries[Models].offset,
-           header.direntries[Models].length);
+	std::copy(memblock.data() + header.direntries[Models].offset,
+		      memblock.data() + header.direntries[Models].offset + header.direntries[Models].length,
+		      reinterpret_cast<char*>(models.data()));
     
     // Lump 8: Brushes
     numEntries = header.direntries[Brushes].length / sizeof(BSPBrush);
 	std::cout << "Lump 5: " << numEntries << " brush(es) found.\n";
 	brushes.resize(numEntries);
-	memcpy(brushes.data(),
-		memblock.data() + header.direntries[Brushes].offset,
-           header.direntries[Brushes].length);
+	std::copy(memblock.data() + header.direntries[Brushes].offset,
+		      memblock.data() + header.direntries[Brushes].offset + header.direntries[Brushes].length,
+		      reinterpret_cast<char*>(brushes.data()));
     
     // Lump 9: Brushsides
     numEntries = header.direntries[Brushsides].length / sizeof(BSPBrushSide);
 	std::cout << "Lump 5: " << numEntries << " brushside(s) found.\n";
 	brushSides.resize(numEntries);
-	memcpy(brushSides.data(),
-		memblock.data() + header.direntries[Brushsides].offset,
-           header.direntries[Brushsides].length);
+	std::copy(memblock.data() + header.direntries[Brushsides].offset,
+		      memblock.data() + header.direntries[Brushsides].offset + header.direntries[Brushsides].length,
+		      reinterpret_cast<char*>(brushSides.data()));
     
     // Lump 10: Vertexes
     numEntries = header.direntries[Vertexes].length / sizeof(BSPVertex);
     std::cout << "Lump 10: " << numEntries << " vertex(es) found.\n";
     vertices.resize(numEntries);
-    memcpy(vertices.data(),
-		memblock.data() + header.direntries[Vertexes].offset,
-		header.direntries[Vertexes].length);
+	std::copy(memblock.data() + header.direntries[Vertexes].offset,
+		      memblock.data() + header.direntries[Vertexes].offset + header.direntries[Vertexes].length,
+		      reinterpret_cast<char*>(vertices.data()));
 	
     // Lump 11: Meshverts
     numEntries = header.direntries[Meshverts].length / sizeof(int);
     std::cout << "Lump 11: " << numEntries << " Meshvert(s) found.\n";
     meshVerts.resize(numEntries);
-	memcpy(meshVerts.data(),
-		memblock.data() + header.direntries[Meshverts].offset,
-		header.direntries[Meshverts].length);
+	std::copy(memblock.data() + header.direntries[Meshverts].offset,
+	          memblock.data() + header.direntries[Meshverts].offset + header.direntries[Meshverts].length,
+		      reinterpret_cast<char*>(meshVerts.data()));
     
     // Lump 12: Effects
 	numEntries = header.direntries[Effects].length / sizeof(BSPEffect);
 	std::cout << "Lump 12: " << numEntries << " effect(s) found.\n";
 	effects.reserve(numEntries);
-	memcpy(effects.data(),
-		memblock.data() + header.direntries[Effects].offset,
-		header.direntries[Effects].length);
+	std::copy(memblock.data() + header.direntries[Effects].offset,
+		      memblock.data() + header.direntries[Effects].offset + header.direntries[Effects].length,
+			  reinterpret_cast<char*>(effects.data()));
     
     // Lump 13: Faces
     numEntries = header.direntries[Faces].length / sizeof(BSPFace);
     std::cout << "Lump 13: " << numEntries << " face(s) found.\n";
     faces.resize(numEntries);
-    memcpy(faces.data(),
-		memblock.data() + header.direntries[Faces].offset,
-		header.direntries[Faces].length);
+	std::copy(memblock.data() + header.direntries[Faces].offset,
+		      memblock.data() + header.direntries[Faces].offset + header.direntries[Faces].length,
+		      reinterpret_cast<char*>(faces.data()));
 
     // Lump 14: Lightmaps
-	numEntries = header.direntries[Lightmaps].length / sizeof(BSPLightmap);
+	std::vector<std::array<std::array<std::array<char, 3>, LIGHTMAP_RESOLUTION>, LIGHTMAP_RESOLUTION>> lightmaps;
+	numEntries = header.direntries[Lightmaps].length / (sizeof(char) * LIGHTMAP_RESOLUTION * LIGHTMAP_RESOLUTION * 3);
 	std::cout << "Lump 14: " << numEntries << " lightmap(s) found.\n";
 	lightmaps.resize(numEntries);
 	std::copy(memblock.data() + header.direntries[Lightmaps].offset,
 		      memblock.data() + header.direntries[Lightmaps].offset + header.direntries[Lightmaps].length,
 			  reinterpret_cast<char*>(lightmaps.data()));
-	bindLightmaps();
+	lightmapGLID = bindLightmaps(lightmaps);
 
 	// Lump 15: Lightvols
     
     // Lump 16: Visdata
-	memcpy(&visData,
-		memblock.data() + header.direntries[Visdata].offset,
-		2 * sizeof(int));
+	std::copy(memblock.data() + header.direntries[Visdata].offset,
+		      memblock.data() + header.direntries[Visdata].offset + (2 * sizeof(int)),
+			  reinterpret_cast<char*>(&visData));
 	visData.vecs.resize(visData.n_vecs * visData.sz_vecs);
-    memcpy(visData.vecs.data(),
-		memblock.data() + header.direntries[Visdata].offset + 2 * sizeof(int),
-           visData.n_vecs * visData.sz_vecs);
+	std::copy(memblock.data() + header.direntries[Visdata].offset + (2 * sizeof(int)),
+		      memblock.data() + header.direntries[Visdata].offset + (visData.n_vecs * visData.sz_vecs),
+		      reinterpret_cast<char*>(visData.vecs.data()));
 	std::cout << "Lump 16: " << visData.n_vecs << " vectors @ " << visData.sz_vecs << " bytes each = " << visData.vecs.size() << " bytes of visdata.\n";
 	
     std::cout << "Finished importing bsp in " << timer.getElapsedTime().asSeconds() << " seconds\n";
@@ -261,12 +263,12 @@ q3BSP::q3BSP(const std::string filename) {
 	//parseShader("textures/skies/tim_hell");
 }
 
-void q3BSP::bindLightmaps() {
-	//Loads all lightmaps into a texture array
-	//All lightmaps are 128x128 RGB8 format
+GLuint q3BSP::bindLightmaps(const std::vector<std::array<std::array<std::array<char, 3>, LIGHTMAP_RESOLUTION>, LIGHTMAP_RESOLUTION>> lightmaps) {
+	//Takes a vector of RGB8 texture data and returns a GLID for the texture array
 	//TODO:: Determine if adding anisotropic filtering is useful, and conversely, if we can get away with nearest neighbor filtering
 
 	//Initialize data structures
+	GLuint lightmapGLID = 0;
 	glGenTextures(1, &lightmapGLID);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, lightmapGLID);
 	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGB8, LIGHTMAP_RESOLUTION, LIGHTMAP_RESOLUTION, static_cast<GLsizei>(lightmaps.size()), 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
@@ -292,8 +294,7 @@ void q3BSP::bindLightmaps() {
 	//Rebind to texture unit 1
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, lightmapGLID);
-	
-	lightmaps.clear(); // No need to retain
+	return lightmapGLID;
 }
 
 void q3BSP::parseEntities(const std::string *entitystring) {

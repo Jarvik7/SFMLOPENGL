@@ -237,10 +237,6 @@ public:
 };
 
 typedef struct {
-	char data[128][128][3]; // 128x128 pixels, RGB
-} BSPLightmap; // Lump 14
-
-typedef struct {
 	int n_vecs;
 	int sz_vecs;
 	std::vector<unsigned char> vecs;
@@ -290,8 +286,7 @@ public:
 	std::vector<int> meshVerts; // Lump 11
 	std::vector<BSPEffect> effects; // Lump 12
 	std::vector<BSPFace> faces; // Lump 13
-	//std::vector<BSPLightmap> lightmaps; // Lump 14
-    std::vector<std::array<std::array<std::array<char, 3>, 128>, 128>> lightmaps;
+    
 	// Lump 15
 	BSPVisData visData; // Lump 16
 
@@ -316,7 +311,7 @@ public:
 	std::vector<BSPPatch> patches; // Contains the tessellated faces
 
     //Lump 14
-	void bindLightmaps();
+	GLuint bindLightmaps(std::vector<std::array<std::array<std::array<char, 3>, LIGHTMAP_RESOLUTION>, LIGHTMAP_RESOLUTION>> lightmaps);
 	GLint lmSamplerPos;
 	GLint lightmapIndexUniformPosition;
 	GLuint lightmapGLID;
