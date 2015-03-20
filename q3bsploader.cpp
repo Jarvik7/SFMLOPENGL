@@ -105,9 +105,10 @@ q3BSP::q3BSP(const std::string filename) {
 
     // Read and check header
     BSPHeader header;
-	std::copy(memblock.data(), memblock.data() + sizeof(BSPHeader), reinterpret_cast<char*>(&header));
-    //memcpy(&header, &memblock[0], sizeof(BSPHeader));
-	if (std::string(header.magicNumber, 4) != IDENT) { std::cerr << "Invalid format: " << header.magicNumber[0] << header.magicNumber[1] << header.magicNumber[2] << header.magicNumber[3] << '\n'; return; }
+	std::copy(memblock.data(),
+		memblock.data() + sizeof(BSPHeader),
+		reinterpret_cast<char*>(&header));
+	if (std::string(header.magicNumber, 4) != IDENT) { std::cerr << "Invalid format: " << std::string(header.magicNumber, 4) << '\n'; return; }
     if (header.version != IBSP_VERSION) {
         if (header.version == 47) std::cerr << "IBSP v.47: QuakeLive or RTCW map? Will try to load anyways.\n";
         else {
@@ -119,8 +120,7 @@ q3BSP::q3BSP(const std::string filename) {
     
     // Read lumps
     // Lump 0: Entities
-	std::string tempEntityString;
-    tempEntityString.insert(0, &memblock[header.direntries[Entities].offset], header.direntries[Entities].length);
+	std::string tempEntityString(memblock.data() + header.direntries[Entities].offset, header.direntries[Entities].length);
     std::cout << "Lump 0: " << tempEntityString.size() << " characters of entities read.\n";
 	parseEntities(&tempEntityString); // Parse entity string and populate vector of entities. Only spawnpoints, lights and music are read right now
     
@@ -129,7 +129,7 @@ q3BSP::q3BSP(const std::string filename) {
     std::cout << "Lump 1: " << numEntries << " texture(s) found.\n";
     textures.resize(numEntries);
 	memcpy(textures.data(),
-		&memblock[header.direntries[Textures].offset],
+		memblock.data() + header.direntries[Textures].offset,
 		header.direntries[Textures].length);
 	// Load textures into memory and build vector of IDs. Note that at present this loads an empty texture for everything with a shader
 	unsigned i = 0;
@@ -144,7 +144,7 @@ q3BSP::q3BSP(const std::string filename) {
     std::cout << "Lump 2: " << numEntries << " plane(s) found.\n";
     planes.resize(numEntries);
 	memcpy(planes.data(),
-		&memblock[header.direntries[Planes].offset],
+		memblock.data() + header.direntries[Planes].offset,
 		header.direntries[Planes].length);
  
     // Lump 3: Nodes
@@ -152,7 +152,7 @@ q3BSP::q3BSP(const std::string filename) {
     std::cout << "Lump 3: " << numEntries << " node(s) found.\n";
     nodes.resize(numEntries);
     memcpy(nodes.data(),
-		&memblock[header.direntries[Nodes].offset],
+		memblock.data() + header.direntries[Nodes].offset,
 		header.direntries[Nodes].length);
   
     // Lump 4: Leafs
@@ -160,7 +160,7 @@ q3BSP::q3BSP(const std::string filename) {
 	std::cout << "Lump 4: " << numEntries << " leaf(s) found.\n";
 	leafs.resize(numEntries);
 	memcpy(leafs.data(),
-		&memblock[header.direntries[Leafs].offset],
+		memblock.data() + header.direntries[Leafs].offset,
 		header.direntries[Leafs].length);
 
     // Lump 5: Leaffaces
@@ -168,7 +168,7 @@ q3BSP::q3BSP(const std::string filename) {
 	std::cout << "Lump 5: " << numEntries << " leafface(s) found.\n";
 	leafFaces.resize(numEntries);
 	memcpy(leafFaces.data(),
-		&memblock[header.direntries[Leaffaces].offset],
+		memblock.data() + header.direntries[Leaffaces].offset,
 		header.direntries[Leaffaces].length);
 
     // Lump 6: Leafbrushes
@@ -176,7 +176,7 @@ q3BSP::q3BSP(const std::string filename) {
 	std::cout << "Lump 5: " << numEntries << " leafbrush(es) found.\n";
 	leafBrushes.resize(numEntries);
 	memcpy(leafBrushes.data(),
-           &memblock[header.direntries[Leafbrushes].offset],
+		memblock.data() + header.direntries[Leafbrushes].offset,
            header.direntries[Leafbrushes].length);
     
     // Lump 7: Models
@@ -184,7 +184,7 @@ q3BSP::q3BSP(const std::string filename) {
 	std::cout << "Lump 5: " << numEntries << " model(s) found.\n";
 	models.resize(numEntries);
 	memcpy(models.data(),
-           &memblock[header.direntries[Models].offset],
+		memblock.data() + header.direntries[Models].offset,
            header.direntries[Models].length);
     
     // Lump 8: Brushes
@@ -192,7 +192,7 @@ q3BSP::q3BSP(const std::string filename) {
 	std::cout << "Lump 5: " << numEntries << " brush(es) found.\n";
 	brushes.resize(numEntries);
 	memcpy(brushes.data(),
-           &memblock[header.direntries[Brushes].offset],
+		memblock.data() + header.direntries[Brushes].offset,
            header.direntries[Brushes].length);
     
     // Lump 9: Brushsides
@@ -200,7 +200,7 @@ q3BSP::q3BSP(const std::string filename) {
 	std::cout << "Lump 5: " << numEntries << " brushside(s) found.\n";
 	brushSides.resize(numEntries);
 	memcpy(brushSides.data(),
-           &memblock[header.direntries[Brushsides].offset],
+		memblock.data() + header.direntries[Brushsides].offset,
            header.direntries[Brushsides].length);
     
     // Lump 10: Vertexes
@@ -208,7 +208,7 @@ q3BSP::q3BSP(const std::string filename) {
     std::cout << "Lump 10: " << numEntries << " vertex(es) found.\n";
     vertices.resize(numEntries);
     memcpy(vertices.data(),
-		&memblock[header.direntries[Vertexes].offset],
+		memblock.data() + header.direntries[Vertexes].offset,
 		header.direntries[Vertexes].length);
 	
     // Lump 11: Meshverts
@@ -216,7 +216,7 @@ q3BSP::q3BSP(const std::string filename) {
     std::cout << "Lump 11: " << numEntries << " Meshvert(s) found.\n";
     meshVerts.resize(numEntries);
 	memcpy(meshVerts.data(),
-		&memblock[header.direntries[Meshverts].offset],
+		memblock.data() + header.direntries[Meshverts].offset,
 		header.direntries[Meshverts].length);
     
     // Lump 12: Effects
@@ -224,7 +224,7 @@ q3BSP::q3BSP(const std::string filename) {
 	std::cout << "Lump 12: " << numEntries << " effect(s) found.\n";
 	effects.reserve(numEntries);
 	memcpy(effects.data(),
-		&memblock[header.direntries[Effects].offset],
+		memblock.data() + header.direntries[Effects].offset,
 		header.direntries[Effects].length);
     
     // Lump 13: Faces
@@ -232,27 +232,27 @@ q3BSP::q3BSP(const std::string filename) {
     std::cout << "Lump 13: " << numEntries << " face(s) found.\n";
     faces.resize(numEntries);
     memcpy(faces.data(),
-		&memblock[header.direntries[Faces].offset],
+		memblock.data() + header.direntries[Faces].offset,
 		header.direntries[Faces].length);
 
     // Lump 14: Lightmaps
 	numEntries = header.direntries[Lightmaps].length / sizeof(BSPLightmap);
 	std::cout << "Lump 14: " << numEntries << " lightmap(s) found.\n";
 	lightmaps.resize(numEntries);
-	memcpy(lightmaps.data(),
-		&memblock[header.direntries[Lightmaps].offset],
-		header.direntries[Lightmaps].length);
+	std::copy(memblock.data() + header.direntries[Lightmaps].offset,
+		      memblock.data() + header.direntries[Lightmaps].offset + header.direntries[Lightmaps].length,
+			  reinterpret_cast<char*>(lightmaps.data()));
 	bindLightmaps();
 
 	// Lump 15: Lightvols
     
     // Lump 16: Visdata
 	memcpy(&visData,
-		&memblock[header.direntries[Visdata].offset],
+		memblock.data() + header.direntries[Visdata].offset,
 		2 * sizeof(int));
 	visData.vecs.resize(visData.n_vecs * visData.sz_vecs);
     memcpy(visData.vecs.data(),
-           &memblock[header.direntries[Visdata].offset + 2 * sizeof(int)],
+		memblock.data() + header.direntries[Visdata].offset + 2 * sizeof(int),
            visData.n_vecs * visData.sz_vecs);
 	std::cout << "Lump 16: " << visData.n_vecs << " vectors @ " << visData.sz_vecs << " bytes each = " << visData.vecs.size() << " bytes of visdata.\n";
 	

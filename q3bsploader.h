@@ -291,7 +291,7 @@ public:
 	std::vector<BSPEffect> effects; // Lump 12
 	std::vector<BSPFace> faces; // Lump 13
 	//std::vector<BSPLightmap> lightmaps; // Lump 14
-    std::vector<std::array<std::array<std::array< char, 3>, 128>, 128>> lightmaps;
+    std::vector<std::array<std::array<std::array<char, 3>, 128>, 128>> lightmaps;
 	// Lump 15
 	BSPVisData visData; // Lump 16
 
