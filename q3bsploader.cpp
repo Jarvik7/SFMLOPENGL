@@ -92,6 +92,7 @@ GLuint makeVAO(const std::vector<BSPVertex> *vertices, const std::vector<GLuint>
 q3BSP::q3BSP(const std::string filename) {
     std::cout << "Loading " << filename << '\n';
     sf::Clock timer;
+
     // Load file to memory
     std::ifstream file(filename, std::ios::in | std::ios::binary | std::ios::ate);
     if (!file.is_open()) { std::cerr << "Couldn't open file.\n"; return; } // Couldn't open file
@@ -99,14 +100,14 @@ q3BSP::q3BSP(const std::string filename) {
     file.seekg(0);
 	std::vector<char> memblock;
 	memblock.reserve(size);
-    file.read(&memblock[0], size);
+    file.read(memblock.data(), size);
     file.close();
 
     // Read and check header
     BSPHeader header;
-	std::copy(&memblock[0], &memblock[0] + sizeof(BSPHeader), reinterpret_cast<char*>(&header));
+	std::copy(memblock.data(), memblock.data() + sizeof(BSPHeader), reinterpret_cast<char*>(&header));
     //memcpy(&header, &memblock[0], sizeof(BSPHeader));
-	if (std::string(IDENT).compare(0,4,header.magicNumber,4)) { std::cerr << "Invalid format: " << header.magicNumber[0] << header.magicNumber[1] << header.magicNumber[2] << header.magicNumber[3] << '\n'; return; }
+	if (std::string(header.magicNumber, 4) != IDENT) { std::cerr << "Invalid format: " << header.magicNumber[0] << header.magicNumber[1] << header.magicNumber[2] << header.magicNumber[3] << '\n'; return; }
     if (header.version != IBSP_VERSION) {
         if (header.version == 47) std::cerr << "IBSP v.47: QuakeLive or RTCW map? Will try to load anyways.\n";
         else {
@@ -121,6 +122,7 @@ q3BSP::q3BSP(const std::string filename) {
 	std::string tempEntityString;
     tempEntityString.insert(0, &memblock[header.direntries[Entities].offset], header.direntries[Entities].length);
     std::cout << "Lump 0: " << tempEntityString.size() << " characters of entities read.\n";
+	parseEntities(&tempEntityString); // Parse entity string and populate vector of entities. Only spawnpoints, lights and music are read right now
     
     // Lump 1: Textures
     unsigned numEntries = header.direntries[Textures].length / sizeof(BSPTexture);
@@ -253,11 +255,6 @@ q3BSP::q3BSP(const std::string filename) {
            &memblock[header.direntries[Visdata].offset + 2 * sizeof(int)],
            visData.n_vecs * visData.sz_vecs);
 	std::cout << "Lump 16: " << visData.n_vecs << " vectors @ " << visData.sz_vecs << " bytes each = " << visData.vecs.size() << " bytes of visdata.\n";
-
-
-	// Begin working on data
-	// Lump 0
-	parseEntities(&tempEntityString); // Parse entity string and populate vector of entities. Only spawnpoints, lights and music are read right now
 	
     std::cout << "Finished importing bsp in " << timer.getElapsedTime().asSeconds() << " seconds\n";
 

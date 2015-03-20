@@ -9,7 +9,7 @@
 #include <SFML/OpenGL.hpp> // OpenGL datatypes
 #include <glm/glm.hpp> // glm::fvec3, glm::mat2, normalize, rotate, transform, scale
 
-#define IDENT "IBSP"
+const std::string IDENT = "IBSP";
 #define IBSP_VERSION 46
 #define TESSELLATION_LEVEL 12
 #define HEADER_LUMPS 17

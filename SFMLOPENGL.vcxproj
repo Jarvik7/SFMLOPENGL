@@ -81,7 +81,6 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="q3bsploader.cpp" />
-    <ClCompile Include="q3shader.cpp" />
     <ClCompile Include="unusedcode.cpp" />
   </ItemGroup>
   <ItemGroup>
