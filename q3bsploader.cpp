@@ -38,7 +38,7 @@ extern GLuint loadTexture(std::string filename);
 
 extern GLuint shaderID;
 
-GLuint makeVAO(const std::vector<BSPVertex> *vertices, const std::vector<GLuint> *indices) {
+GLuint makeVAO(const std::vector<BSPVertex> *vertices, const std::vector<GLuint> *indices = nullptr) {
 	GLuint vao;
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
@@ -320,6 +320,7 @@ void q3BSP::parseEntities(const std::string *entitystring) {
 		else if (tempEntity.pair["classname"] == "light") lightPositions.push_back(lightPos(tempEntity));
 		else entities.push_back(tempEntity); // Not handled, so throw it in the vector
 	}
+    if (!worldMusic.empty()) worldMusic.replace(5, 1, 1, '/'); //FIXME: Need to write a path sanitizer
 	std::cout << "  Map music: " << worldMusic << '\n';
 	std::cout << "  " << cameraPositions.size() << " spawn points found.\n";
 	std::cout << "  " << lightPositions.size() << " lights found.\n";

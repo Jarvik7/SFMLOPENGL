@@ -150,7 +150,7 @@ int main(const int argc, const char * argv[])
 	const GLint modelViewLoc = glGetUniformLocation(shaderID, "modelview");
 
 	//Load map
-    q3BSP test("maps/q3dm0.bsp");
+    q3BSP test("maps/q3dm1.bsp");
 	j7Model quake3(&test);
 	
 	//Load map music
